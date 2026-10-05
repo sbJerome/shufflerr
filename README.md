@@ -33,6 +33,23 @@ folders — marks it available.
 
 ### Docker
 
+The image is published at `ghcr.io/sbjerome/shufflerr` (tags `latest` and the version, for
+example `0.1.1`):
+
+```bash
+docker run -d --name shufflerr \
+  -p 5055:5055 \
+  -e TZ=America/New_York \
+  -v ./config:/app/config \
+  -v /path/to/music:/music:ro \
+  --restart unless-stopped \
+  ghcr.io/sbjerome/shufflerr:latest
+```
+
+The music volume is optional; mount it only if Shufflerr should scan plain folders.
+
+To build from source instead:
+
 ```bash
 docker compose up -d          # SQLite; data in ./config
 # or

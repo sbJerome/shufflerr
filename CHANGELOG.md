@@ -6,6 +6,11 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Container image published at `ghcr.io/sbjerome/shufflerr` (`latest`, `0.1.1`); README has the
+  `docker run` command.
+
 ### Changed
 
 - **License:** Shufflerr is now licensed under AGPL-3.0 (was MIT). Seerr-derived code keeps its

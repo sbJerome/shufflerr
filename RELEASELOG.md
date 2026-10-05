@@ -7,6 +7,7 @@ Plain-language notes per release, newest first. Technical detail is in
 
 - The project now lives on GitHub, with the app icon as its logo.
 - Shufflerr is now open source under the AGPL-3.0 license.
+- A ready-made image is available: `docker pull ghcr.io/sbjerome/shufflerr:latest`.
 
 ## v0.1.1 — 2026-10-05
 
