@@ -104,29 +104,32 @@ export const searchMusic = async (
   // bucket shows that artist's own releases (albums first, newest first)
   // instead of every single that mentions the name in its title.
   let exactArtistMbid: string | undefined;
-  const artists = wants('artist') || wants('album')
-    ? await guard<ArtistResult>('artists', async () => {
-        const data = await mb.searchArtists(
-          query,
-          wants('artist') ? paging : { limit: pageSize, offset: 0 }
-        );
-        const top = (data.artists ?? [])[0];
-        if (
-          top &&
-          (top.score ?? 0) >= 95 &&
-          top.name.trim().toLowerCase() === query.toLowerCase()
-        ) {
-          exactArtistMbid = top.id;
-        }
-        if (!wants('artist')) {
-          return empty<ArtistResult>();
-        }
-        return {
-          total: data.count ?? 0,
-          results: await mergeArtistLibrary((data.artists ?? []).map(mapArtist)),
-        };
-      })
-    : empty<ArtistResult>();
+  const artists =
+    wants('artist') || wants('album')
+      ? await guard<ArtistResult>('artists', async () => {
+          const data = await mb.searchArtists(
+            query,
+            wants('artist') ? paging : { limit: pageSize, offset: 0 }
+          );
+          const top = (data.artists ?? [])[0];
+          if (
+            top &&
+            (top.score ?? 0) >= 95 &&
+            top.name.trim().toLowerCase() === query.toLowerCase()
+          ) {
+            exactArtistMbid = top.id;
+          }
+          if (!wants('artist')) {
+            return empty<ArtistResult>();
+          }
+          return {
+            total: data.count ?? 0,
+            results: await mergeArtistLibrary(
+              (data.artists ?? []).map(mapArtist)
+            ),
+          };
+        })
+      : empty<ArtistResult>();
 
   const [albums, tracks] = await Promise.all([
     wants('album')

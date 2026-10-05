@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import AppPassword from '@server/entity/AppPassword';
 import { Blocklist } from '@server/entity/Blocklist';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
@@ -26,27 +27,11 @@ import { MediaRequestSubscriber } from '@server/subscriber/MediaRequestSubscribe
 import { MediaSubscriber } from '@server/subscriber/MediaSubscriber';
 import { isPgsql } from '@server/utils/dbType';
 import fs from 'fs';
-import path from 'path';
 import type { TlsOptions } from 'tls';
 import type { DataSourceOptions, EntityTarget, Repository } from 'typeorm';
 import { DataSource } from 'typeorm';
 
 const DB_SSL_PREFIX = 'DB_SSL_';
-
-/**
- * Until the initial migrations are generated (final build pass), a database
- * with no migration files is brought up with schema synchronisation so
- * production boots on an empty DB. Once migration files exist they win.
- */
-function hasMigrations(kind: 'sqlite' | 'postgres'): boolean {
-  try {
-    return fs
-      .readdirSync(path.join(__dirname, 'migration', kind))
-      .some((f) => /\.(js|ts)$/.test(f) && !f.endsWith('.d.ts'));
-  } catch {
-    return false;
-  }
-}
 
 const entities = [
   Blocklist,
@@ -152,7 +137,7 @@ const prodConfig: DataSourceOptions = {
   database: process.env.CONFIG_DIRECTORY
     ? `${process.env.CONFIG_DIRECTORY}/db/db.sqlite3`
     : 'config/db/db.sqlite3',
-  synchronize: !hasMigrations('sqlite'),
+  synchronize: false,
   migrationsRun: false,
   logging: boolFromEnv('DB_LOG_QUERIES'),
   enableWAL: true,
@@ -174,8 +159,8 @@ const postgresDevConfig: DataSourceOptions = {
   poolSize: intFromEnv('DB_POOL_SIZE'),
   // Bounds pool acquisition waits so exhaustion surfaces as errors instead of a silent hang
   connectTimeoutMS: intFromEnv('DB_CONNECT_TIMEOUT_MS', 30000),
-  synchronize: !hasMigrations('postgres'),
-  migrationsRun: hasMigrations('postgres'),
+  synchronize: false,
+  migrationsRun: true,
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities,
   migrations: ['server/migration/postgres/**/*.ts'],
@@ -195,7 +180,7 @@ const postgresProdConfig: DataSourceOptions = {
   poolSize: intFromEnv('DB_POOL_SIZE'),
   // Bounds pool acquisition waits so exhaustion surfaces as errors instead of a silent hang
   connectTimeoutMS: intFromEnv('DB_CONNECT_TIMEOUT_MS', 30000),
-  synchronize: !hasMigrations('postgres'),
+  synchronize: false,
   migrationsRun: false,
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities,

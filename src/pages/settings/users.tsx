@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import SettingsLayout from '@app/components/Settings/SettingsLayout';
 import SettingsUsers from '@app/components/Settings/SettingsUsers';
 import type { NextPage } from 'next';

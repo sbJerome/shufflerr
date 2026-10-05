@@ -38,7 +38,10 @@ export const LISTENBRAINZ_DEFAULT_URL = 'https://api.listenbrainz.org';
 /** ListenBrainz accepts up to 1000 listens per request; stay well below. */
 export const LISTENBRAINZ_BATCH = 100;
 
-export const listenBrainzPayload = (listen: Listen, withTimestamp: boolean) => ({
+export const listenBrainzPayload = (
+  listen: Listen,
+  withTimestamp: boolean
+) => ({
   ...(withTimestamp
     ? { listened_at: Math.floor(listen.playedAt.getTime() / 1000) }
     : {}),
@@ -178,7 +181,9 @@ const lastfmCall = async (
   }
 };
 
-export const lastfmScrobbleParams = (listens: Listen[]): Record<string, string> => {
+export const lastfmScrobbleParams = (
+  listens: Listen[]
+): Record<string, string> => {
   const params: Record<string, string> = {};
   listens.forEach((listen, i) => {
     params[`artist[${i}]`] = listen.artist;

@@ -50,7 +50,7 @@ export const testMusicBrainz = async (
     });
     if (typeof res.data?.count !== 'number') {
       return fail(
-        "That address answered, but not like a MusicBrainz server. Check the server URL."
+        'That address answered, but not like a MusicBrainz server. Check the server URL.'
       );
     }
     return { ok: true, name: 'MusicBrainz' };
@@ -62,7 +62,7 @@ export const testMusicBrainz = async (
     }
     if (e.response?.status === 404) {
       return fail(
-        "That address answered, but not like a MusicBrainz server. Check the server URL."
+        'That address answered, but not like a MusicBrainz server. Check the server URL.'
       );
     }
     return unreachable('MusicBrainz', e);
@@ -207,7 +207,7 @@ export const testTicketmaster = async (
     }
     if (e.response?.status === 429) {
       return fail(
-        "The key works, but its Ticketmaster quota is used up for now. Try again later."
+        'The key works, but its Ticketmaster quota is used up for now. Try again later.'
       );
     }
     return unreachable('Ticketmaster', e);
@@ -247,7 +247,7 @@ export const testDeezer = async (): Promise<ConnectionTestResponse> => {
     });
     return res.data?.country_iso
       ? { ok: true, name: 'Deezer' }
-      : fail("Deezer answered, but not as expected. Try again in a minute.");
+      : fail('Deezer answered, but not as expected. Try again in a minute.');
   } catch (e) {
     return unreachable('Deezer', e);
   }
@@ -285,11 +285,12 @@ export const testListenBrainz = async (
     });
     const looksRight =
       typeof res.data?.valid === 'boolean' ||
-      (typeof res.data?.error === 'string' && typeof res.data?.code === 'number');
+      (typeof res.data?.error === 'string' &&
+        typeof res.data?.code === 'number');
     return looksRight
       ? { ok: true, name: 'ListenBrainz' }
       : fail(
-          "That address answered, but not like a ListenBrainz server. The public one is https://api.listenbrainz.org."
+          'That address answered, but not like a ListenBrainz server. The public one is https://api.listenbrainz.org.'
         );
   } catch (e) {
     return unreachable('ListenBrainz', e);

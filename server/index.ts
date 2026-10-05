@@ -168,22 +168,30 @@ app
       }
     });
     if (settings.network.csrfProtection) {
-      server.use(
-        csurf({
-          cookie: {
-            httpOnly: true,
-            sameSite: true,
-            secure: !dev,
-            key: '_csrf',
-            path: '/',
-          },
-        })
-      );
-      server.use((req, res, next) => {
-        res.cookie('XSRF-TOKEN', req.csrfToken(), {
+      // Not browser-session traffic: the client APIs sign in with app
+      // passwords and the webhooks with the API key, so CSRF does not apply.
+      const csrfExempt = (path: string): boolean =>
+        /^\/(rest|jellyfin)(\/|$)/i.test(path) ||
+        /^\/api\/v1\/webhooks(\/|$)/i.test(path);
+      const csrfProtection = csurf({
+        cookie: {
+          httpOnly: true,
           sameSite: true,
           secure: !dev,
-        });
+          key: '_csrf',
+          path: '/',
+        },
+      });
+      server.use((req, res, next) =>
+        csrfExempt(req.path) ? next() : csrfProtection(req, res, next)
+      );
+      server.use((req, res, next) => {
+        if (!csrfExempt(req.path)) {
+          res.cookie('XSRF-TOKEN', req.csrfToken(), {
+            sameSite: true,
+            secure: !dev,
+          });
+        }
         next();
       });
     }
@@ -220,9 +228,13 @@ app
     server.use(
       OpenApiValidator.middleware({
         apiSpec: API_SPEC_PATH,
-        validateRequests: true,
-        // The spec only documents part of the API for now; undocumented routes
-        // pass through unvalidated. (The full spec is written in a later pass.)
+        // shufflerr-api.yml is generated from the routes and their types
+        // (server/scripts/generateApiSpec.ts) and documents the API. Requests
+        // are checked by the handlers themselves, which answer with the exact
+        // "what to fix" copy the UI shows; schema validation here would
+        // pre-empt those messages with generic ones.
+        validateRequests: false,
+        validateResponses: false,
         ignoreUndocumented: true,
       })
     );

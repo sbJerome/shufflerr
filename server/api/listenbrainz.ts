@@ -45,7 +45,13 @@ export interface FreshReleaseIndex {
   >;
 }
 
-export type LbRange = 'this_week' | 'this_month' | 'week' | 'month' | 'year' | 'all_time';
+export type LbRange =
+  | 'this_week'
+  | 'this_month'
+  | 'week'
+  | 'month'
+  | 'year'
+  | 'all_time';
 
 export interface LbTrackMetadata {
   artist_name: string;
@@ -86,7 +92,10 @@ export class ListenBrainzError extends Error {
 }
 
 /** Build the ListenBrainz payload for one play. */
-export const toLbListen = (input: ListenInput, withTimestamp: boolean): LbListen => {
+export const toLbListen = (
+  input: ListenInput,
+  withTimestamp: boolean
+): LbListen => {
   const additional: Record<string, unknown> = {
     submission_client: 'Shufflerr',
     submission_client_version: getAppVersion(),
@@ -261,7 +270,9 @@ class ListenBrainzAPI extends ExternalAPI {
     if (listens.length === 0) {
       return;
     }
-    const payload = listens.map((l) => toLbListen(l, listenType !== 'playing_now'));
+    const payload = listens.map((l) =>
+      toLbListen(l, listenType !== 'playing_now')
+    );
     try {
       await this.axios.post(
         '/1/submit-listens',
@@ -273,7 +284,9 @@ class ListenBrainzAPI extends ExternalAPI {
       );
     } catch (e) {
       throw new ListenBrainzError(
-        e?.response?.data?.error ?? e.message ?? 'ListenBrainz rejected the listen',
+        e?.response?.data?.error ??
+          e.message ??
+          'ListenBrainz rejected the listen',
         e?.response?.status
       );
     }

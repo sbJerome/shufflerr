@@ -75,7 +75,12 @@ export const musicBrainzUserAgent = (contact?: string): string => {
   return `Shufflerr/${getAppVersion()} ( ${who} )`;
 };
 
-export type ReleaseGroupType = 'album' | 'ep' | 'single' | 'broadcast' | 'other';
+export type ReleaseGroupType =
+  | 'album'
+  | 'ep'
+  | 'single'
+  | 'broadcast'
+  | 'other';
 
 export interface SearchPage {
   limit?: number;
@@ -114,33 +119,36 @@ class MusicBrainz extends ExternalAPI {
     });
 
     // 503 / 429 = slow down: back off and retry a few times.
-    this.axios.interceptors.response.use(undefined, async (error: AxiosError) => {
-      const config = error.config as RetryConfig | undefined;
-      const status = error.response?.status;
-      if (!config || (status !== 503 && status !== 429)) {
-        throw error;
+    this.axios.interceptors.response.use(
+      undefined,
+      async (error: AxiosError) => {
+        const config = error.config as RetryConfig | undefined;
+        const status = error.response?.status;
+        if (!config || (status !== 503 && status !== 429)) {
+          throw error;
+        }
+        const attempt = (config.mbAttempt ?? 0) + 1;
+        if (attempt > MAX_RETRIES) {
+          throw error;
+        }
+        config.mbAttempt = attempt;
+        const retryAfter = Number(error.response?.headers?.['retry-after']);
+        const wait = Math.min(
+          30000,
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? retryAfter * 1000
+            : 1000 * 2 ** (attempt - 1)
+        );
+        logger.debug('MusicBrainz asked us to slow down, retrying', {
+          label: 'MusicBrainz',
+          status,
+          attempt,
+          wait,
+        });
+        bucket.pause(wait);
+        return this.axios.request(config);
       }
-      const attempt = (config.mbAttempt ?? 0) + 1;
-      if (attempt > MAX_RETRIES) {
-        throw error;
-      }
-      config.mbAttempt = attempt;
-      const retryAfter = Number(error.response?.headers?.['retry-after']);
-      const wait = Math.min(
-        30000,
-        Number.isFinite(retryAfter) && retryAfter > 0
-          ? retryAfter * 1000
-          : 1000 * 2 ** (attempt - 1)
-      );
-      logger.debug('MusicBrainz asked us to slow down, retrying', {
-        label: 'MusicBrainz',
-        status,
-        attempt,
-        wait,
-      });
-      bucket.pause(wait);
-      return this.axios.request(config);
-    });
+    );
   }
 
   /** Cached GET with in-flight de-duplication (two viewers opening one album = one call). */
@@ -318,7 +326,10 @@ class MusicBrainz extends ExternalAPI {
   /** Every release group of an artist (pages of 100, capped). */
   public async getAllReleaseGroups(
     artistMbid: string,
-    { types, maxPages = 6 }: { types?: ReleaseGroupType[]; maxPages?: number } = {}
+    {
+      types,
+      maxPages = 6,
+    }: { types?: ReleaseGroupType[]; maxPages?: number } = {}
   ): Promise<MbReleaseGroup[]> {
     const all: MbReleaseGroup[] = [];
     for (let page = 0; page < maxPages; page++) {
@@ -345,7 +356,8 @@ let instanceUrl = '';
 
 /** Shared client; rebuilt when the server URL (mirror) changes in settings. */
 export const getMusicBrainz = (): MusicBrainz => {
-  const url = getSettings().metadata.musicbrainz.url || 'https://musicbrainz.org';
+  const url =
+    getSettings().metadata.musicbrainz.url || 'https://musicbrainz.org';
   if (!instance || instanceUrl !== url) {
     instance = new MusicBrainz(url);
     instanceUrl = url;

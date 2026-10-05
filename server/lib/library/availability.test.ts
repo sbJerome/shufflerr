@@ -22,7 +22,12 @@ import { getSettings } from '@server/lib/settings';
 import { setupTestDb } from '@server/test/db';
 import express from 'express';
 import request from 'supertest';
-import { countSource, detachSource, metadataHooks } from './availability';
+import {
+  countSource,
+  detachSource,
+  metadataHooks,
+  recomputeArtist,
+} from './availability';
 import type { IngestDeps } from './ingest';
 import { ingestAlbum } from './ingest';
 import { decodePeaks, encodePeaks } from './peaks';
@@ -132,6 +137,9 @@ before(() => {
     throw new Error('MusicBrainz is not reachable in tests');
   };
   metadataHooks.getDiscographyReleaseGroups = async () => discography;
+  metadataHooks.artistName = async () => {
+    throw new Error('MusicBrainz is not reachable in tests');
+  };
 });
 
 describe('library ingest and availability', () => {
@@ -374,6 +382,34 @@ describe('library ingest and availability', () => {
     );
     assert.equal((await reload(artist.id)).status, MediaStatus.AVAILABLE);
     discography = [];
+  });
+
+  it("an artist row made from an album credit takes the artist's own name once MusicBrainz answers", async () => {
+    const media = await seedCtrlEscape();
+    await getRepository(Media).update(media.id, {
+      artistName: 'John Summit, Devault & Julia Church',
+    });
+    await ingestAlbum(await localAlbum(9), deps());
+
+    // MusicBrainz was unreachable: the provisional row carries the credit phrase
+    const provisional = await getRepository(Media).findOneOrFail({
+      where: { mbid: ARTIST.id, mediaType: MediaType.ARTIST },
+    });
+    assert.equal(provisional.title, 'John Summit, Devault & Julia Church');
+    assert.ok(!provisional.artistMbid);
+
+    const unreachable = metadataHooks.artistName;
+    metadataHooks.artistName = async () => ARTIST.name;
+    try {
+      await recomputeArtist(ARTIST.id);
+    } finally {
+      metadataHooks.artistName = unreachable;
+    }
+
+    const fixed = await reload(provisional.id);
+    assert.equal(fixed.title, ARTIST.name);
+    assert.equal(fixed.artistName, ARTIST.name);
+    assert.equal(fixed.artistMbid, ARTIST.id);
   });
 
   it('never invents a match: unresolved and unreachable albums change nothing', async () => {

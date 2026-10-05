@@ -102,10 +102,8 @@ describe('pickCanonicalRelease', () => {
       'xw'
     );
     assert.equal(
-      pickCanonicalRelease([
-        release('ten'),
-        release('twelve', { tracks: 12 }),
-      ])?.id,
+      pickCanonicalRelease([release('ten'), release('twelve', { tracks: 12 })])
+        ?.id,
       'twelve'
     );
   });
@@ -145,11 +143,28 @@ describe('flattenRelease', () => {
     assert.equal(tracks.length, 13);
     assert.deepEqual(
       tracks.map((t) => t.position),
-      ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13']
+      [
+        '01',
+        '02',
+        '03',
+        '04',
+        '05',
+        '06',
+        '07',
+        '08',
+        '09',
+        '10',
+        '11',
+        '12',
+        '13',
+      ]
     );
     assert.equal(tracks[1].title, 'SHADES OF BLUE');
     assert.equal(tracks[1].artistCredit, 'John Summit, Devault & Julia Church');
-    assert.equal(tracks[1].recordingMbid, '6ea95e5d-1d83-43f0-91b2-3aa6b91cc278');
+    assert.equal(
+      tracks[1].recordingMbid,
+      '6ea95e5d-1d83-43f0-91b2-3aa6b91cc278'
+    );
     assert.equal(tracks[1].lengthMs, 203000);
     assert.ok(tracks.every((t) => t.discNumber === 1));
   });
@@ -248,8 +263,14 @@ describe('MusicBrainz mappers', () => {
 
   it('keeps one outbound link per known site and drops ended ones', () => {
     const links = mapUrlRelations([
-      { type: 'discogs', url: { resource: 'https://www.discogs.com/artist/1' } },
-      { type: 'discogs', url: { resource: 'https://www.discogs.com/artist/2' } },
+      {
+        type: 'discogs',
+        url: { resource: 'https://www.discogs.com/artist/1' },
+      },
+      {
+        type: 'discogs',
+        url: { resource: 'https://www.discogs.com/artist/2' },
+      },
       { type: 'official homepage', url: { resource: 'https://example.test/' } },
       {
         type: 'official homepage',

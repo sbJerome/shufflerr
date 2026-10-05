@@ -128,7 +128,9 @@ export const bestReleaseGroupOf = (
 export const mapRecording = (recording: MbRecording): TrackResult => {
   const credits = recording['artist-credit'];
   const rg = bestReleaseGroupOf(recording);
-  const year = yearOf(rg?.['first-release-date'] ?? recording['first-release-date']);
+  const year = yearOf(
+    rg?.['first-release-date'] ?? recording['first-release-date']
+  );
   return {
     recordingMbid: recording.id,
     title: recording.title,
@@ -162,7 +164,9 @@ const LINK_HOSTS: [RegExp, ExternalLink['type']][] = [
 ];
 
 /** Useful outbound links from MusicBrainz URL relationships (one per kind). */
-export const mapUrlRelations = (relations?: MbUrlRelation[]): ExternalLink[] => {
+export const mapUrlRelations = (
+  relations?: MbUrlRelation[]
+): ExternalLink[] => {
   const links: ExternalLink[] = [];
   const seen = new Set<string>();
   for (const rel of relations ?? []) {

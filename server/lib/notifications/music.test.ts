@@ -127,9 +127,7 @@ describe('notification subject and scope', () => {
       '1 track'
     );
     assert.strictEqual(
-      scopeLabel(
-        request({ scope: RequestScope.DISCOGRAPHY, releaseCount: 8 })
-      ),
+      scopeLabel(request({ scope: RequestScope.DISCOGRAPHY, releaseCount: 8 })),
       'Discography (8 releases)'
     );
   });
@@ -167,7 +165,10 @@ describe('buildRequestNotification', () => {
     assert.strictEqual(type, Notification.MEDIA_FAILED);
     assert.strictEqual(payload.notifyAdmin, true);
     assert.strictEqual(payload.notifyUser, requester);
-    assert.match(payload.message ?? '', /No release matched the quality profile/);
+    assert.match(
+      payload.message ?? '',
+      /No release matched the quality profile/
+    );
     assert.deepStrictEqual(payload.extra, [
       { name: 'Scope', value: 'Album' },
       { name: 'Reason', value: 'No release matched the quality profile.' },
@@ -221,7 +222,10 @@ describe('buildRequestNotification', () => {
 describe('who gets manager notifications', () => {
   it('needs MANAGE_REQUESTS and skips the person being notified', () => {
     const { type, payload } = buildRequestNotification('failed', request());
-    assert.strictEqual(shouldSendAdminNotification(type, manager, payload), true);
+    assert.strictEqual(
+      shouldSendAdminNotification(type, manager, payload),
+      true
+    );
     // No MANAGE_REQUESTS
     assert.strictEqual(
       shouldSendAdminNotification(
@@ -258,13 +262,23 @@ describe('type keys', () => {
   it('converts between string keys and the bitmask', () => {
     const mask = typesToMask(['pending', 'available', 'failed']);
     assert.strictEqual(mask, 2 | 8 | 16);
-    assert.deepStrictEqual(maskToTypes(mask), ['pending', 'available', 'failed']);
+    assert.deepStrictEqual(maskToTypes(mask), [
+      'pending',
+      'available',
+      'failed',
+    ]);
     assert.strictEqual(typesToMask(['nope']), 0);
   });
 
   it('lets test notifications through whatever is ticked', () => {
-    assert.strictEqual(hasNotificationType(Notification.TEST_NOTIFICATION, 0), true);
-    assert.strictEqual(hasNotificationType(Notification.MEDIA_PENDING, 0), false);
+    assert.strictEqual(
+      hasNotificationType(Notification.TEST_NOTIFICATION, 0),
+      true
+    );
+    assert.strictEqual(
+      hasNotificationType(Notification.MEDIA_PENDING, 0),
+      false
+    );
   });
 });
 
@@ -375,14 +389,21 @@ describe('webhook template', () => {
 
   it('skips types that are not ticked and posts the ones that are', async () => {
     const posted: unknown[] = [];
-    const stub = mock.method(axios, 'post', async (_url: string, body: unknown) => {
-      posted.push(body);
-      return { status: 200, data: {} };
-    });
+    const stub = mock.method(
+      axios,
+      'post',
+      async (_url: string, body: unknown) => {
+        posted.push(body);
+        return { status: 200, data: {} };
+      }
+    );
     try {
       const agent = agentFor('{"key":"{{notification_key}}"}');
       const approved = buildRequestNotification('approved', request());
-      assert.strictEqual(await agent.send(approved.type, approved.payload), true);
+      assert.strictEqual(
+        await agent.send(approved.type, approved.payload),
+        true
+      );
       assert.strictEqual(posted.length, 0);
 
       const pending = buildRequestNotification('pending', request());
@@ -438,7 +459,8 @@ describe('Discord embed', () => {
     );
     assert.ok(
       embed.fields?.some(
-        (f) => f.name === 'Request status' && f.value === 'Approved, downloading'
+        (f) =>
+          f.name === 'Request status' && f.value === 'Approved, downloading'
       )
     );
   });

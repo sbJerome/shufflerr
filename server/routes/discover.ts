@@ -1,12 +1,12 @@
 // Mounted at /api/v1/discover (see docs/API_CONTRACT.md).
 // Every row is real data: library index, request log, ListenBrainz, the Event cache.
 import { getArtistImages } from '@server/api/fanart';
+import { getItunesChart } from '@server/api/itunes';
 import ListenBrainzAPI from '@server/api/listenbrainz';
 import {
   MediaRequestStatus,
   MediaStatus,
   MediaType,
-  RequestScope,
 } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Event from '@server/entity/Event';
@@ -23,8 +23,10 @@ import type {
   DiscoverRecentRequestsResponse,
   DiscoverStatsResponse,
 } from '@server/interfaces/api/discoverInterfaces';
-import type { RequestResult } from '@server/interfaces/api/requestInterfaces';
+import cacheManager from '@server/lib/cache';
 import downloadTracker from '@server/lib/downloadtracker';
+import type { MatchedReleaseGroup } from '@server/lib/import/match';
+import { matchAlbum, toAlbumResults } from '@server/lib/import/match';
 import { firstPlayableTrackId } from '@server/lib/metadata/details';
 import { coverUrlFor, isMbid } from '@server/lib/metadata/index';
 import {
@@ -36,6 +38,7 @@ import {
 } from '@server/lib/metadata/library';
 import { yearOf } from '@server/lib/metadata/mappers';
 import { Permission } from '@server/lib/permissions';
+import { toRequestResults } from '@server/lib/requestResults';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import type { AlbumResult, ArtistResult } from '@server/models/music';
@@ -234,9 +237,115 @@ router.get<never, DiscoverAlbumsResponse>(
   }
 );
 
-// GET /discover/trending · signed in → ListenBrainz fresh releases; `enabled:false` when off
+/**
+ * iTunes most-played chart matched to MusicBrainz, for when ListenBrainz
+ * trending is off. Matching costs MusicBrainz calls (1 req/s), so it runs in
+ * the background, is remembered for 6 hours, and a request waits for it only
+ * briefly: the row fills in as matches arrive (matchAlbum persists each one).
+ */
+const ITUNES_TRENDING_TTL = 6 * 60 * 60;
+let itunesTrendingBuild: Promise<AlbumResult[]> | undefined;
+
+const buildItunesTrending = async (): Promise<AlbumResult[]> => {
+  const chart = await getItunesChart(30);
+  const groups: MatchedReleaseGroup[] = [];
+  const seen = new Set<string>();
+  for (const entry of chart) {
+    try {
+      const outcome = await matchAlbum({
+        key: `itunes:${entry.id}`,
+        sourceId: entry.id,
+        title: entry.title,
+        artist: entry.artistName,
+      });
+      if (outcome.releaseGroup && !seen.has(outcome.releaseGroup.mbid)) {
+        seen.add(outcome.releaseGroup.mbid);
+        groups.push(outcome.releaseGroup);
+      }
+    } catch (e) {
+      logger.debug('Could not match an iTunes chart album', {
+        label: 'Discover',
+        errorMessage: e.message,
+      });
+    }
+  }
+  const byMbid = await toAlbumResults(groups);
+  return groups
+    .map((g) => byMbid.get(g.mbid))
+    .filter((a): a is AlbumResult => !!a)
+    .map((a) => ({ ...a, coverUrl: a.coverUrl ?? coverUrlFor(a.mbid, 500) }));
+};
+
+const itunesTrendingAlbums = async (
+  take: number
+): Promise<{ results: AlbumResult[]; building: boolean }> => {
+  const cache = cacheManager.getCache('itunes').data;
+  const cacheKey = `trending:${getSettings().discover.itunes.country}`;
+  let albums = cache.get<AlbumResult[]>(cacheKey);
+  let building = false;
+
+  if (!albums) {
+    itunesTrendingBuild ??= buildItunesTrending()
+      .then((built) => {
+        cache.set(cacheKey, built, ITUNES_TRENDING_TTL);
+        return built;
+      })
+      .finally(() => {
+        itunesTrendingBuild = undefined;
+      });
+    const pending = itunesTrendingBuild;
+    pending.catch(() => undefined);
+    albums = await Promise.race([
+      pending,
+      new Promise<undefined>((resolve) => {
+        setTimeout(() => resolve(undefined), 8000).unref();
+      }),
+    ]);
+    building = !albums;
+  }
+
+  const results = [...(albums ?? [])];
+  await mergeAlbumLibrary(results);
+  const visible = getSettings().main.hideAvailable
+    ? results.filter((a) => a.status !== MediaStatus.AVAILABLE)
+    : results;
+  return { results: visible.slice(0, take), building };
+};
+
+// GET /discover/trending · signed in → ListenBrainz most-played new releases;
+//   falls back to the iTunes chart when ListenBrainz trending is off and
+//   iTunes is on; `enabled:false` when both are off.
 router.get<never, DiscoverAlbumsResponse>('/trending', async (req, res) => {
-  if (!getSettings().discover.listenbrainzTrending.enabled) {
+  const { listenbrainzTrending, itunes } = getSettings().discover;
+  const take = takeParam(req.query.take, 20);
+
+  if (!listenbrainzTrending.enabled && itunes.enabled) {
+    try {
+      const { results, building } = await itunesTrendingAlbums(take);
+      return res.status(200).json({
+        enabled: true,
+        ...(building
+          ? {
+              reason:
+                'Matching the iTunes chart to MusicBrainz. The row fills in within a minute.',
+            }
+          : {}),
+        results,
+      });
+    } catch (e) {
+      logger.warn('Could not load the iTunes chart', {
+        label: 'Discover',
+        errorMessage: e.message,
+      });
+      return res.status(200).json({
+        enabled: true,
+        reason:
+          'The iTunes chart could not be reached. The row fills in when it responds again.',
+        results: [],
+      });
+    }
+  }
+  if (!listenbrainzTrending.enabled) {
     return res.status(200).json({
       enabled: false,
       reason:
@@ -247,7 +356,7 @@ router.get<never, DiscoverAlbumsResponse>('/trending', async (req, res) => {
   try {
     return res.status(200).json({
       enabled: true,
-      results: await trendingAlbums(takeParam(req.query.take, 20)),
+      results: await trendingAlbums(take),
     });
   } catch (e) {
     logger.warn('Could not load trending releases from ListenBrainz', {
@@ -256,7 +365,8 @@ router.get<never, DiscoverAlbumsResponse>('/trending', async (req, res) => {
     });
     return res.status(200).json({
       enabled: true,
-      reason: 'ListenBrainz could not be reached. The row fills in when it responds again.',
+      reason:
+        'ListenBrainz could not be reached. The row fills in when it responds again.',
       results: [],
     });
   }
@@ -302,7 +412,10 @@ const popularLibraryArtists = async (take: number): Promise<ArtistResult[]> => {
       let played = plays.get(name.toLowerCase()) ?? 0;
       if (name) {
         for (const [credit, count] of plays) {
-          if (credit !== name.toLowerCase() && credit.startsWith(`${name.toLowerCase()},`)) {
+          if (
+            credit !== name.toLowerCase() &&
+            credit.startsWith(`${name.toLowerCase()},`)
+          ) {
             played += count;
           }
         }
@@ -351,15 +464,19 @@ router.get<never, DiscoverArtistsResponse>(
               status: MediaStatus.UNKNOWN,
             }));
           if (results.length > 0) {
-            return res
-              .status(200)
-              .json({ enabled: true, results: await mergeArtistLibrary(results) });
+            return res.status(200).json({
+              enabled: true,
+              results: await mergeArtistLibrary(results),
+            });
           }
         } catch (e) {
-          logger.debug('ListenBrainz sitewide artists failed, using the library', {
-            label: 'Discover',
-            errorMessage: e.message,
-          });
+          logger.debug(
+            'ListenBrainz sitewide artists failed, using the library',
+            {
+              label: 'Discover',
+              errorMessage: e.message,
+            }
+          );
         }
       }
       return res
@@ -370,61 +487,6 @@ router.get<never, DiscoverArtistsResponse>(
     }
   }
 );
-
-const lastChange = (request: MediaRequest): string => {
-  switch (request.status) {
-    case MediaRequestStatus.FAILED:
-      return 'Failed after approval';
-    case MediaRequestStatus.DECLINED:
-      return request.modifiedBy
-        ? `Declined by ${request.modifiedBy.displayName}`
-        : 'Declined';
-    case MediaRequestStatus.APPROVED:
-    case MediaRequestStatus.COMPLETED:
-      if (request.isAutoApproved) {
-        return 'Approved automatically';
-      }
-      return request.modifiedBy
-        ? `Approved by ${request.modifiedBy.displayName}`
-        : 'Approved';
-    default:
-      return 'No changes yet';
-  }
-};
-
-const toRequestResult = async (
-  request: MediaRequest,
-  viewer: User
-): Promise<RequestResult> => {
-  const canManage = viewer.hasPermission(Permission.MANAGE_REQUESTS);
-  const isOwn = request.requestedBy?.id === viewer.id;
-  const media = request.media;
-  const coverUrl =
-    request.scope === RequestScope.DISCOGRAPHY ||
-    media?.mediaType === MediaType.ARTIST
-      ? media?.mbid
-        ? (await getArtistImages(media.mbid)).thumb
-        : null
-      : media?.mbid
-        ? coverUrlFor(media.mbid, 250)
-        : null;
-  const requestedTracks = (request.tracks ?? []).map((t) => t.track);
-  const playable =
-    request.scope === RequestScope.TRACKS
-      ? requestedTracks.length > 0 &&
-        requestedTracks.every((t) => t?.status === MediaStatus.AVAILABLE)
-      : media?.status === MediaStatus.AVAILABLE &&
-        media.mediaType === MediaType.RELEASE_GROUP;
-  return {
-    ...request,
-    coverUrl,
-    canManage,
-    canRemove:
-      canManage || (isOwn && request.status === MediaRequestStatus.PENDING),
-    lastChange: lastChange(request),
-    playable,
-  };
-};
 
 // GET /discover/recent-requests · signed in → own requests unless REQUEST_VIEW / MANAGE_REQUESTS
 router.get<never, DiscoverRecentRequestsResponse>(
@@ -441,9 +503,7 @@ router.get<never, DiscoverRecentRequestsResponse>(
       return res.status(200).json({
         enabled: true,
         ownOnly,
-        results: await Promise.all(
-          requests.map((r) => toRequestResult(r, user))
-        ),
+        results: (await toRequestResults(requests, user)).results,
       });
     } catch (e) {
       return next({ status: 500, message: e.message });
@@ -467,7 +527,8 @@ router.get<never, DiscoverConcertsResponse>(
     if (providers.length === 0) {
       return res.status(200).json({
         enabled: false,
-        reason: 'No concert source is on. Add Ticketmaster or Skiddle in Settings.',
+        reason:
+          'No concert source is on. Add Ticketmaster or Skiddle in Settings.',
         results: [],
         attribution: [],
       });

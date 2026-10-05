@@ -28,10 +28,7 @@ const videoCache = new PersistCache<CachedVideo>(
   30 * 24 * 60 * 60 * 1000
 );
 /** "Nothing found" is remembered for a day. */
-const missCache = new PersistCache<true>(
-  'youtube-misses',
-  24 * 60 * 60 * 1000
-);
+const missCache = new PersistCache<true>('youtube-misses', 24 * 60 * 60 * 1000);
 const inflight = new Map<string, Promise<CachedVideo | null>>();
 /** Set when Google says the daily quota is gone; searching resumes after this time. */
 let quotaBlockedUntil = 0;
@@ -62,7 +59,8 @@ router.get('/track/:recordingMbid', async (req, res, next) => {
     return respond(null);
   }
 
-  let artist = typeof req.query.artist === 'string' ? req.query.artist.trim() : '';
+  let artist =
+    typeof req.query.artist === 'string' ? req.query.artist.trim() : '';
   let title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
   if (!artist || !title) {
     const track = await getRepository(Track).findOne({

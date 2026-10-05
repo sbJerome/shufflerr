@@ -15,13 +15,22 @@ import defineMessages from '@app/utils/defineMessages';
 import type {
   LocalFilesSettingsResponse,
   LocalFolderCheckResponse,
+  LocalUnresolvedResponse,
 } from '@server/interfaces/api/settingsInterfaces';
 import axios from 'axios';
 import { useState } from 'react';
+import useSWR from 'swr';
 import { useIntl } from 'react-intl';
 import { mutate as globalMutate } from 'swr';
 
 const messages = defineMessages('components.Settings.SettingsLocal', {
+  unresolved: 'Albums Shufflerr couldn’t identify',
+  unresolvedSub:
+    '{count, plural, one {# album in your folders has} other {# albums in your folders have}} no match on MusicBrainz yet, so {count, plural, one {it isn’t} other {they aren’t}} in the library. Tagging the files with MusicBrainz Picard usually fixes it. Shufflerr tries again every week and whenever the files change.',
+  unresolvedFolder: 'Folder',
+  unresolvedTags: 'Tagged as',
+  unresolvedNext: 'Next try',
+  unresolvedUntagged: 'No artist or album tags',
   title: 'Local files',
   description:
     'Read music straight from folders on this server. Connected apps can stream them too.',
@@ -56,9 +65,16 @@ interface SettingsLocalProps {
   onComplete?: () => void;
 }
 
+const UNRESOLVED_COLUMNS = 'minmax(180px,1.2fr) minmax(220px,2fr) 100px';
+
 const SettingsLocal = ({ isSetupSettings, onComplete }: SettingsLocalProps) => {
   const intl = useIntl();
   const { addToast } = useToasts();
+  // Albums the scanner could not match to MusicBrainz (not in the library yet).
+  const { data: unresolved } = useSWR<LocalUnresolvedResponse>(
+    isSetupSettings ? null : '/api/v1/settings/local/unresolved',
+    { shouldRetryOnError: false }
+  );
   const section = useSection<LocalFilesSettingsResponse>(
     '/api/v1/settings/local'
   );
@@ -260,6 +276,68 @@ const SettingsLocal = ({ isSetupSettings, onComplete }: SettingsLocalProps) => {
               source={intl.formatMessage(messages.sourceName)}
               disabled={!draft.enabled || !draft.folders?.length}
             />
+          )}
+
+          {!isSetupSettings && !!unresolved?.results?.length && (
+            <Panel
+              title={intl.formatMessage(messages.unresolved)}
+              sub={intl.formatMessage(messages.unresolvedSub, {
+                count: unresolved.results.length,
+              })}
+            >
+              <div className="sh-box sh-scroll-x">
+                <div className="sh-table" role="table">
+                  <div
+                    className="sh-tr head"
+                    role="row"
+                    style={{ gridTemplateColumns: UNRESOLVED_COLUMNS }}
+                  >
+                    <span role="columnheader">
+                      {intl.formatMessage(messages.unresolvedTags)}
+                    </span>
+                    <span role="columnheader">
+                      {intl.formatMessage(messages.unresolvedFolder)}
+                    </span>
+                    <span role="columnheader">
+                      {intl.formatMessage(messages.unresolvedNext)}
+                    </span>
+                  </div>
+                  {unresolved.results.map((item) => (
+                    <div
+                      className="sh-tr"
+                      role="row"
+                      key={item.folder}
+                      style={{ gridTemplateColumns: UNRESOLVED_COLUMNS }}
+                    >
+                      <span role="cell" className="min-w-0">
+                        <span className="sh-title">
+                          {item.album ??
+                            intl.formatMessage(messages.unresolvedUntagged)}
+                        </span>
+                        {item.artist && (
+                          <>
+                            <br />
+                            <span className="sh-feat">{item.artist}</span>
+                          </>
+                        )}
+                      </span>
+                      <span
+                        role="cell"
+                        className="min-w-0 break-all font-mono text-xs text-muted"
+                      >
+                        {item.folder.split('|')[0]}
+                      </span>
+                      <span role="cell" className="dim">
+                        {intl.formatDate(item.nextTry, {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Panel>
           )}
         </>
       )}

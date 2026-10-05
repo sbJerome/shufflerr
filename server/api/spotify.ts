@@ -245,17 +245,16 @@ class SpotifyAPI extends ExternalAPI {
   ): Promise<SpotifyTrack[]> {
     const tracks: SpotifyTrack[] = [];
     for (let offset = 0; offset < maxTracks; offset += 100) {
-      const page = await this.get<SpotifyPaging<{ track: SpotifyTrack | null }>>(
-        `/playlists/${id}/tracks`,
-        {
-          params: {
-            limit: 100,
-            offset,
-            fields:
-              'next,total,items(track(id,name,external_ids,artists(id,name),album(id,name,album_type,total_tracks,artists(id,name),images)))',
-          },
-        }
-      );
+      const page = await this.get<
+        SpotifyPaging<{ track: SpotifyTrack | null }>
+      >(`/playlists/${id}/tracks`, {
+        params: {
+          limit: 100,
+          offset,
+          fields:
+            'next,total,items(track(id,name,external_ids,artists(id,name),album(id,name,album_type,total_tracks,artists(id,name),images)))',
+        },
+      });
       tracks.push(
         ...page.items
           .map((item) => item.track)

@@ -5,6 +5,7 @@ import defineMessages from '@app/utils/defineMessages';
 import { loginMethods } from '@app/utils/publicSettings';
 import type { NextPage } from 'next';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
 
 const messages = defineMessages('pages.logout', {
@@ -19,11 +20,12 @@ const LogoutPage: NextPage = () => {
   const intl = useIntl();
   const { currentSettings } = useSettings();
   const methods = loginMethods(currentSettings);
-  const serverName = methods.plex
-    ? 'Plex'
-    : methods.jellyfin
-      ? methods.jellyfinName
-      : undefined;
+  const router = useRouter();
+  // Set by the account menu: only people who signed in with a media server
+  // are told they are still signed in there.
+  const via = router.query.via;
+  const serverName =
+    via === 'plex' ? 'Plex' : via === 'jellyfin' ? methods.jellyfinName : undefined;
 
   return (
     <AuthShell>

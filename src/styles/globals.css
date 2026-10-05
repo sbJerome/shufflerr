@@ -421,10 +421,6 @@
     @apply flex max-w-xl rounded-md shadow-sm;
   }
 
-  .actions {
-    @apply mt-8 border-t border-gray-700 pt-5 text-white;
-  }
-
   label,
   .group-label {
     @apply mb-1 block text-[13px] font-semibold leading-5 text-muted;
@@ -458,16 +454,17 @@
   }
 
   input[type='checkbox'] {
-    @apply h-[18px] w-[18px] rounded border-line-2 bg-raised text-accent transition duration-150 ease-in-out;
+    @apply h-[18px] w-[18px] rounded border-faint bg-raised text-accent transition duration-150 ease-in-out;
   }
 
   input[type='radio'] {
-    @apply h-[18px] w-[18px] border-line-2 bg-raised text-accent;
+    @apply h-[18px] w-[18px] border-faint bg-raised text-accent;
   }
 
   input[type='email'],
   input[type='number'],
   input[type='url'],
+  input[type='search'],
   input[type='tel'] {
     @apply block w-full min-w-0 flex-1 rounded-ctl border border-line-2 bg-raised text-ink sm:text-sm sm:leading-5;
     min-height: 46px;
@@ -1231,6 +1228,8 @@
   }
   .sh-scroll-x {
     overflow-x: auto;
+    /* containing block for .sr-only cells, which would otherwise widen the page */
+    position: relative;
   }
   .sh-list {
     list-style: none;
@@ -1469,6 +1468,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 14px;
+    align-items: start;
   }
   .sh-field {
     display: flex;
@@ -1643,7 +1643,8 @@
   .sh-overlay {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    /* above slide-overs (50): dialogs can open from inside one */
+    z-index: 55;
     background: rgba(5, 7, 12, 0.72);
     display: flex;
     justify-content: center;

@@ -25,7 +25,7 @@ const StatusChecker = () => {
   const settings = useSettings();
   const { hasPermission } = useUser();
   const { data, error } = useSWR<StatusResponse>(
-    '/api/v1/status?checkUpdateAvailable=false',
+    '/api/v1/status',
     {
       refreshInterval: 60 * 1000,
     }

@@ -64,10 +64,7 @@ export const ensureMedia = async (
   if (!isMbid(mbid)) {
     throw new InvalidMbidError('That is not a MusicBrainz ID.');
   }
-  if (
-    mediaType !== MediaType.ARTIST &&
-    mediaType !== MediaType.RELEASE_GROUP
-  ) {
+  if (mediaType !== MediaType.ARTIST && mediaType !== MediaType.RELEASE_GROUP) {
     throw new Error(`ensureMedia() does not store ${mediaType} rows`);
   }
   mbid = mbid.toLowerCase();
@@ -128,7 +125,9 @@ const normalizeTitle = (title: string): string =>
 
 /** Flatten a MusicBrainz release into Shufflerr's tracklist ("01", or "1-07" for multi-disc). */
 export const flattenRelease = (release: MbRelease): CanonicalTrack[] => {
-  const media = (release.media ?? []).filter((m) => (m.tracks ?? []).length > 0);
+  const media = (release.media ?? []).filter(
+    (m) => (m.tracks ?? []).length > 0
+  );
   const multiDisc = media.length > 1;
   const out: CanonicalTrack[] = [];
   media.forEach((medium, index) => {
@@ -163,8 +162,7 @@ const syncTracklistUnlocked = async (
   applyReleaseGroup(media, rg);
 
   // Keep the release we already use (stable Track ids) unless told otherwise.
-  const preferred =
-    options.preferReleaseMbid ?? media.releaseMbid ?? undefined;
+  const preferred = options.preferReleaseMbid ?? media.releaseMbid ?? undefined;
   const picked = pickCanonicalRelease(rg.releases, {
     preferReleaseMbid: preferred,
     preferCountry: getSettings().main.discoverRegion || undefined,

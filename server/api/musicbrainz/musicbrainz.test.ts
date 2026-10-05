@@ -13,7 +13,11 @@ import type {
 import { TokenBucket } from '@server/api/musicbrainz/rateLimiter';
 import cacheManager from '@server/lib/cache';
 import { getSettings } from '@server/lib/settings';
-import { fixture, fixtureAdapter, httpError } from '@server/test/fixtureAdapter';
+import {
+  fixture,
+  fixtureAdapter,
+  httpError,
+} from '@server/test/fixtureAdapter';
 import type { AxiosAdapter } from 'axios';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
@@ -31,7 +35,8 @@ class TestMusicBrainz extends MusicBrainz {
 const routes: Record<string, string> = {
   '/artist': 'musicbrainz/artist-search-john-summit.json',
   [`/artist/${JOHN_SUMMIT}`]: 'musicbrainz/artist-john-summit.json',
-  [`/release-group/${CTRL_ESCAPE}`]: 'musicbrainz/release-group-ctrl-escape.json',
+  [`/release-group/${CTRL_ESCAPE}`]:
+    'musicbrainz/release-group-ctrl-escape.json',
   [`/release/${CTRL_ESCAPE_RELEASE}`]: 'musicbrainz/release-ctrl-escape.json',
   '/release-group': 'musicbrainz/release-group-browse-john-summit.json',
 };

@@ -77,12 +77,13 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 |---|---|---|---|---|---|
 | GET | `/api/v1/search` | signed in | query `query` (required), `type`=all|artist|album|track (default all), `page` (1), `pageSize` (20) | SearchResults | Library status merged in; MusicBrainz ≤1 rps so results are cached 1 h |
 | GET | `/api/v1/artist/:mbid` | signed in | — | ArtistDetails | Discography carries status + active request per release group; `similar` empty unless Last.fm is on |
+| POST | `/api/v1/artist/:mbid/watch` | MANAGE_REQUESTS | body `{enabled}` | `{enabled}` | Lidarr "monitor new items" for the artist; state is `ArtistDetails.lidarr.monitorNewItems`. 409 when the artist is not in Lidarr yet; 502 when Lidarr refuses |
 | GET | `/api/v1/album/:mbid` | signed in | — | AlbumDetails | Release-group MBID. Syncs the canonical tracklist into Track rows so every track has an `id` |
 | GET | `/api/v1/recording/:mbid` | signed in | — | TrackResult |  |
 | GET | `/api/v1/discover/stats` | signed in | — | DiscoverStatsResponse | Real counts from the library index |
 | GET | `/api/v1/discover/featured` | signed in | — | DiscoverFeaturedResponse | `album: null` when there is nothing real to feature |
 | GET | `/api/v1/discover/recently-added` | signed in (RECENT_VIEW; otherwise `enabled:false`) | query `take` (20) | DiscoverAlbumsResponse | From Media.mediaAddedAt |
-| GET | `/api/v1/discover/trending` | signed in | query `take` (20) | DiscoverAlbumsResponse | ListenBrainz fresh releases / iTunes chart; `enabled:false` when both are off |
+| GET | `/api/v1/discover/trending` | signed in | query `take` (20) | DiscoverAlbumsResponse | ListenBrainz most-played new releases; when that is off and iTunes is on, the iTunes chart matched to MusicBrainz (cached 6 h; a `reason` line while matching is still running). `enabled:false` when both are off |
 | GET | `/api/v1/discover/popular-artists` | signed in | query `take` (20) | DiscoverArtistsResponse | Library artists ranked by plays/requests; ListenBrainz sitewide when on |
 | GET | `/api/v1/discover/recent-requests` | signed in | query `take` (10) | DiscoverRecentRequestsResponse | Own requests unless REQUEST_VIEW / MANAGE_REQUESTS |
 | GET | `/api/v1/discover/concerts` | signed in | query `take` (20) | DiscoverConcertsResponse | Reads the Event cache (filled by SV6 `concerts-refresh`), filtered by the viewer's region |
@@ -92,6 +93,7 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | GET | `/api/v1/media/:id` | signed in | — | Media (with requests, tracks) |  |
 | POST | `/api/v1/media/:id/:status` | MANAGE_REQUESTS | `status`=available|partial|processing|pending|unknown | Media | Backlog Manage panel: mark available / clear |
 | DELETE | `/api/v1/media/:id` | MANAGE_REQUESTS | — | 204 | Clear data (reset the Media row) |
+| DELETE | `/api/v1/media/:id/lidarr` | MANAGE_REQUESTS | query `deleteFiles`=0|1 | 204 | Remove the album/artist from Lidarr (optionally with its files). Offer it when `details.lidarr.canRemove`. 409 when not in Lidarr |
 | GET | `/api/v1/public/slideshow` | public | query `take` (70) | SlideshowResponse | Login background: recently added cover URLs only. Empty array on an empty library |
 
 ## SV2 — Lidarr and requests
@@ -152,6 +154,7 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | DELETE | `/api/v1/settings/local/folders` | MANAGE_SETTINGS | body `{path}` | LocalFilesSettingsResponse |  |
 | GET | `/api/v1/settings/local/sync` | MANAGE_SETTINGS | — | ScanStatus |  |
 | POST | `/api/v1/settings/local/sync` | MANAGE_SETTINGS | body ScanCommandBody | ScanStatus |  |
+| GET | `/api/v1/settings/local/unresolved` | MANAGE_SETTINGS | — | LocalUnresolvedResponse | Albums in the folders MusicBrainz could not identify (not indexed; retried weekly or when files change) |
 
 ## SV4 — auth and users
 
@@ -161,6 +164,7 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | POST | `/api/v1/auth/plex` | public (rate-limited) | body `{authToken}` | User | First user becomes owner. 403 "Your Plex account doesn't have a Shufflerr account yet. Ask the server owner to import you." |
 | POST | `/api/v1/auth/jellyfin` | public (rate-limited) | body `{username, password, hostname?, port?, useSsl?, urlBase?, email?, serverType?}` | User | 401 "Jellyfin didn't accept that username and password." · 403 "Your Jellyfin account doesn't have a Shufflerr account yet. Ask an admin to import you." |
 | POST | `/api/v1/auth/local` | public (rate-limited) | body `{email, password}` | User | Error copy per docs/AUTH.md §Local accounts |
+| POST | `/api/v1/auth/setup` · `/api/v1/auth/setup-local` | public, only while no users exist | body `{username?, email, password}` | 201 User | First-run local owner (id 1, ADMIN), signed in. 403 once any user exists. Same handler under both paths |
 | POST | `/api/v1/auth/logout` | — | — | `{status:"ok"}` | Client then routes to /logout |
 | POST | `/api/v1/auth/reset-password` | public | body `{email}` | `{status:"ok"}` | Always ok (no account enumeration) |
 | POST | `/api/v1/auth/reset-password/:guid` | public | body `{password}` | `{status:"ok"}` |  |
@@ -225,7 +229,7 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | GET | `/api/v1/settings/notifications/:agent` | MANAGE_SETTINGS | agent = email|webpush|discord|slack|telegram|pushbullet|pushover|webhook|gotify|ntfy | NotificationAgentResponse | `types` as string keys; secrets masked |
 | POST | `/api/v1/settings/notifications/:agent` | MANAGE_SETTINGS | body NotificationAgentResponse | NotificationAgentResponse | 400 `{message}` names the missing/invalid field when `enabled`. Email `options.encryption` = none\|starttls\|tls (maps to Seerr's secure/requireTls/ignoreTls). Webhook `options.jsonPayload` is the template as text |
 | POST | `/api/v1/settings/notifications/:agent/test` | MANAGE_SETTINGS | body NotificationAgentResponse (unsaved values are tested) | 204 | "Send test"; 400 `{message}` when the service refuses it |
-| GET | `/api/v1/settings/notifications/pushover/sounds` | signed in | query `token` | PushoverSound[] | Seerr (kept) |
+| GET | `/api/v1/settings/notifications/pushover/sounds` | signed in | query `token` | PushoverSound[] | Seerr (kept). A masked or empty `token` uses the stored application token |
 | GET | `/api/v1/settings/logs` | MANAGE_SETTINGS | query `take` (25), `skip`, `filter`=debug|info|warn|error, `search` | LogsResultsResponse | Newest first; the page polls for live append |
 | GET | `/api/v1/settings/jobs` | MANAGE_SETTINGS | — | JobItem[] | 15 jobs (docs/ADMIN_PAGES.md §Jobs) |
 | POST | `/api/v1/settings/jobs/:jobId/run` | MANAGE_SETTINGS | — | JobItem |  |
@@ -258,11 +262,17 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | POST | `/api/v1/webhooks/jellyfin` | query `apikey` = main.apiKey | Jellyfin Webhook plugin JSON | 204 | PlaybackStart / PlaybackStop → scrobble pipeline |
 | GET | `/api/v1/youtube/track/:recordingMbid` | signed in | query `artist`, `title` (used when the recording is not cached) | YoutubeTrackResponse | `enabled:false, videoId:null` when YouTube is off. Cached 30 days per recording. IFrame player only |
 
+## The OpenAPI document
+
+`shufflerr-api.yml` (served at `/api-docs`) is generated from the mounted routes and their
+TypeScript types by `server/scripts/generateApiSpec.ts`. This file stays the human-readable
+contract; regenerate the spec after changing a route.
+
 ## Backlog routes (kept from Seerr)
 
 | Method | Path | Permission | Query / body | Response | Notes |
 |---|---|---|---|---|---|
-| * | `/api/v1/issue…` | per Seerr | — | — | Issues (Seerr routes, music issue types) — kept compiling for the backlog UI |
+| * | `/api/v1/issue…` | per Seerr | — | — | Issues (Seerr routes, music issue types). `GET /issue` accepts `mediaId` to list one item's issues; `GET /issue/count` is scoped (MANAGE_ISSUES / VIEW_ISSUES: whole server, others: own issues) |
 | * | `/api/v1/issueComment…` | per Seerr | — | — | Issue comments — kept compiling for the backlog UI |
 | * | `/api/v1/blocklist…` | per Seerr | — | — | Blocklist by MBID — kept compiling for the backlog UI |
 | * | `/api/v1/watchlist…` | per Seerr | — | — | Watchlist by MBID — kept compiling for the backlog UI |

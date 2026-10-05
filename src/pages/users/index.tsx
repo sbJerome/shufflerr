@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import UserList from '@app/components/UserList';
 import type { NextPage } from 'next';
 

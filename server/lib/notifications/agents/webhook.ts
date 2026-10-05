@@ -1,13 +1,13 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { IssueStatus, IssueType } from '@server/constants/issue';
 import { MediaStatus } from '@server/constants/media';
+import { maskToTypes } from '@server/lib/notifications/types';
 import type { NotificationAgentWebhook } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import axios from 'axios';
 import { get } from 'lodash';
 import { Notification, hasNotificationType } from '..';
-import { maskToTypes } from '@server/lib/notifications/types';
 import type { NotificationAgent, NotificationPayload } from './agent';
 import { BaseAgent } from './agent';
 

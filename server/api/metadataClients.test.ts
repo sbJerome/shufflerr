@@ -7,10 +7,14 @@ import LastfmAPI, {
 import ListenBrainzAPI, { toLbListen } from '@server/api/listenbrainz';
 import cacheManager from '@server/lib/cache';
 import { getSettings } from '@server/lib/settings';
-import { fixture, fixtureAdapter, httpError } from '@server/test/fixtureAdapter';
+import {
+  fixture,
+  fixtureAdapter,
+  httpError,
+} from '@server/test/fixtureAdapter';
 import type { AxiosAdapter } from 'axios';
-import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { beforeEach, describe, it } from 'node:test';
 
 const JOHN_SUMMIT = '2547c5e3-314c-4332-981d-f18c902a4086';
@@ -70,7 +74,9 @@ describe('fanart.tv', () => {
 
   it('turns asset URLs into image-proxy paths and refuses other hosts', () => {
     assert.equal(
-      fanartProxyPath('http://assets.fanart.tv/fanart/music/x/artistthumb/a.jpg'),
+      fanartProxyPath(
+        'http://assets.fanart.tv/fanart/music/x/artistthumb/a.jpg'
+      ),
       '/imageproxy/fanart/fanart/music/x/artistthumb/a.jpg'
     );
     assert.equal(fanartProxyPath('https://evil.example/a.jpg'), null);
@@ -214,7 +220,9 @@ describe('Last.fm', () => {
     assert.equal(calls[0].method, 'post');
     // nothing travels in the query string: every parameter is in the signed body
     assert.deepEqual(
-      Object.values(calls[0].params).filter((v) => v !== null && v !== undefined),
+      Object.values(calls[0].params).filter(
+        (v) => v !== null && v !== undefined
+      ),
       []
     );
     const body = new URLSearchParams(String(calls[0].data));
@@ -347,7 +355,10 @@ describe('ListenBrainz', () => {
       listen.track_metadata.additional_info?.submission_client,
       'Shufflerr'
     );
-    assert.equal(toLbListen({ artist: 'A', track: 'T' }, false).listened_at, undefined);
+    assert.equal(
+      toLbListen({ artist: 'A', track: 'T' }, false).listened_at,
+      undefined
+    );
   });
 
   it('submits a single listen and a playing-now without a timestamp', async () => {

@@ -243,7 +243,9 @@ const fromSpotify = async (
 
 // ---- Deezer -----------------------------------------------------------------
 
-const fromDeezer = async (parsed: ParsedImportUrl): Promise<SourceAlbumList> => {
+const fromDeezer = async (
+  parsed: ParsedImportUrl
+): Promise<SourceAlbumList> => {
   if (!getSettings().discover.deezer.enabled) {
     throw sourceOff('Deezer');
   }
@@ -346,7 +348,9 @@ const fromDeezer = async (parsed: ParsedImportUrl): Promise<SourceAlbumList> => 
 
 // ---- Apple Music / iTunes -----------------------------------------------------
 
-const fromItunes = async (parsed: ParsedImportUrl): Promise<SourceAlbumList> => {
+const fromItunes = async (
+  parsed: ParsedImportUrl
+): Promise<SourceAlbumList> => {
   if (!getSettings().discover.itunes.enabled) {
     throw sourceOff('iTunes');
   }

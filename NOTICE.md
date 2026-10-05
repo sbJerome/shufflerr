@@ -11,7 +11,8 @@ Seerr is the merged successor of **Overseerr** and **Jellyseerr**. Shufflerr's p
 is derived from Seerr at commit `2cfbcf8940225f1597d44f507fd78040887c5597`: authentication
 (Plex, Jellyfin, local), user management and profiles, the permission system, request quotas
 and the request approval lifecycle, settings and the admin pages, notification agents, the job
-scheduler, media-server scanners, the image proxy, and the UI primitives.
+scheduler, the media-server API clients and scanner run loop, the image proxy, issue reporting,
+the blocklist, and the UI primitives.
 
 `docs/REUSE_MAP.md` lists every derived path and whether it was kept or adapted. Each derived
 source file starts with a header comment crediting Seerr.

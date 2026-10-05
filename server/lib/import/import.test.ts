@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { afterEach, before, beforeEach, describe, it, mock } from 'node:test';
 
-import { MediaRequestStatus, MediaStatus, MediaType } from '@server/constants/media';
+import { getItunesChart } from '@server/api/itunes';
+import {
+  MediaRequestStatus,
+  MediaStatus,
+  MediaType,
+} from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import ImportJob from '@server/entity/ImportJob';
 import Media from '@server/entity/Media';
@@ -13,8 +18,8 @@ import {
 import { User } from '@server/entity/User';
 import cacheManager from '@server/lib/cache';
 import {
-  getImportJob,
   ImportLinkError,
+  getImportJob,
   listImportJobs,
   parseImportUrl,
   requestImport,
@@ -32,7 +37,6 @@ import { toProxyUrl } from '@server/lib/import/sources';
 import type { AllSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import { setupTestDb } from '@server/test/db';
-import { getItunesChart } from '@server/api/itunes';
 import { installHttpMock } from '@server/test/mockAxios';
 
 import deezerAlbum from '@server/test/fixtures/import/deezer-album.json';
@@ -146,7 +150,10 @@ describe('parseImportUrl', () => {
     ]) {
       assert.equal(parseImportUrl(url).shortLink, true, url);
     }
-    assert.equal(parseImportUrl('https://deezer.page.link/abc').source, 'deezer');
+    assert.equal(
+      parseImportUrl('https://deezer.page.link/abc').source,
+      'deezer'
+    );
     assert.equal(parseImportUrl('https://spotify.link/xyz').source, 'spotify');
   });
 
@@ -206,7 +213,9 @@ describe('match helpers', () => {
 
   it('turns CDN urls into image-proxy paths and refuses unknown hosts', () => {
     assert.equal(
-      toProxyUrl('https://cdn-images.dzcdn.net/images/cover/abc/500x500-000000-80-0-0.jpg'),
+      toProxyUrl(
+        'https://cdn-images.dzcdn.net/images/cover/abc/500x500-000000-80-0-0.jpg'
+      ),
       '/imageproxy/deezer/images/cover/abc/500x500-000000-80-0-0.jpg'
     );
     assert.equal(
@@ -214,7 +223,9 @@ describe('match helpers', () => {
       '/imageproxy/spotify/image/ab67616d0000b273'
     );
     assert.equal(
-      toProxyUrl('https://is3-ssl.mzstatic.com/image/thumb/Music/a/b.jpg/100x100bb.jpg'),
+      toProxyUrl(
+        'https://is3-ssl.mzstatic.com/image/thumb/Music/a/b.jpg/100x100bb.jpg'
+      ),
       '/imageproxy/itunes/image/thumb/Music/a/b.jpg/500x500bb.jpg'
     );
     assert.equal(toProxyUrl('https://evil.example.com/x.jpg'), null);
@@ -243,7 +254,10 @@ describe('matchAlbum', () => {
   it('matches by barcode first', async () => {
     http.get(`${MB}/ws/2/release`, () => [200, mbBarcode]);
     const result = await matchAlbum(candidate);
-    assert.match(http.calls[0].params.get('query') ?? '', /^barcode:\(.*886443927087/);
+    assert.match(
+      http.calls[0].params.get('query') ?? '',
+      /^barcode:\(.*886443927087/
+    );
     assert.match(http.calls[0].headers['user-agent'], /^Shufflerr\//);
     assert.equal(result.matchedBy, 'upc');
     assert.equal(result.releaseGroup?.mbid, RAM);
@@ -256,7 +270,9 @@ describe('matchAlbum', () => {
     http.get(`${MB}/ws/2/release`, () => [200, EMPTY.release]);
     http.get(`${MB}/ws/2/recording`, (req) => [
       200,
-      req.params.get('query') === 'isrc:USQX91300108' ? mbIsrc : EMPTY.recording,
+      req.params.get('query') === 'isrc:USQX91300108'
+        ? mbIsrc
+        : EMPTY.recording,
     ]);
     const result = await matchAlbum(candidate);
     assert.equal(result.matchedBy, 'isrc');
@@ -305,20 +321,25 @@ describe('matchAlbum', () => {
 });
 
 describe('import pipeline', () => {
-  const admin = () =>
-    getRepository(User).findOneOrFail({ where: { id: 1 } });
+  const admin = () => getRepository(User).findOneOrFail({ where: { id: 1 } });
 
   const mockMusicBrainz = () =>
-    http.get(/musicbrainz\.org\/ws\/2\/(release|recording|release-group)\?/, (req) => {
-      const query = req.params.get('query') ?? '';
-      if (/^barcode:/.test(query)) {
-        return [200, query.includes('886443927087') ? mbBarcode : EMPTY.release];
+    http.get(
+      /musicbrainz\.org\/ws\/2\/(release|recording|release-group)\?/,
+      (req) => {
+        const query = req.params.get('query') ?? '';
+        if (/^barcode:/.test(query)) {
+          return [
+            200,
+            query.includes('886443927087') ? mbBarcode : EMPTY.release,
+          ];
+        }
+        if (/^isrc:/.test(query)) {
+          return [200, EMPTY.recording];
+        }
+        return [200, EMPTY['release-group']];
       }
-      if (/^isrc:/.test(query)) {
-        return [200, EMPTY.recording];
-      }
-      return [200, EMPTY['release-group']];
-    });
+    );
 
   it('resolves a Deezer album to a MusicBrainz album with its library status', async () => {
     http.get('https://api.deezer.com/album/6575789', () => [200, deezerAlbum]);
@@ -412,7 +433,9 @@ describe('import pipeline', () => {
     assert.equal(result.matches.length, albumIds.length);
     assert.equal(result.matches[0].album?.mbid, RAM);
     assert.ok(
-      result.matches.slice(1).every((m) => m.album === null && m.matchedBy === 'none')
+      result.matches
+        .slice(1)
+        .every((m) => m.album === null && m.matchedBy === 'none')
     );
     assert.ok(result.matches.every((m) => !m.pending));
   });
@@ -432,7 +455,10 @@ describe('import pipeline', () => {
     assert.equal(result.source, 'itunes');
     assert.equal(result.matches[0].matchedBy, 'name');
     assert.equal(result.matches[0].album?.mbid, RAM);
-    assert.match(result.matches[0].sourceCoverUrl ?? '', /^\/imageproxy\/itunes\//);
+    assert.match(
+      result.matches[0].sourceCoverUrl ?? '',
+      /^\/imageproxy\/itunes\//
+    );
   });
 
   it('turns provider problems into fix-it copy', async () => {
@@ -443,7 +469,8 @@ describe('import pipeline', () => {
     ]);
     await assert.rejects(
       resolveImport('https://www.deezer.com/album/1', user),
-      (e: Error) => e instanceof ImportLinkError && /couldn't find/.test(e.message)
+      (e: Error) =>
+        e instanceof ImportLinkError && /couldn't find/.test(e.message)
     );
 
     getSettings().discover = {
@@ -452,10 +479,14 @@ describe('import pipeline', () => {
     };
     await assert.rejects(
       resolveImport('https://www.deezer.com/album/6575789', user),
-      (e: Error) => e instanceof ImportLinkError && /switched off/.test(e.message)
+      (e: Error) =>
+        e instanceof ImportLinkError && /switched off/.test(e.message)
     );
     await assert.rejects(
-      resolveImport('https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa', user),
+      resolveImport(
+        'https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa',
+        user
+      ),
       (e: Error) => e instanceof ImportLinkError && /Spotify/.test(e.message)
     );
     assert.equal(await getRepository(ImportJob).count(), 0);
@@ -477,27 +508,44 @@ describe('import pipeline', () => {
         calls.push(body);
         switch (body.mbid) {
           case mbids[0]:
-            return { id: 10, status: MediaRequestStatus.APPROVED, media: { title: 'Random Access Memories' } };
+            return {
+              id: 10,
+              status: MediaRequestStatus.APPROVED,
+              media: { title: 'Random Access Memories' },
+            };
           case mbids[1]:
-            return { id: 11, status: MediaRequestStatus.PENDING, media: { title: 'Pending album' } };
+            return {
+              id: 11,
+              status: MediaRequestStatus.PENDING,
+              media: { title: 'Pending album' },
+            };
           case mbids[2]:
-            throw new DuplicateMediaRequestError('This has already been requested.');
+            throw new DuplicateMediaRequestError(
+              'This has already been requested.'
+            );
           default:
-            throw new QuotaRestrictedError("You've used your weekly limit of 10 albums.");
+            throw new QuotaRestrictedError(
+              "You've used your weekly limit of 10 albums."
+            );
         }
       }
     );
 
     const result = await requestImport(user, { mbids: [...mbids, RAM] });
     assert.equal(calls.length, 4, 'duplicates in the list are requested once');
-    assert.ok(calls.every((c) => c.scope === 'album' && c.mediaType === 'release-group'));
+    assert.ok(
+      calls.every((c) => c.scope === 'album' && c.mediaType === 'release-group')
+    );
     assert.deepEqual(
       result.results.map((r) => r.outcome),
       ['auto', 'pending', 'blocked', 'blocked']
     );
     assert.equal(result.results[0].requestId, 10);
     assert.equal(result.results[0].title, 'Random Access Memories');
-    assert.equal(result.results[3].reason, "You've used your weekly limit of 10 albums.");
+    assert.equal(
+      result.results[3].reason,
+      "You've used your weekly limit of 10 albums."
+    );
     assert.deepEqual([result.auto, result.pending, result.blocked], [1, 1, 2]);
     assert.equal(
       result.summary,
@@ -515,7 +563,10 @@ describe('iTunes chart', () => {
     const chart = await getItunesChart(3);
     assert.equal(chart.length, itunesChart.feed.results.length);
     assert.equal(chart[0].title, itunesChart.feed.results[0].name);
-    assert.match(chart[0].coverUrl ?? '', /^\/imageproxy\/itunes\/.*500x500bb\.jpg$/);
+    assert.match(
+      chart[0].coverUrl ?? '',
+      /^\/imageproxy\/itunes\/.*500x500bb\.jpg$/
+    );
 
     getSettings().discover = {
       ...getSettings().discover,

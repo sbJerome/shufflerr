@@ -82,6 +82,15 @@ issueRoutes.get<Record<string, string>, IssueResultsResponse>(
       query = query.andWhere('createdBy.id = :id', { id: createdBy });
     }
 
+    // ?mediaId= : only issues for one album/artist (the manage panel)
+    const mediaId = req.query.mediaId ? Number(req.query.mediaId) : null;
+    if (mediaId !== null) {
+      if (!Number.isInteger(mediaId)) {
+        return next({ status: 400, message: 'mediaId must be a number.' });
+      }
+      query = query.andWhere('media.id = :mediaId', { mediaId });
+    }
+
     const [issues, issueCount] = await query
       .orderBy(sortFilter, 'DESC')
       .take(pageSize)
@@ -164,38 +173,45 @@ issueRoutes.post<Record<string, string>, Issue, IssueRequestBody>(
   }
 );
 
+// GET /issue/count · signed in. People who can only create issues get counts
+// of their own issues; MANAGE_ISSUES / VIEW_ISSUES see the whole server.
 issueRoutes.get('/count', async (req, res, next) => {
   const issueRepository = getRepository(Issue);
+  const seesAll = !!req.user?.hasPermission(
+    [Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES],
+    { type: 'or' }
+  );
 
   try {
-    const query = issueRepository.createQueryBuilder('issue');
-
-    const totalCount = await query.getCount();
-
+    const count = (where?: string, params?: Record<string, unknown>) => {
+      let query = issueRepository.createQueryBuilder('issue');
+      if (!seesAll) {
+        query = query
+          .leftJoin('issue.createdBy', 'createdBy')
+          .where('createdBy.id = :userId', { userId: req.user?.id ?? 0 });
+      }
+      if (where) {
+        query = seesAll
+          ? query.where(where, params)
+          : query.andWhere(where, params);
+      }
+      return query.getCount();
+    };
     const countType = (issueType: IssueType) =>
-      query.where('issue.issueType = :issueType', { issueType }).getCount();
+      count('issue.issueType = :issueType', { issueType });
+
+    const totalCount = await count();
     const wrongReleaseCount = await countType(IssueType.WRONG_RELEASE);
     const badTagsCount = await countType(IssueType.BAD_TAGS);
     const missingTracksCount = await countType(IssueType.MISSING_TRACKS);
     const lowQualityCount = await countType(IssueType.LOW_QUALITY);
-
-    const othersCount = await query
-      .where('issue.issueType = :issueType', {
-        issueType: IssueType.OTHER,
-      })
-      .getCount();
-
-    const openCount = await query
-      .where('issue.status = :issueStatus', {
-        issueStatus: IssueStatus.OPEN,
-      })
-      .getCount();
-
-    const closedCount = await query
-      .where('issue.status = :issueStatus', {
-        issueStatus: IssueStatus.RESOLVED,
-      })
-      .getCount();
+    const othersCount = await countType(IssueType.OTHER);
+    const openCount = await count('issue.status = :issueStatus', {
+      issueStatus: IssueStatus.OPEN,
+    });
+    const closedCount = await count('issue.status = :issueStatus', {
+      issueStatus: IssueStatus.RESOLVED,
+    });
 
     return res.status(200).json({
       total: totalCount,
@@ -385,12 +401,13 @@ issueRoutes.delete(
     try {
       const issue = await issueRepository.findOneOrFail({
         where: { id: Number(req.params.issueId) },
-        relations: { createdBy: true },
+        relations: { createdBy: true, comments: true },
       });
 
       if (
         !req.user?.hasPermission(Permission.MANAGE_ISSUES) &&
-        (issue.createdBy.id !== req.user?.id || issue.comments.length > 1)
+        (issue.createdBy.id !== req.user?.id ||
+          (issue.comments ?? []).length > 1)
       ) {
         return next({
           status: 401,

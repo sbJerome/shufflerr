@@ -181,7 +181,7 @@ const RequestList = () => {
             {quota.album.limit
               ? intl.formatMessage(messages.limitalbums, {
                   remaining: (
-                    <b className="text-ink">{quota.album.remaining ?? 0}</b>
+                    <b key="album" className="text-ink">{quota.album.remaining ?? 0}</b>
                   ),
                   limit: quota.album.limit,
                 })
@@ -190,7 +190,7 @@ const RequestList = () => {
             {quota.track.limit
               ? intl.formatMessage(messages.limittracks, {
                   remaining: (
-                    <b className="text-ink">{quota.track.remaining ?? 0}</b>
+                    <b key="track" className="text-ink">{quota.track.remaining ?? 0}</b>
                   ),
                   limit: quota.track.limit,
                 })
@@ -214,7 +214,7 @@ const RequestList = () => {
         />
         <select
           aria-label={intl.formatMessage(messages.sort)}
-          className="!w-auto"
+          className="!w-auto !flex-none"
           value={sort}
           onChange={(e) => setQuery({ sort: e.target.value, page: '1' })}
         >

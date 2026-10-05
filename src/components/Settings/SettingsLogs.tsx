@@ -245,7 +245,7 @@ const SettingsLogs = () => {
           </label>
           <select
             id={rowsId}
-            className="!w-auto"
+            className="!w-auto !flex-none"
             value={take}
             onChange={(e) => {
               setTake(Number(e.target.value));

@@ -11,9 +11,9 @@ import Track from '@server/entity/Track';
 import { User } from '@server/entity/User';
 import { UserSettings } from '@server/entity/UserSettings';
 import {
+  MAX_ATTEMPTS,
   backoffMs,
   getUserTargets,
-  MAX_ATTEMPTS,
   nowPlaying,
   processScrobbleQueue,
   recordPlay,
@@ -43,8 +43,7 @@ const http = installHttpMock();
 let pristine: AllSettings;
 let trackId: number;
 
-const admin = () =>
-  getRepository(User).findOneOrFail({ where: { id: 1 } });
+const admin = () => getRepository(User).findOneOrFail({ where: { id: 1 } });
 
 const link = async (
   provider: 'listenbrainz' | 'lastfm',
@@ -142,10 +141,7 @@ describe('scrobble rule', () => {
   ];
   for (const [rule, duration, played, expected] of cases) {
     it(`${rule}: ${played ?? 'completed'}s of ${duration ?? 'unknown'}ms → ${expected}`, () => {
-      assert.equal(
-        shouldScrobble(rule as never, duration, played),
-        expected
-      );
+      assert.equal(shouldScrobble(rule as never, duration, played), expected);
     });
   }
 
@@ -160,7 +156,10 @@ describe('scrobble rule', () => {
 describe('Last.fm signature', () => {
   it('hashes the sorted parameters followed by the shared secret, leaving out format', () => {
     const expected = createHash('md5')
-      .update('api_keyKEYmethodtrack.scrobbleskSESSIONtrack[0]Für EliseSECRET', 'utf8')
+      .update(
+        'api_keyKEYmethodtrack.scrobbleskSESSIONtrack[0]Für EliseSECRET',
+        'utf8'
+      )
       .digest('hex');
     assert.equal(
       lastfmSignature(
@@ -287,7 +286,10 @@ describe('scrobble queue', () => {
     await link('lastfm', 'lastfm-session');
     await recordPlay(await play());
     http.post(LB, () => [200, { status: 'ok' }]);
-    http.post(LASTFM, () => [200, { scrobbles: { '@attr': { accepted: 1, ignored: 0 } } }]);
+    http.post(LASTFM, () => [
+      200,
+      { scrobbles: { '@attr': { accepted: 1, ignored: 0 } } },
+    ]);
 
     await processScrobbleQueue();
 
@@ -308,10 +310,22 @@ describe('scrobble queue', () => {
     assert.equal(body.listen_type, 'single');
     assert.equal(body.payload[0].listened_at, 1790884800);
     assert.equal(body.payload[0].track_metadata.track_name, 'Get Lucky');
-    assert.equal(body.payload[0].track_metadata.release_name, 'Random Access Memories');
-    assert.equal(body.payload[0].track_metadata.additional_info.recording_mbid, RECORDING);
-    assert.equal(body.payload[0].track_metadata.additional_info.release_group_mbid, RELEASE_GROUP);
-    assert.equal(body.payload[0].track_metadata.additional_info.submission_client, 'Shufflerr');
+    assert.equal(
+      body.payload[0].track_metadata.release_name,
+      'Random Access Memories'
+    );
+    assert.equal(
+      body.payload[0].track_metadata.additional_info.recording_mbid,
+      RECORDING
+    );
+    assert.equal(
+      body.payload[0].track_metadata.additional_info.release_group_mbid,
+      RELEASE_GROUP
+    );
+    assert.equal(
+      body.payload[0].track_metadata.additional_info.submission_client,
+      'Shufflerr'
+    );
 
     const [fm] = http.callsTo(LASTFM);
     const form = fm.body as URLSearchParams;
@@ -346,7 +360,9 @@ describe('scrobble queue', () => {
     await recordPlay(await play());
     let listenBrainzUp = false;
     http.post(LB, () =>
-      listenBrainzUp ? [200, { status: 'ok' }] : [503, { error: 'Service Unavailable' }]
+      listenBrainzUp
+        ? [200, { status: 'ok' }]
+        : [503, { error: 'Service Unavailable' }]
     );
     http.post(LASTFM, () => [200, { scrobbles: {} }]);
 
@@ -390,8 +406,14 @@ describe('scrobble queue', () => {
     await link('listenbrainz', 'lb-token');
     await link('lastfm', 'lastfm-session');
     await recordPlay(await play());
-    http.post(LB, () => [401, { code: 401, error: 'Invalid authorization token.' }]);
-    http.post(LASTFM, () => [403, { error: 9, message: 'Invalid session key - Please re-authenticate' }]);
+    http.post(LB, () => [
+      401,
+      { code: 401, error: 'Invalid authorization token.' },
+    ]);
+    http.post(LASTFM, () => [
+      403,
+      { error: 9, message: 'Invalid session key - Please re-authenticate' },
+    ]);
     await processScrobbleQueue();
     const [row] = await getRepository(ScrobbleQueue).find();
     assert.deepEqual(row.targets, { listenbrainz: 'failed', lastfm: 'failed' });

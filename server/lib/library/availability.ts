@@ -1,3 +1,4 @@
+import { getMusicBrainz } from '@server/api/musicbrainz';
 import {
   MediaRequestStatus,
   MediaStatus,
@@ -23,6 +24,9 @@ const LABEL = 'Library';
 export const metadataHooks = {
   ensureMedia,
   getDiscographyReleaseGroups,
+  /** The artist's own name on MusicBrainz (not an album's credit phrase). */
+  artistName: async (artistMbid: string): Promise<string> =>
+    (await getMusicBrainz().getArtist(artistMbid)).name,
 };
 
 /**
@@ -35,32 +39,12 @@ export const completeReleaseGroupRequests = async (
   mediaId: number,
   fullyAvailable: boolean
 ): Promise<number> => {
-  const requestRepository = getRepository(MediaRequest);
-  const requests = await requestRepository.find({
-    where: { media: { id: mediaId }, status: MediaRequestStatus.APPROVED },
+  // one completion path for the whole app: see MediaRequest.completeSatisfied
+  const completed = await MediaRequest.completeSatisfied(mediaId, {
+    fullyAvailable,
   });
-  let completed = 0;
 
-  for (const request of requests) {
-    const requestedTracks = request.tracks ?? [];
-    const done =
-      request.scope === RequestScope.TRACKS && requestedTracks.length > 0
-        ? requestedTracks.every(
-            (item) => item.track?.status === MediaStatus.AVAILABLE
-          )
-        : request.scope !== RequestScope.DISCOGRAPHY && fullyAvailable;
-
-    if (!done) {
-      continue;
-    }
-
-    request.status = MediaRequestStatus.COMPLETED;
-    request.downloadProgress = 100;
-    requestedTracks.forEach((item) => {
-      item.status = MediaRequestStatus.COMPLETED;
-    });
-    await requestRepository.save(request);
-    completed++;
+  for (const request of completed) {
     logger.info(
       'Request completed: everything it asked for is in the library',
       {
@@ -71,7 +55,7 @@ export const completeReleaseGroupRequests = async (
     );
   }
 
-  return completed;
+  return completed.length;
 };
 
 const statusFor = (
@@ -172,6 +156,34 @@ export const recomputeArtist = async (
     }
   }
 
+  // A row created while MusicBrainz was unreachable carries an album's credit
+  // phrase ("A, B & C", "A vs. B") as its name and no artistMbid. Replace it
+  // with the artist's own name as soon as MusicBrainz answers.
+  if (!artist.artistMbid) {
+    try {
+      const name = await metadataHooks.artistName(artistMbid);
+      if (name) {
+        await mediaRepository.update(artist.id, {
+          title: name,
+          artistName: name,
+          artistMbid,
+        });
+        artist.title = name;
+        artist.artistName = name;
+        artist.artistMbid = artistMbid;
+      }
+    } catch (e) {
+      logger.debug(
+        'Artist name not confirmed yet; MusicBrainz did not answer',
+        {
+          label: LABEL,
+          artistMbid,
+          errorMessage: e.message,
+        }
+      );
+    }
+  }
+
   // Discography requests: complete when every covered release group is in
   const requestRepository = getRepository(MediaRequest);
   const discographyRequests = await requestRepository.find({
@@ -194,10 +206,9 @@ export const recomputeArtist = async (
         covered.length > 0 &&
         covered.every((g) => availableMbids.has(g.mbid))
       ) {
-        for (const request of discographyRequests) {
-          request.status = MediaRequestStatus.COMPLETED;
-          request.downloadProgress = 100;
-          await requestRepository.save(request);
+        for (const request of await MediaRequest.completeDiscography(
+          artist.id
+        )) {
           logger.info('Discography request completed', {
             label: LABEL,
             requestId: request.id,

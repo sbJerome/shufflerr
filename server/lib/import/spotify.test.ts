@@ -7,13 +7,13 @@ import {
   getProfile,
   refreshAccessToken,
 } from '@server/api/spotify';
+import { MediaRequestStatus } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import LinkedAccount from '@server/entity/LinkedAccount';
-import { User } from '@server/entity/User';
-import cacheManager from '@server/lib/cache';
-import { MediaRequestStatus } from '@server/constants/media';
 import { MediaRequest } from '@server/entity/MediaRequest';
+import { User } from '@server/entity/User';
 import { UserSettings } from '@server/entity/UserSettings';
+import cacheManager from '@server/lib/cache';
 import {
   getSpotifySaved,
   resolveImport,
@@ -82,7 +82,13 @@ beforeEach(() => {
     200,
     (req.params.get('query') ?? '').includes('886443927087')
       ? mbBarcode
-      : { count: 0, offset: 0, releases: [], recordings: [], 'release-groups': [] },
+      : {
+          count: 0,
+          offset: 0,
+          releases: [],
+          recordings: [],
+          'release-groups': [],
+        },
   ]);
 });
 
@@ -95,7 +101,10 @@ describe('Spotify sign-in (PKCE)', () => {
         codeChallenge: 'challenge-abc',
       })
     );
-    assert.equal(url.origin + url.pathname, 'https://accounts.spotify.com/authorize');
+    assert.equal(
+      url.origin + url.pathname,
+      'https://accounts.spotify.com/authorize'
+    );
     assert.equal(url.searchParams.get('client_id'), 'client-id');
     assert.equal(url.searchParams.get('response_type'), 'code');
     assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
@@ -113,8 +122,17 @@ describe('Spotify sign-in (PKCE)', () => {
       return [
         200,
         form.get('grant_type') === 'authorization_code'
-          ? { access_token: 'access-1', token_type: 'Bearer', expires_in: 3600, refresh_token: 'refresh-1' }
-          : { access_token: 'access-2', token_type: 'Bearer', expires_in: 3600 },
+          ? {
+              access_token: 'access-1',
+              token_type: 'Bearer',
+              expires_in: 3600,
+              refresh_token: 'refresh-1',
+            }
+          : {
+              access_token: 'access-2',
+              token_type: 'Bearer',
+              expires_in: 3600,
+            },
       ];
     });
     http.get(`${API}/me`, (req) => [
@@ -136,12 +154,18 @@ describe('Spotify sign-in (PKCE)', () => {
       `Basic ${Buffer.from('client-id:client-secret').toString('base64')}`
     );
 
-    assert.equal((await refreshAccessToken('refresh-1')).access_token, 'access-2');
+    assert.equal(
+      (await refreshAccessToken('refresh-1')).access_token,
+      'access-2'
+    );
     assert.equal(
       (http.callsTo(ACCOUNTS)[1].body as URLSearchParams).get('refresh_token'),
       'refresh-1'
     );
-    assert.equal((await getProfile('access-1')).display_name, 'Bearer access-1');
+    assert.equal(
+      (await getProfile('access-1')).display_name,
+      'Bearer access-1'
+    );
   });
 });
 
@@ -153,7 +177,8 @@ describe('Spotify import', () => {
       200,
       {
         access_token:
-          (req.body as URLSearchParams).get('grant_type') === 'client_credentials'
+          (req.body as URLSearchParams).get('grant_type') ===
+          'client_credentials'
             ? 'app-token'
             : 'user-token',
         token_type: 'Bearer',
@@ -173,10 +198,37 @@ describe('Spotify import', () => {
         next: null,
         total: 3,
         items: [
-          { track: { id: 't1', name: 'Get Lucky', external_ids: { isrc: 'USQX91300108' }, album: { id: 'albumRAM', name: 'Random Access Memories', artists: [] } } },
-          { track: { id: 't2', name: 'Instant Crush', album: { id: 'albumRAM', name: 'Random Access Memories', artists: [] } } },
+          {
+            track: {
+              id: 't1',
+              name: 'Get Lucky',
+              external_ids: { isrc: 'USQX91300108' },
+              album: {
+                id: 'albumRAM',
+                name: 'Random Access Memories',
+                artists: [],
+              },
+            },
+          },
+          {
+            track: {
+              id: 't2',
+              name: 'Instant Crush',
+              album: {
+                id: 'albumRAM',
+                name: 'Random Access Memories',
+                artists: [],
+              },
+            },
+          },
           { track: null },
-          { track: { id: 't3', name: 'Da Funk', album: { id: 'albumHW', name: 'Homework', artists: [] } } },
+          {
+            track: {
+              id: 't3',
+              name: 'Da Funk',
+              album: { id: 'albumHW', name: 'Homework', artists: [] },
+            },
+          },
         ],
       },
     ]);
@@ -204,13 +256,20 @@ describe('Spotify import', () => {
       'Bearer app-token'
     );
     assert.deepEqual(
-      result.matches.map((m) => [m.sourceTitle, m.matchedBy, m.album?.mbid ?? null]),
+      result.matches.map((m) => [
+        m.sourceTitle,
+        m.matchedBy,
+        m.album?.mbid ?? null,
+      ]),
       [
         ['Random Access Memories', 'upc', RAM],
         ['Homework', 'none', null],
       ]
     );
-    assert.equal(result.matches[0].sourceCoverUrl, '/imageproxy/spotify/image/albumRAM');
+    assert.equal(
+      result.matches[0].sourceCoverUrl,
+      '/imageproxy/spotify/image/albumRAM'
+    );
   });
 
   it('explains a playlist Spotify will not show', async () => {
@@ -296,11 +355,20 @@ describe('Spotify saved-albums sync', () => {
         next: null,
         total: 3,
         items: [
-          { added_at: '2026-09-30T10:00:00Z', album: album('albumRAM', 'Random Access Memories', '886443927087') },
+          {
+            added_at: '2026-09-30T10:00:00Z',
+            album: album('albumRAM', 'Random Access Memories', '886443927087'),
+          },
           // no MusicBrainz match: nothing to request
-          { added_at: '2026-09-20T10:00:00Z', album: album('albumHW', 'Homework', '724384260927') },
+          {
+            added_at: '2026-09-20T10:00:00Z',
+            album: album('albumHW', 'Homework', '724384260927'),
+          },
           // saved before the account was linked: left alone
-          { added_at: '2026-08-01T10:00:00Z', album: album('albumOld', 'Random Access Memories', '886443927087') },
+          {
+            added_at: '2026-08-01T10:00:00Z',
+            album: album('albumOld', 'Random Access Memories', '886443927087'),
+          },
         ],
       },
     ]);
@@ -310,13 +378,22 @@ describe('Spotify saved-albums sync', () => {
       'request',
       async (body: { mbid: string; isAutoRequest?: boolean }) => {
         requested.push(body);
-        return { id: 1, status: MediaRequestStatus.APPROVED, media: { title: 'x' } };
+        return {
+          id: 1,
+          status: MediaRequestStatus.APPROVED,
+          media: { title: 'x' },
+        };
       }
     );
 
     await syncSpotifySavedAlbums();
     assert.deepEqual(requested, [
-      { mbid: RAM, mediaType: 'release-group', scope: 'album', isAutoRequest: true },
+      {
+        mbid: RAM,
+        mediaType: 'release-group',
+        scope: 'album',
+        isAutoRequest: true,
+      },
     ]);
 
     // the next run sees nothing new
@@ -337,7 +414,9 @@ describe('YouTube lookup', () => {
   const app = express().use('/youtube', youtubeRoutes);
 
   it('is off without a key and never calls YouTube', async () => {
-    const res = await request(app).get(`/youtube/track/${RECORDING}?artist=Daft Punk&title=Get Lucky`);
+    const res = await request(app).get(
+      `/youtube/track/${RECORDING}?artist=Daft Punk&title=Get Lucky`
+    );
     assert.deepEqual(res.body, { enabled: false, videoId: null });
     assert.equal(http.callsTo(YT).length, 0);
   });
@@ -353,7 +432,10 @@ describe('YouTube lookup', () => {
         items: [
           {
             id: { kind: 'youtube#video', videoId: '5NV6Rdv1a3I' },
-            snippet: { title: 'Daft Punk - Get Lucky (Official Audio)', channelTitle: 'Daft Punk' },
+            snippet: {
+              title: 'Daft Punk - Get Lucky (Official Audio)',
+              channelTitle: 'Daft Punk',
+            },
           },
         ],
       },
@@ -390,7 +472,9 @@ describe('YouTube lookup', () => {
       { error: { code: 403, errors: [{ reason: 'quotaExceeded' }] } },
     ]);
     const other = '6c0c3b3c-5b9f-4f0e-9d4e-0a5d1c6f7a11';
-    const res = await request(app).get(`/youtube/track/${other}?artist=A&title=B`);
+    const res = await request(app).get(
+      `/youtube/track/${other}?artist=A&title=B`
+    );
     assert.deepEqual(res.body, { enabled: true, videoId: null });
     await request(app).get(`/youtube/track/${other}?artist=A&title=B`);
     assert.equal(http.callsTo(YT).length, 1);

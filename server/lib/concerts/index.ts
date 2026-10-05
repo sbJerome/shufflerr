@@ -77,9 +77,18 @@ export const mapTicketmasterEvent = (
   artist: ConcertArtist
 ): EventFields | null => {
   const start = event.dates?.start;
-  const when = start?.dateTime ?? (start?.localDate ? `${start.localDate}T${start.localTime ?? '00:00:00'}` : null);
+  const when =
+    start?.dateTime ??
+    (start?.localDate
+      ? `${start.localDate}T${start.localTime ?? '00:00:00'}`
+      : null);
   const startsAt = when ? new Date(when) : null;
-  if (!event.id || !event.url || !startsAt || Number.isNaN(startsAt.getTime())) {
+  if (
+    !event.id ||
+    !event.url ||
+    !startsAt ||
+    Number.isNaN(startsAt.getTime())
+  ) {
     return null;
   }
   if (['cancelled', 'canceled'].includes(event.dates?.status?.code ?? '')) {
@@ -126,7 +135,12 @@ export const mapSkiddleEvent = (
 ): EventFields | null => {
   const when = event.startdate ?? event.date;
   const startsAt = when ? new Date(when) : null;
-  if (!event.id || !event.link || !startsAt || Number.isNaN(startsAt.getTime())) {
+  if (
+    !event.id ||
+    !event.link ||
+    !startsAt ||
+    Number.isNaN(startsAt.getTime())
+  ) {
     return null;
   }
   if (String(event.cancelled ?? '0') === '1') {

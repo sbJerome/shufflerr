@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Search from '@app/components/Search';
 import type { NextPage } from 'next';
 

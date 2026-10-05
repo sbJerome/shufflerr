@@ -39,8 +39,8 @@ import logger from '@server/logger';
 import type { AlbumResult } from '@server/models/music';
 import { In } from 'typeorm';
 
-export { ImportLinkError, parseImportUrl } from '@server/lib/import/parse';
 export { matchAlbum } from '@server/lib/import/match';
+export { ImportLinkError, parseImportUrl } from '@server/lib/import/parse';
 
 /** How long POST /import/resolve waits for matching before answering 'resolving'. */
 const INLINE_WAIT_MS = 8000;
@@ -52,7 +52,10 @@ type StoredMatch = ImportMatch;
 
 const runningJobs = new Map<number, Promise<void>>();
 
-const emptyMatch = (candidate: AlbumCandidate, pending: boolean): StoredMatch => ({
+const emptyMatch = (
+  candidate: AlbumCandidate,
+  pending: boolean
+): StoredMatch => ({
   sourceId: candidate.sourceId,
   sourceTitle: candidate.title,
   sourceArtist: candidate.artist,
@@ -78,7 +81,9 @@ const outcomeToAlbum = (outcome: MatchOutcome): AlbumResult | null =>
     : null;
 
 /** Stored matches → matches with today's library status and cover URLs. */
-const refreshMatches = async (stored: StoredMatch[]): Promise<ImportMatch[]> => {
+const refreshMatches = async (
+  stored: StoredMatch[]
+): Promise<ImportMatch[]> => {
   const albums = await toAlbumResults(
     stored
       .filter((m) => m.album)
@@ -225,7 +230,10 @@ export const getImportJob = async (
     job.status = 'failed';
     job.error =
       'Shufflerr restarted while matching this link. Paste the link again.';
-    job.matched = (job.matched ?? []).map((m) => ({ ...m, pending: undefined }));
+    job.matched = (job.matched ?? []).map((m) => ({
+      ...m,
+      pending: undefined,
+    }));
     await repository.save(job);
   }
   return toResponse(job);

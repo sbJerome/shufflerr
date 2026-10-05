@@ -320,6 +320,44 @@ class LidarrAPI extends ServarrBase<LidarrQueueAppend> {
     }
   };
 
+  /** Remove an artist (and optionally its files) from Lidarr. */
+  public deleteArtist = async (
+    artistId: number,
+    options: { deleteFiles?: boolean } = {}
+  ): Promise<void> => {
+    try {
+      await this.axios.delete(`/artist/${artistId}`, {
+        params: {
+          deleteFiles: !!options.deleteFiles,
+          addImportListExclusion: false,
+        },
+      });
+    } catch (e) {
+      throw new Error(`[Lidarr] Failed to remove artist: ${e.message}`, {
+        cause: e,
+      });
+    }
+  };
+
+  /** Remove an album (and optionally its files) from Lidarr. */
+  public deleteAlbum = async (
+    albumId: number,
+    options: { deleteFiles?: boolean } = {}
+  ): Promise<void> => {
+    try {
+      await this.axios.delete(`/album/${albumId}`, {
+        params: {
+          deleteFiles: !!options.deleteFiles,
+          addImportListExclusion: false,
+        },
+      });
+    } catch (e) {
+      throw new Error(`[Lidarr] Failed to remove album: ${e.message}`, {
+        cause: e,
+      });
+    }
+  };
+
   public getAlbums = async (artistId: number): Promise<LidarrAlbum[]> => {
     try {
       const response = await this.axios.get<LidarrAlbum[]>('/album', {

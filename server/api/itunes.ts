@@ -73,7 +73,10 @@ export const itunesArtworkToProxy = (
   if (!match) {
     return null;
   }
-  const path = match[1].replace(/\/\d+x\d+(bb|cc)?\.(jpg|png|webp)$/, `/${size}x${size}bb.jpg`);
+  const path = match[1].replace(
+    /\/\d+x\d+(bb|cc)?\.(jpg|png|webp)$/,
+    `/${size}x${size}bb.jpg`
+  );
   return `/imageproxy/itunes/${path}`;
 };
 
@@ -123,7 +126,10 @@ class ItunesAPI extends ExternalAPI {
   }
 
   /** Most-played albums in a store (Apple marketing RSS). */
-  public async getChart(country?: string, limit = 50): Promise<ItunesChartAlbum[]> {
+  public async getChart(
+    country?: string,
+    limit = 50
+  ): Promise<ItunesChartAlbum[]> {
     const cc = (
       country ||
       getSettings().discover.itunes.country ||

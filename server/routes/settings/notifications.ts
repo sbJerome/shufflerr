@@ -427,7 +427,10 @@ notificationRoutes.post<{ agent: string }>(
       return next({ status: e.status ?? 500, message: e.message });
     }
 
-    const sent = await sendTestNotification(AGENTS[key].create(config), req.user);
+    const sent = await sendTestNotification(
+      AGENTS[key].create(config),
+      req.user
+    );
     if (sent) {
       return res.status(204).send();
     }

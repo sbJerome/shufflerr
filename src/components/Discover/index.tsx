@@ -43,6 +43,7 @@ const messages = defineMessages('components.Discover', {
   trendingsub: 'New releases people are listening to this week',
   popularartists: 'Popular artists',
   popularartistssub: 'Most played and requested on this server',
+  popularartistslb: 'Most listened to on ListenBrainz right now',
   artistalbums:
     '{count, plural, one {# album in library} other {# albums in library}}',
   concerts: 'Concerts for artists you have',
@@ -193,41 +194,32 @@ const Discover = () => {
       )}
 
       {artists?.enabled && artists.results.length > 0 && (
-        <section aria-labelledby="discover-artists">
-          <div className="sh-sec-head">
-            <div>
-              <h2 className="sh-h-section" id="discover-artists">
-                {intl.formatMessage(messages.popularartists)}
-              </h2>
-              <p className="sh-sub">
-                {intl.formatMessage(messages.popularartistssub)}
-              </p>
-            </div>
-            <Link href="/artists">{intl.formatMessage(messages.seeall)}</Link>
-          </div>
-          <div
-            className="sh-grid"
-            style={{
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-            }}
-          >
-            {artists.results.map((artist) => (
-              <ArtistCard
-                key={artist.mbid}
-                mbid={artist.mbid}
-                name={artist.name}
-                imageSrc={artist.imageUrl}
-                meta={
-                  artist.albumsInLibrary
-                    ? intl.formatMessage(messages.artistalbums, {
-                        count: artist.albumsInLibrary,
-                      })
-                    : artist.disambiguation || artist.area
-                }
-              />
-            ))}
-          </div>
-        </section>
+        <HorizontalRow
+          title={intl.formatMessage(messages.popularartists)}
+          sub={intl.formatMessage(
+            artists.results.some((artist) => !artist.albumsInLibrary)
+              ? messages.popularartistslb
+              : messages.popularartistssub
+          )}
+          linkHref="/artists"
+          linkText={intl.formatMessage(messages.seeall)}
+        >
+          {artists.results.map((artist) => (
+            <ArtistCard
+              key={artist.mbid}
+              mbid={artist.mbid}
+              name={artist.name}
+              imageSrc={artist.imageUrl}
+              meta={
+                artist.albumsInLibrary
+                  ? intl.formatMessage(messages.artistalbums, {
+                      count: artist.albumsInLibrary,
+                    })
+                  : artist.disambiguation || artist.area
+              }
+            />
+          ))}
+        </HorizontalRow>
       )}
 
       {concerts?.enabled && concerts.results.length > 0 && (

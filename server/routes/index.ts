@@ -93,11 +93,17 @@ router.get(
     const pushoverApi = new PushoverAPI();
 
     try {
-      if (!req.query.token) {
+      // The settings page only ever sees the masked token; when the query
+      // carries the mask (or nothing), use the stored token instead.
+      const given = String(req.query.token ?? '');
+      const stored =
+        getSettings().notifications.agents.pushover.options.accessToken;
+      const token = !given || given.includes('•') ? stored : given;
+      if (!token) {
         throw new Error('Pushover application token missing from request');
       }
 
-      const sounds = await pushoverApi.getSounds(req.query.token as string);
+      const sounds = await pushoverApi.getSounds(token);
       res.status(200).json(sounds);
     } catch (e) {
       logger.debug('Something went wrong retrieving Pushover sounds', {

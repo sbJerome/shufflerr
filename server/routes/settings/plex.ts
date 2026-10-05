@@ -156,12 +156,10 @@ settingsRoutes.post('/plex/test', async (req, res, next) => {
   }
   const token = await ownerPlexToken();
   if (!token) {
-    return res
-      .status(200)
-      .json({
-        ok: false,
-        message: NO_OWNER_TOKEN,
-      } satisfies ConnectionTestResponse);
+    return res.status(200).json({
+      ok: false,
+      message: NO_OWNER_TOKEN,
+    } satisfies ConnectionTestResponse);
   }
   const { ok, name, version, message } = await probe(
     { ...getSettings().plex, ...parsed.data },

@@ -56,6 +56,7 @@ export abstract class SourceScanner implements RunnableScanner<
   private error: string | undefined;
   private counts = { albums: 0, tracks: 0 };
   private countsLoadedAt = 0;
+  private countsReady = false;
   private lastSummary:
     | {
         ingested: number;
@@ -142,10 +143,21 @@ export abstract class SourceScanner implements RunnableScanner<
     return this.lastSummary;
   }
 
+  /**
+   * Make sure the album/track counts have been read from the database at
+   * least once in this process (they are not kept across restarts).
+   */
+  public async ensureCounts(): Promise<void> {
+    if (!this.countsReady) {
+      await this.refreshCounts();
+    }
+  }
+
   public async refreshCounts(): Promise<void> {
     try {
       this.counts = await countSource(this.source);
       this.countsLoadedAt = Date.now();
+      this.countsReady = true;
     } catch (e) {
       this.log('Could not count library items', 'debug', {
         errorMessage: e.message,
@@ -293,6 +305,15 @@ export abstract class SourceScanner implements RunnableScanner<
 }
 
 /** Merge the status of a source's full and recently-added scanners for the scan panel. */
+/** combinedStatus() with the counts loaded first (right after a restart). */
+export const combinedStatusReady = async (
+  full: SourceScanner,
+  recent?: SourceScanner
+): Promise<ScanStatus> => {
+  await (recent?.status().running ? recent : full).ensureCounts();
+  return combinedStatus(full, recent);
+};
+
 export const combinedStatus = (
   full: SourceScanner,
   recent?: SourceScanner

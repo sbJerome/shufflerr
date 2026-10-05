@@ -17,7 +17,10 @@ import { Router } from 'express';
 const router = Router();
 
 const paging = (query: Record<string, unknown>, fallbackSize = 48) => {
-  const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || fallbackSize));
+  const pageSize = Math.min(
+    200,
+    Math.max(1, Number(query.pageSize) || fallbackSize)
+  );
   const page = Math.max(1, Number(query.page) || 1);
   return { page, pageSize, skip: (page - 1) * pageSize };
 };
@@ -25,12 +28,23 @@ const paging = (query: Record<string, unknown>, fallbackSize = 48) => {
 const like = (q: string): string =>
   `%${q.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
-/** Artists that have at least one release group (partly) in the library. */
+/**
+ * Artists that have at least one release group (partly) in the library.
+ * The name is the artist row's own title (the artist's MusicBrainz name); an
+ * album's credit phrase ("A, B & C") is only the fallback when no artist row
+ * exists yet.
+ */
 export const libraryArtistsQuery = (q?: string) => {
   const qb = getRepository(Media)
     .createQueryBuilder('media')
+    .leftJoin(
+      Media,
+      'artist',
+      'artist.mbid = media.artistMbid AND artist.mediaType = :artistType',
+      { artistType: MediaType.ARTIST }
+    )
     .select('media.artistMbid', 'mbid')
-    .addSelect('MAX(media.artistName)', 'name')
+    .addSelect(`COALESCE(MAX(artist.title), MAX(media.artistName))`, 'name')
     .addSelect('COUNT(*)', 'albums')
     .addSelect('MAX(media.mediaAddedAt)', 'added')
     .where('media.mediaType = :type', { type: MediaType.RELEASE_GROUP })
@@ -41,7 +55,10 @@ export const libraryArtistsQuery = (q?: string) => {
     .andWhere("media.artistMbid != ''")
     .groupBy('media.artistMbid');
   if (q) {
-    qb.andWhere("LOWER(media.artistName) LIKE :q ESCAPE '\\'", { q: like(q) });
+    qb.andWhere(
+      "(LOWER(artist.title) LIKE :q ESCAPE '\\' OR LOWER(media.artistName) LIKE :q ESCAPE '\\')",
+      { q: like(q) }
+    );
   }
   return qb;
 };
@@ -49,56 +66,62 @@ export const libraryArtistsQuery = (q?: string) => {
 // GET /library/artists · signed in
 //   in:  query `page`, `pageSize` (48), `sort`=name|added|albums, `q`
 //   out: LibraryArtistsResponse
-router.get<never, LibraryArtistsResponse>('/artists', async (req, res, next) => {
-  const { page, pageSize, skip } = paging(req.query);
-  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-  const sort = String(req.query.sort ?? 'name');
+router.get<never, LibraryArtistsResponse>(
+  '/artists',
+  async (req, res, next) => {
+    const { page, pageSize, skip } = paging(req.query);
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const sort = String(req.query.sort ?? 'name');
 
-  try {
-    const qb = libraryArtistsQuery(q);
-    switch (sort) {
-      case 'added':
-        qb.orderBy('added', 'DESC');
-        break;
-      case 'albums':
-        qb.orderBy('albums', 'DESC');
-        break;
-      default:
-        qb.orderBy('LOWER(MAX(media.artistName))', 'ASC');
+    try {
+      const qb = libraryArtistsQuery(q);
+      switch (sort) {
+        case 'added':
+          qb.orderBy('added', 'DESC');
+          break;
+        case 'albums':
+          qb.orderBy('albums', 'DESC');
+          break;
+        default:
+          qb.orderBy(
+            'LOWER(COALESCE(MAX(artist.title), MAX(media.artistName)))',
+            'ASC'
+          );
+      }
+      qb.addOrderBy('media.artistMbid', 'ASC');
+
+      const all = await qb.getRawMany<{
+        mbid: string;
+        name: string | null;
+        albums: string | number;
+      }>();
+      const total = all.length;
+      const pageRows = all.slice(skip, skip + pageSize);
+
+      const results: ArtistResult[] = await Promise.all(
+        pageRows.map(async (row) => ({
+          mbid: row.mbid,
+          name: row.name ?? '',
+          imageUrl: (await getArtistImages(row.mbid)).thumb,
+          status: MediaStatus.AVAILABLE,
+          albumsInLibrary: Number(row.albums),
+        }))
+      );
+
+      return res.status(200).json({
+        pageInfo: {
+          pages: Math.ceil(total / pageSize),
+          page,
+          results: total,
+          pageSize,
+        },
+        results,
+      });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
     }
-    qb.addOrderBy('media.artistMbid', 'ASC');
-
-    const all = await qb.getRawMany<{
-      mbid: string;
-      name: string | null;
-      albums: string | number;
-    }>();
-    const total = all.length;
-    const pageRows = all.slice(skip, skip + pageSize);
-
-    const results: ArtistResult[] = await Promise.all(
-      pageRows.map(async (row) => ({
-        mbid: row.mbid,
-        name: row.name ?? '',
-        imageUrl: (await getArtistImages(row.mbid)).thumb,
-        status: MediaStatus.AVAILABLE,
-        albumsInLibrary: Number(row.albums),
-      }))
-    );
-
-    return res.status(200).json({
-      pageInfo: {
-        pages: Math.ceil(total / pageSize),
-        page,
-        results: total,
-        pageSize,
-      },
-      results,
-    });
-  } catch (e) {
-    return next({ status: 500, message: e.message });
   }
-});
+);
 
 // GET /library/albums · signed in
 //   in:  query `page`, `pageSize` (48), `sort`=added|title|artist|year,
@@ -119,7 +142,9 @@ router.get<never, LibraryAlbumsResponse>('/albums', async (req, res, next) => {
 
     switch (filter) {
       case 'available':
-        qb.andWhere('media.status = :status', { status: MediaStatus.AVAILABLE });
+        qb.andWhere('media.status = :status', {
+          status: MediaStatus.AVAILABLE,
+        });
         break;
       case 'partial':
         qb.andWhere('media.status = :status', {

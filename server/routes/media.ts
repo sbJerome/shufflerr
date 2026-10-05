@@ -1,12 +1,15 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 // Mounted at /api/v1/media (see docs/API_CONTRACT.md).
+import LidarrAPI from '@server/api/servarr/lidarr';
 import { MediaStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
 import type { MediaResultsResponse } from '@server/interfaces/api/mediaInterfaces';
+import { invalidateLidarrArtistState } from '@server/lib/metadata/details';
 import { coverUrlFor } from '@server/lib/metadata/index';
 import { IN_LIBRARY_STATUSES } from '@server/lib/metadata/library';
 import { Permission } from '@server/lib/permissions';
+import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
 import { Router } from 'express';
@@ -93,7 +96,10 @@ router.get<never, MediaResultsResponse>('/', async (req, res, next) => {
 router.get<{ id: string }>('/:id', async (req, res, next) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
-    return next({ status: 404, message: 'That item is not in the library index.' });
+    return next({
+      status: 404,
+      message: 'That item is not in the library index.',
+    });
   }
   try {
     const media = await getRepository(Media).findOne({
@@ -150,10 +156,7 @@ router.post<{ id: string; status: string }, Media>(
       // "unknown" means "forget what was set by hand": fall back to what the scans found.
       media.status =
         status === MediaStatus.UNKNOWN ? media.libraryStatus() : status;
-      if (
-        IN_LIBRARY_STATUSES.includes(media.status) &&
-        !media.mediaAddedAt
-      ) {
+      if (IN_LIBRARY_STATUSES.includes(media.status) && !media.mediaAddedAt) {
         media.mediaAddedAt = new Date();
       }
       await mediaRepository.save(media);
@@ -195,6 +198,92 @@ router.delete<{ id: string }>(
         errorMessage: e.message,
       });
       return next({ status: 500, message: e.message });
+    }
+  }
+);
+
+// DELETE /media/:id/lidarr · MANAGE_REQUESTS → 204
+//   in:  query `deleteFiles`=0|1
+//   Removes the album (release group) or artist from Lidarr. With deleteFiles=1
+//   Lidarr also deletes the files; the next library scan then steps the status
+//   back. 409 when the item is not in Lidarr.
+router.delete<{ id: string }>(
+  '/:id/lidarr',
+  isAuthenticated(Permission.MANAGE_REQUESTS),
+  async (req, res, next) => {
+    try {
+      const mediaRepository = getRepository(Media);
+      const media = await mediaRepository.findOne({
+        where: { id: Number(req.params.id) },
+      });
+      if (!media) {
+        return next({
+          status: 404,
+          message: 'That item is not in the library index.',
+        });
+      }
+      const servers = getSettings().lidarr;
+      const server =
+        servers.find((s) => s.id === media.lidarrServerId) ??
+        servers.find((s) => s.isDefault && !s.isHiRes) ??
+        servers[0];
+      if (!server) {
+        return next({ status: 409, message: 'No Lidarr server is set up.' });
+      }
+      const lidarr = LidarrAPI.fromSettings(server);
+      const deleteFiles = ['1', 'true'].includes(String(req.query.deleteFiles));
+
+      if (media.mediaType === MediaType.ARTIST) {
+        const artist = await lidarr.getArtistByMbid(media.mbid);
+        if (!artist?.id) {
+          return next({
+            status: 409,
+            message: 'This artist is not in Lidarr.',
+          });
+        }
+        await lidarr.deleteArtist(artist.id, { deleteFiles });
+        await mediaRepository.update(
+          [
+            { id: media.id },
+            { artistMbid: media.mbid, lidarrServerId: server.id },
+          ],
+          {
+            lidarrArtistId: null,
+            lidarrAlbumId: null,
+            lidarrServerId: null,
+            lidarrAddedByShufflerr: false,
+          }
+        );
+      } else {
+        const album = await lidarr.getAlbumByMbid(media.mbid);
+        if (!album?.id) {
+          return next({ status: 409, message: 'This album is not in Lidarr.' });
+        }
+        await lidarr.deleteAlbum(album.id, { deleteFiles });
+        await mediaRepository.update(media.id, {
+          lidarrAlbumId: null,
+          lidarrAddedByShufflerr: false,
+        });
+      }
+      if (media.artistMbid || media.mediaType === MediaType.ARTIST) {
+        invalidateLidarrArtistState(media.artistMbid ?? media.mbid);
+      }
+      logger.info('Removed from Lidarr by hand', {
+        label: 'Media',
+        mediaId: media.id,
+        deleteFiles,
+        userId: req.user?.id,
+      });
+      return res.status(204).send();
+    } catch (e) {
+      logger.error('Could not remove the item from Lidarr', {
+        label: 'Media',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 502,
+        message: 'Lidarr did not remove it. Check that Lidarr is running.',
+      });
     }
   }
 );

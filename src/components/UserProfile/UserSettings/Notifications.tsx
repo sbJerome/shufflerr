@@ -53,6 +53,11 @@ const messages = defineMessages(
     discordIdHint: 'So Shufflerr can mention you',
     telegramChatId: 'Telegram chat ID',
     telegramSilent: 'Send silently',
+    telegramThread: 'Topic (thread) ID',
+    telegramThreadHint: 'Only for group chats that use topics.',
+    pushoverSound: 'Sound',
+    pushoverSoundHint:
+      'A Pushover sound name, for example pushover or magic. Leave empty for your device default.',
     pushbulletToken: 'Access token',
     pushoverApp: 'Application token',
     pushoverUser: 'User key',
@@ -86,6 +91,8 @@ interface FormState {
   discordId: string;
   telegramChatId: string;
   telegramSendSilently: boolean;
+  telegramMessageThreadId: string;
+  pushoverSound: string;
   pushbulletAccessToken: string;
   pushoverApplicationToken: string;
   pushoverUserKey: string;
@@ -98,6 +105,8 @@ const emptyForm: FormState = {
   discordId: '',
   telegramChatId: '',
   telegramSendSilently: false,
+  telegramMessageThreadId: '',
+  pushoverSound: '',
   pushbulletAccessToken: '',
   pushoverApplicationToken: '',
   pushoverUserKey: '',
@@ -134,6 +143,8 @@ const Notifications = ({ channel }: { channel?: string }) => {
       discordId: c.discord?.discordIds?.[0] ?? '',
       telegramChatId: c.telegram?.telegramChatId ?? '',
       telegramSendSilently: !!c.telegram?.telegramSendSilently,
+      telegramMessageThreadId: c.telegram?.telegramMessageThreadId ?? '',
+      pushoverSound: c.pushover?.pushoverSound ?? '',
       pushbulletAccessToken: c.pushbullet?.pushbulletAccessToken ?? '',
       pushoverApplicationToken: c.pushover?.pushoverApplicationToken ?? '',
       pushoverUserKey: c.pushover?.pushoverUserKey ?? '',
@@ -180,6 +191,7 @@ const Notifications = ({ channel }: { channel?: string }) => {
         return {
           telegramChatId: form.telegramChatId.trim(),
           telegramSendSilently: form.telegramSendSilently,
+          telegramMessageThreadId: form.telegramMessageThreadId.trim(),
         };
       case 'pushbullet':
         return { pushbulletAccessToken: form.pushbulletAccessToken.trim() };
@@ -187,6 +199,7 @@ const Notifications = ({ channel }: { channel?: string }) => {
         return {
           pushoverApplicationToken: form.pushoverApplicationToken.trim(),
           pushoverUserKey: form.pushoverUserKey.trim(),
+          pushoverSound: form.pushoverSound.trim(),
         };
       default:
         return {};
@@ -346,6 +359,23 @@ const Notifications = ({ channel }: { channel?: string }) => {
                   />
                 )}
               </Field>
+              <Field
+                label={intl.formatMessage(messages.telegramThread)}
+                hint={intl.formatMessage(messages.telegramThreadHint)}
+              >
+                {(p) => (
+                  <input
+                    {...p}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={form.telegramMessageThreadId}
+                    onChange={(e) =>
+                      set('telegramMessageThreadId', e.target.value)
+                    }
+                  />
+                )}
+              </Field>
             </div>
             <label className="sh-check">
               <input
@@ -395,6 +425,20 @@ const Notifications = ({ channel }: { channel?: string }) => {
                   autoComplete="off"
                   value={form.pushoverUserKey}
                   onChange={(e) => set('pushoverUserKey', e.target.value)}
+                />
+              )}
+            </Field>
+            <Field
+              label={intl.formatMessage(messages.pushoverSound)}
+              hint={intl.formatMessage(messages.pushoverSoundHint)}
+            >
+              {(p) => (
+                <input
+                  {...p}
+                  type="text"
+                  autoComplete="off"
+                  value={form.pushoverSound}
+                  onChange={(e) => set('pushoverSound', e.target.value)}
                 />
               )}
             </Field>

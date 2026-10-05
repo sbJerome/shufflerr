@@ -128,7 +128,8 @@ const guarded =
       });
       return next({
         status: 500,
-        message: "The settings couldn't be saved. Check the logs for the reason.",
+        message:
+          "The settings couldn't be saved. Check the logs for the reason.",
       });
     }
   };
@@ -203,7 +204,11 @@ const checkInt = (label: string, value: unknown, min: number, max: number) => {
   }
 };
 
-const checkOneOf = (label: string, value: unknown, allowed: readonly unknown[]) => {
+const checkOneOf = (
+  label: string,
+  value: unknown,
+  allowed: readonly unknown[]
+) => {
   if (value !== undefined && !allowed.includes(value)) {
     invalid(`${label} has to be one of: ${allowed.join(', ')}.`);
   }
@@ -247,7 +252,9 @@ export const validateMain = (main: Partial<MainSettings>): void => {
     main.locale !== '' &&
     !(availableLocales as readonly string[]).includes(main.locale)
   ) {
-    invalid("Shufflerr doesn't have that display language. Pick one from the list.");
+    invalid(
+      "Shufflerr doesn't have that display language. Pick one from the list."
+    );
   }
   checkCountry('The discover region', main.discoverRegion, true);
   checkBoolean('Allow track requests', main.allowTrackRequests);
@@ -333,7 +340,9 @@ export const validateUsers = (body: UsersSettingsResponse): void => {
     !Number.isInteger(body.defaultPermissions) ||
     body.defaultPermissions < 0
   ) {
-    invalid("The default permissions aren't valid. Reload the page and try again.");
+    invalid(
+      "The default permissions aren't valid. Reload the page and try again."
+    );
   }
 
   const quotas = body.defaultQuotas;
@@ -360,8 +369,14 @@ settingsRoutes.post(
       ...current,
       ...incoming,
       defaultQuotas: {
-        album: { ...current.defaultQuotas.album, ...incoming.defaultQuotas?.album },
-        track: { ...current.defaultQuotas.track, ...incoming.defaultQuotas?.track },
+        album: {
+          ...current.defaultQuotas.album,
+          ...incoming.defaultQuotas?.album,
+        },
+        track: {
+          ...current.defaultQuotas.track,
+          ...incoming.defaultQuotas?.track,
+        },
       },
     };
 
@@ -409,7 +424,10 @@ export const validateNetwork = (network: NetworkSettings): void => {
   const proxy = network.proxy;
   checkBoolean('Outgoing proxy', proxy.enabled);
   checkBoolean('Use SSL for the proxy', proxy.useSsl);
-  checkBoolean('Skip the proxy for local addresses', proxy.bypassLocalAddresses);
+  checkBoolean(
+    'Skip the proxy for local addresses',
+    proxy.bypassLocalAddresses
+  );
   if (proxy.enabled) {
     if (typeof proxy.hostname !== 'string' || !proxy.hostname.trim()) {
       invalid('Enter the proxy hostname, or turn the outgoing proxy off.');
@@ -500,7 +518,10 @@ export const validateMetadata = (m: MetadataSettings): void => {
 
 export const validateYoutube = (y: YoutubeSettings): void => {
   checkBoolean('Use YouTube', y.enabled);
-  checkBoolean('Fill gaps while requests download', y.fillMissingWhileDownloading);
+  checkBoolean(
+    'Fill gaps while requests download',
+    y.fillMissingWhileDownloading
+  );
   if (y.enabled && !y.apiKey) {
     invalid('Enter the YouTube Data API key, or turn YouTube off.');
   }
@@ -516,7 +537,9 @@ export const validateDiscover = (d: DiscoverSettings): void => {
     'never',
   ]);
   if (d.spotify.enabled && (!d.spotify.clientId || !d.spotify.clientSecret)) {
-    invalid('Enter the Spotify client ID and client secret, or turn Spotify off.');
+    invalid(
+      'Enter the Spotify client ID and client secret, or turn Spotify off.'
+    );
   }
 
   checkBoolean('Use Deezer', d.deezer.enabled);
@@ -670,7 +693,10 @@ settingsRoutes.post<{ service: string }>(
         }
         return sendTest(
           res,
-          await testMusicBrainz(url, text(body.contact, stored.musicbrainz.contact))
+          await testMusicBrainz(
+            url,
+            text(body.contact, stored.musicbrainz.contact)
+          )
         );
       }
       case 'fanart':
@@ -767,10 +793,7 @@ settingsRoutes.post<{ service: string }>(
         return sendTest(res, await testListenBrainz(url));
       }
       case 'lastfm':
-        return sendTest(
-          res,
-          await testLastfm(settings.metadata.lastfm.apiKey)
-        );
+        return sendTest(res, await testLastfm(settings.metadata.lastfm.apiKey));
       default:
         return next({ status: 404, message: 'Nothing to test by that name.' });
     }
@@ -1120,7 +1143,8 @@ settingsRoutes.post('/cache/images/cleanup', async (_req, res, next) => {
     });
     return next({
       status: 500,
-      message: "The image cache couldn't be cleaned up. Check the logs for the reason.",
+      message:
+        "The image cache couldn't be cleaned up. Check the logs for the reason.",
     });
   }
 });

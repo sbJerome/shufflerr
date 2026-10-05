@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import ExternalAPI from '@server/api/externalapi';
 import { getUserAgent } from '@server/utils/userAgent';
 import axios, {

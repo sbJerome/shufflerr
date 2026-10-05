@@ -63,7 +63,7 @@ const LibraryArtists = () => {
           onChange={(e) => setText(e.target.value)}
         />
         <select
-          className="!w-auto"
+          className="!w-auto !flex-none"
           aria-label={intl.formatMessage(messages.sort)}
           value={sort}
           onChange={(e) =>

@@ -50,6 +50,8 @@ interface JobDefinition {
   /** Log at debug instead of info (very frequent jobs). */
   quiet?: boolean;
   run: () => unknown;
+  /** "Run now" body when it differs from the scheduled one. */
+  runManual?: () => unknown;
   running?: () => boolean;
   cancel?: () => void;
 }
@@ -128,6 +130,8 @@ const jobDefinitions = (): JobDefinition[] => {
       interval: 'minutes',
       enabled: () => on().localFiles,
       ...scanner(localFilesScanner),
+      // a manual run ignores the rescan interval
+      runManual: () => localFilesScanner.run({ force: true }),
     },
     {
       id: 'lidarr-scan',
@@ -229,7 +233,7 @@ const execute = async (def: JobDefinition, manual = false): Promise<void> => {
   );
   activeRuns.add(def.id);
   try {
-    await def.run();
+    await (manual && def.runManual ? def.runManual() : def.run());
   } catch (e) {
     logger.error(`Job failed: ${def.name}`, {
       label: 'Jobs',

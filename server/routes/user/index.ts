@@ -21,6 +21,7 @@ import type {
 import { getLinkedAccounts } from '@server/lib/auth/linkedAccounts';
 import { coverUrlFor } from '@server/lib/metadata';
 import { Permission, hasPermission } from '@server/lib/permissions';
+import { toRequestResults } from '@server/lib/requestResults';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
@@ -527,19 +528,14 @@ router.get<{ id: string }, UserRequestsResponse>(
         });
       }
 
-      const [requests, requestCount] = await getRepository(MediaRequest)
-        .createQueryBuilder('request')
-        .leftJoinAndSelect('request.media', 'media')
-        .leftJoinAndSelect('request.tracks', 'tracks')
-        .leftJoinAndSelect('request.modifiedBy', 'modifiedBy')
-        .leftJoinAndSelect('request.requestedBy', 'requestedBy')
-        .andWhere('requestedBy.id = :id', {
-          id: user.id,
-        })
-        .orderBy('request.id', 'DESC')
-        .take(pageSize)
-        .skip(skip)
-        .getManyAndCount();
+      const [requests, requestCount] = await getRepository(
+        MediaRequest
+      ).findAndCount({
+        where: { requestedBy: { id: user.id } },
+        order: { id: 'DESC' },
+        take: pageSize,
+        skip,
+      });
 
       return res.status(200).json({
         pageInfo: {
@@ -548,9 +544,7 @@ router.get<{ id: string }, UserRequestsResponse>(
           results: requestCount,
           page: Math.ceil(skip / pageSize) + 1,
         },
-        // STREAM(SV4/SV2): map through the shared RequestResult mapper once
-        // SV2 exports it from routes/request.ts.
-        results: requests as unknown as UserRequestsResponse['results'],
+        results: (await toRequestResults(requests, req.user as User)).results,
       });
     } catch (e) {
       next({ status: 500, message: e.message });

@@ -68,6 +68,7 @@ const BlocklistBlock = ({
 
   const date = data?.createdAt ? (
     <FormattedDate
+      key="date"
       value={data.createdAt}
       year="numeric"
       month="long"

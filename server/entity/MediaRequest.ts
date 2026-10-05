@@ -576,9 +576,15 @@ export class MediaRequest {
    * whole release group AVAILABLE). Scanners and the availability sync call
    * this after updating Track/Media; the request subscriber then sends the
    * `available` notification. Returns the requests it completed.
+   *
+   * This is the ONLY place album/tracks requests become COMPLETED (the library
+   * layer's completeReleaseGroupRequests delegates here), so the notification
+   * is sent exactly once. `fullyAvailable` lets a caller that has just counted
+   * the tracks pass the answer before the Media row is written.
    */
   public static async completeSatisfied(
-    mediaId: number
+    mediaId: number,
+    options: { fullyAvailable?: boolean } = {}
   ): Promise<MediaRequest[]> {
     const requestRepository = getRepository(MediaRequest);
     const approved = await requestRepository.find({
@@ -592,8 +598,10 @@ export class MediaRequest {
 
     for (const request of approved) {
       const satisfied =
-        request.scope === RequestScope.ALBUM
-          ? request.media.libraryStatus() === MediaStatus.AVAILABLE
+        request.scope === RequestScope.ALBUM ||
+        (request.tracks ?? []).length === 0
+          ? (options.fullyAvailable ??
+            request.media.libraryStatus() === MediaStatus.AVAILABLE)
           : (request.tracks ?? []).length > 0 &&
             request.tracks.every(
               (tr) => tr.track?.status === MediaStatus.AVAILABLE
@@ -607,6 +615,34 @@ export class MediaRequest {
         }
         completed.push(await requestRepository.save(request));
       }
+    }
+
+    return completed;
+  }
+
+  /**
+   * Marks the approved discography requests of an artist COMPLETED. Callers
+   * decide WHEN the discography is in (library layer: every covered release
+   * group available; Lidarr scan: every monitored album has its files); this
+   * is the single place the status changes, so `available` is sent once.
+   */
+  public static async completeDiscography(
+    artistMediaId: number
+  ): Promise<MediaRequest[]> {
+    const requestRepository = getRepository(MediaRequest);
+    const requests = await requestRepository.find({
+      where: {
+        media: { id: artistMediaId },
+        scope: RequestScope.DISCOGRAPHY,
+        status: MediaRequestStatus.APPROVED,
+      },
+    });
+    const completed: MediaRequest[] = [];
+
+    for (const request of requests) {
+      request.status = MediaRequestStatus.COMPLETED;
+      request.downloadProgress = 100;
+      completed.push(await requestRepository.save(request));
     }
 
     return completed;

@@ -43,10 +43,9 @@ const chunked = <T>(items: T[]): T[][] => {
 };
 
 export const canSeeAllRequests = (user?: User): boolean =>
-  !!user?.hasPermission(
-    [Permission.MANAGE_REQUESTS, Permission.REQUEST_VIEW],
-    { type: 'or' }
-  );
+  !!user?.hasPermission([Permission.MANAGE_REQUESTS, Permission.REQUEST_VIEW], {
+    type: 'or',
+  });
 
 export const toMediaInfo = (media: Media): MediaInfoSummary => ({
   id: media.id,
@@ -158,7 +157,9 @@ export const mergeAlbumLibrary = async (
   if (media.size === 0) {
     return albums;
   }
-  const requests = await getActiveRequests([...media.values()].map((m) => m.id));
+  const requests = await getActiveRequests(
+    [...media.values()].map((m) => m.id)
+  );
   for (const album of albums) {
     const row = media.get(album.mbid);
     if (!row) {
@@ -231,7 +232,9 @@ export const isTrackPlayable = (
 export const mergeTrackLibrary = async (
   tracks: TrackResult[]
 ): Promise<TrackResult[]> => {
-  const mbids = [...new Set(tracks.map((t) => t.recordingMbid).filter(Boolean))];
+  const mbids = [
+    ...new Set(tracks.map((t) => t.recordingMbid).filter(Boolean)),
+  ];
   if (mbids.length === 0) {
     return tracks;
   }
@@ -297,7 +300,9 @@ export const albumFromMedia = (media: Media): AlbumResult => {
 };
 
 /** AlbumResults for Media rows, with their active request attached. */
-export const albumsFromMedia = async (rows: Media[]): Promise<AlbumResult[]> => {
+export const albumsFromMedia = async (
+  rows: Media[]
+): Promise<AlbumResult[]> => {
   const albums = rows.map(albumFromMedia);
   const requests = await getActiveRequests(rows.map((m) => m.id));
   rows.forEach((row, i) => {

@@ -105,7 +105,9 @@ class EmailAgent
       : undefined;
 
     if (payload.request) {
-      const bodies: Partial<Record<Notification, { id: string; defaultMessage: string }>> = {
+      const bodies: Partial<
+        Record<Notification, { id: string; defaultMessage: string }>
+      > = {
         [Notification.MEDIA_PENDING]: messages.requestPending,
         [Notification.MEDIA_AUTO_REQUESTED]: messages.requestAutoRequested,
         [Notification.MEDIA_APPROVED]: messages.requestApproved,

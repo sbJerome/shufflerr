@@ -8,30 +8,72 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [0.1.0] - 2026-10-05
 
+First version. Shufflerr is a fork of Seerr
+(`seerr-team/seerr@2cfbcf8940225f1597d44f507fd78040887c5597`, MIT) with the movie/TV domain
+replaced by music.
+
 ### Added
 
-- Forked from Seerr (`seerr-team/seerr@2cfbcf8940225f1597d44f507fd78040887c5597`, MIT) and
-  rebranded as Shufflerr: package, Docker image, compose files, Helm chart, CI, logos and PWA
-  icons (`s/` tile).
-- Music data model: `Media` (artist / release group, keyed by MusicBrainz ID), `Track`,
+- **Foundation:** rebrand (package, Docker image with ffmpeg, compose files, Helm chart, CI,
+  `s/` logos and PWA icons); music data model keyed by MusicBrainz IDs (`Media`, `Track`,
   `MediaRequest` with scopes `tracks` / `album` / `discography`, `TrackRequest`,
   `LinkedAccount`, `AppPassword`, `ScrobbleQueue`, `ImportJob`, `Event`, `Playlist`,
-  `PlaylistItem`, `Star`.
-- Music permission bits and album/track request quotas (`User.getQuota()`).
-- Settings for Lidarr servers, Plex, Jellyfin, Navidrome, local files, YouTube, client apps,
-  metadata sources, discover/import sources, scrobbling and the 15 scheduled jobs. Every
-  integration is off until configured. Secrets are masked in settings responses.
-- Server secret + AES-256-GCM encryption for linked-account secrets and app passwords.
-- Image proxy sources for the Cover Art Archive, fanart.tv, Last.fm, Spotify, Deezer, iTunes,
-  Ticketmaster, Skiddle and YouTube thumbnails.
-- API contract (`docs/API_CONTRACT.md`) with typed request/response shapes and mounted route
-  skeletons for every stream.
+  `PlaylistItem`, `Star`); music permission bits; album and track quotas; settings for every
+  integration, all off until configured, with secrets masked in responses and encrypted at
+  rest where they belong to a user.
+- **Metadata and browse:** MusicBrainz client (rate-limited, cached, mirror support), Cover
+  Art Archive, fanart.tv, Last.fm and ListenBrainz clients; unified search; artist, album and
+  track pages; Discover rows (recently added, trending, popular artists, concerts, recent
+  requests); library lists; login slideshow of real covers.
+- **Requests:** Lidarr client (API v1) and multi-server settings; the request engine with
+  permission, quota, blocklist, duplicate and auto-approve rules and a dry run for the request
+  dialog; approve, decline, retry, edit, cancel; hand-off to Lidarr; download progress sync;
+  Lidarr library scan.
+- **Library:** scanners for Plex, Jellyfin/Emby, Navidrome and local folders (with a folder
+  watcher); per-track availability; requests complete when what they asked for is in the
+  library; audio streaming with range requests and optional transcoding; waveform peaks.
+- **Accounts:** Plex PIN, Jellyfin/Emby and local sign-in; first-run local owner; user list,
+  profiles, quotas, bulk permission edits, Plex and Jellyfin imports; app passwords; linked
+  Last.fm, ListenBrainz and Spotify accounts; sign-in rate limit.
+- **Admin:** settings API and pages for general, users, network, Plex, Jellyfin, Navidrome,
+  local files, YouTube, apps and devices, Lidarr, metadata, Spotify, Deezer, iTunes,
+  Ticketmaster, Skiddle, scrobbling, ten notification agents, logs, jobs, cache and about;
+  setup wizard.
+- **Notifications:** email, web push, Discord, Slack, Telegram, Pushbullet, Pushover, webhook,
+  Gotify and ntfy with music payloads and six notification types.
+- **Import and extras:** import from Spotify, Deezer and Apple Music links matched to
+  MusicBrainz by UPC, ISRC or name; Spotify saved-albums sync; iTunes chart; concerts from
+  Ticketmaster and Skiddle; scrobbling to ListenBrainz and Last.fm from the web player, client
+  apps and Plex/Jellyfin webhooks; YouTube playback of missing tracks through the official
+  player only.
+- **Client APIs:** OpenSubsonic at `/rest` and a Jellyfin-compatible API at `/jellyfin`, native
+  over Shufflerr's library, signed in with app passwords.
+- **Issues, manage panel and blocklist** adapted from Seerr for albums and artists.
+- **Web app:** new design system (dark and light), icon rail, top bar, docked player with
+  waveform, and every page above.
+- **Database migrations** for SQLite and PostgreSQL; production runs migrations only.
+- **OpenAPI document** generated from the routes and their types
+  (`server/scripts/generateApiSpec.ts`), served at `/api-docs`.
+- Routes added at integration: `POST /artist/:mbid/watch`, `DELETE /media/:id/lidarr`,
+  `GET /settings/local/unresolved`, `GET /issue?mediaId=`.
 
 ### Changed
 
 - `settings.json` is written with mode `0600`.
 - Settings pages require `MANAGE_SETTINGS` (Seerr required `ADMIN`).
 - The update check is off: there is no public Shufflerr release feed yet.
+- Requests are validated by their handlers (with the UI's own error copy) rather than by the
+  OpenAPI validator.
+- CSRF protection does not apply to the client APIs and webhooks, which do not use browser
+  sessions.
+- The unit test runner runs files side by side and skips the per-file type check; the suite
+  takes about 75 seconds instead of six and a half minutes.
+- `GET /issue/count` is scoped to what the caller may see.
+
+### Fixed
+
+- Artist names taken from an album's credit phrase while MusicBrainz was unreachable are
+  corrected on the next scan.
 
 ### Removed
 

@@ -75,7 +75,9 @@ export const notificationSubject = (
       ? `${media.title} — discography`
       : media.title;
   }
-  return media.artistName ? `${media.title} — ${media.artistName}` : media.title;
+  return media.artistName
+    ? `${media.title} — ${media.artistName}`
+    : media.title;
 };
 
 /** Human description of what a request covers: "Album", "4 tracks", "Discography (8 releases)". */

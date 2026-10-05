@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { NProgress } from '@tanem/react-nprogress';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';

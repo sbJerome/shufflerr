@@ -9,21 +9,20 @@
 // library source is switched on.
 import type { LidarrAlbum, LidarrArtist } from '@server/api/servarr/lidarr';
 import LidarrAPI from '@server/api/servarr/lidarr';
-import {
-  MediaRequestStatus,
-  MediaStatus,
-  MediaType,
-  RequestScope,
-} from '@server/constants/media';
+import { MediaStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
 import { MediaRequest } from '@server/entity/MediaRequest';
 import type { ScanStatus } from '@server/interfaces/api/settingsInterfaces';
-import type { StatusBase } from '@server/lib/scanners/baseScanner';
-import type { LibraryScanner } from '@server/lib/scanners/stub';
+import type {
+  RunnableScanner,
+  StatusBase,
+} from '@server/lib/scanners/baseScanner';
 import type { LidarrSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
+
+type LibraryScanner = RunnableScanner<Partial<ScanStatus>>;
 
 const secondaryTypeNames = (album: LidarrAlbum): string[] =>
   (album.secondaryTypes ?? [])
@@ -169,6 +168,8 @@ class LidarrScanner implements LibraryScanner {
       (media) => {
         media.title = artist.artistName || media.title;
         media.artistName = artist.artistName || media.artistName;
+        // Lidarr's artist name is the MusicBrainz name for this MBID
+        media.artistMbid = artist.foreignArtistId;
         media.lidarrServerId = server.id;
         media.lidarrArtistId = artist.id as number;
       }
@@ -247,20 +248,7 @@ class LidarrScanner implements LibraryScanner {
       return;
     }
 
-    const requestRepository = getRepository(MediaRequest);
-    const requests = await requestRepository.find({
-      where: {
-        media: { id: artistMedia.id },
-        scope: RequestScope.DISCOGRAPHY,
-        status: MediaRequestStatus.APPROVED,
-      },
-    });
-
-    for (const request of requests) {
-      request.status = MediaRequestStatus.COMPLETED;
-      request.downloadProgress = 100;
-      await requestRepository.save(request);
-    }
+    await MediaRequest.completeDiscography(artistMedia.id);
   }
 
   private log(

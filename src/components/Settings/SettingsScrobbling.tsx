@@ -2,6 +2,7 @@ import Field from '@app/components/Common/Field';
 import Panel from '@app/components/Common/Panel';
 import SwitchRow from '@app/components/Common/SwitchRow';
 import {
+  CopyRow,
   ConnectionStatus,
   PanelError,
   SaveButton,
@@ -25,6 +26,14 @@ import useSWR, { mutate as globalMutate } from 'swr';
 import { apiMessage } from './shared';
 
 const messages = defineMessages('components.Settings.SettingsScrobbling', {
+  webhooks: 'Plays from Plex and Jellyfin',
+  webhooksSub:
+    'Plex (with Plex Pass) and Jellyfin’s Webhook plugin can tell Shufflerr what people play. Paste these addresses into them. The addresses contain the API key, so keep them private.',
+  webhookPlex: 'Plex webhook address',
+  webhookPlexHint: 'Plex → Settings → Webhooks → Add webhook.',
+  webhookJellyfin: 'Jellyfin webhook address',
+  webhookJellyfinHint:
+    'Jellyfin → Dashboard → Plugins → Webhook → Add generic destination. Send playback stop and progress events.',
   title: 'Scrobble to ListenBrainz and Last.fm',
   description:
     'Shufflerr records what people play and sends it to the services they link in their profile.',
@@ -73,6 +82,16 @@ const SettingsScrobbling = () => {
   const { data: discover, mutate: revalidateDiscover } =
     useSWR<DiscoverSettingsResponse>('/api/v1/settings/discover');
   const [urlError, setUrlError] = useState<string | undefined>();
+  // Webhook addresses carry the API key, which only the General section returns.
+  const { data: main } = useSWR<{ apiKey?: string; applicationUrl?: string }>(
+    '/api/v1/settings/main'
+  );
+  const apiKey = main?.apiKey ?? '';
+  const origin =
+    main?.applicationUrl ||
+    currentSettings.applicationUrl ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const webhookBase = apiKey && origin ? `${origin}/api/v1/webhooks` : '';
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,6 +271,40 @@ const SettingsScrobbling = () => {
               )}
             </fieldset>
           </Panel>
+
+          {webhookBase && (
+            <Panel
+              title={intl.formatMessage(messages.webhooks)}
+              sub={intl.formatMessage(messages.webhooksSub)}
+            >
+              <div className="sh-fields">
+                <Field
+                  full
+                  label={intl.formatMessage(messages.webhookPlex)}
+                  hint={intl.formatMessage(messages.webhookPlexHint)}
+                >
+                  {(p) => (
+                    <CopyRow
+                      {...p}
+                      value={`${webhookBase}/plex?apikey=${encodeURIComponent(apiKey)}`}
+                    />
+                  )}
+                </Field>
+                <Field
+                  full
+                  label={intl.formatMessage(messages.webhookJellyfin)}
+                  hint={intl.formatMessage(messages.webhookJellyfinHint)}
+                >
+                  {(p) => (
+                    <CopyRow
+                      {...p}
+                      value={`${webhookBase}/jellyfin?apikey=${encodeURIComponent(apiKey)}`}
+                    />
+                  )}
+                </Field>
+              </div>
+            </Panel>
+          )}
         </>
       )}
     </SettingsPage>

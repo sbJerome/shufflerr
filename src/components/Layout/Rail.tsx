@@ -5,6 +5,7 @@ import { importEnabled } from '@app/utils/publicSettings';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
+import useSWR from 'swr';
 
 const messages = defineMessages('components.Layout.Rail', {
   primary: 'Primary',
@@ -17,6 +18,9 @@ const messages = defineMessages('components.Layout.Rail', {
   requestspending: 'Requests, {count} waiting',
   import: 'Import playlists',
   users: 'Users',
+  issues: 'Issues',
+  issuesopen: 'Issues, {count} open',
+  blocklist: 'Blocklist',
   settings: 'Settings',
 });
 
@@ -78,6 +82,19 @@ const ICONS = {
       <path d="M18.5 14.4c1.8.8 3 2.8 3 5.6" />
     </>
   ),
+  issues: icon(
+    <>
+      <path d="M12 3 2.5 20h19z" />
+      <path d="M12 10v4" />
+      <path d="M12 17h.01" />
+    </>
+  ),
+  blocklist: icon(
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.6 5.6 12.8 12.8" />
+    </>
+  ),
   settings: icon(
     <>
       <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
@@ -98,6 +115,16 @@ const Rail = ({ pendingCount }: RailProps) => {
   const { hasPermission } = useUser();
   const { currentSettings } = useSettings();
   const path = router.pathname;
+
+  const canSeeIssues = hasPermission(
+    [Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES],
+    { type: 'or' }
+  );
+  const { data: issueCount } = useSWR<{ open: number }>(
+    canSeeIssues ? '/api/v1/issue/count' : null,
+    { refreshInterval: 60 * 1000 }
+  );
+  const openIssues = issueCount?.open ?? 0;
 
   const items: {
     key: keyof typeof ICONS;
@@ -153,6 +180,33 @@ const Rail = ({ pendingCount }: RailProps) => {
       label: intl.formatMessage(messages.users),
       active: /^\/users/,
       show: hasPermission(Permission.MANAGE_USERS),
+    },
+    {
+      key: 'issues',
+      href: '/issues',
+      label: openIssues
+        ? intl.formatMessage(messages.issuesopen, { count: openIssues })
+        : intl.formatMessage(messages.issues),
+      active: /^\/issues/,
+      show: hasPermission(
+        [
+          Permission.MANAGE_ISSUES,
+          Permission.VIEW_ISSUES,
+          Permission.CREATE_ISSUES,
+        ],
+        { type: 'or' }
+      ),
+      count: openIssues,
+    },
+    {
+      key: 'blocklist',
+      href: '/blocklist',
+      label: intl.formatMessage(messages.blocklist),
+      active: /^\/blocklist/,
+      show: hasPermission(
+        [Permission.MANAGE_BLOCKLIST, Permission.VIEW_BLOCKLIST],
+        { type: 'or' }
+      ),
     },
   ];
 

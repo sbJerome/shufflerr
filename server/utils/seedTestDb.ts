@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { UserType } from '@server/constants/user';
 import dataSource, { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';

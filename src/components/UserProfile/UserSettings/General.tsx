@@ -17,6 +17,7 @@ import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
 import { Permission } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { regionOptions } from '@app/utils/regions';
 import type {
   UserSettingsGeneralResponse,
   UserSettingsLinkedAccountsResponse,
@@ -24,7 +25,6 @@ import type {
 import { hasPermission } from '@server/lib/permissions';
 import type { AvailableLocale } from '@server/types/languages';
 import axios from 'axios';
-import { countries } from 'country-flag-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
@@ -131,18 +131,10 @@ const General = () => {
     setTrackDays(data.trackQuotaDays ?? data.globalTrackQuotaDays ?? 7);
   }, [data]);
 
-  const regionNames = useMemo(() => {
-    let display: Intl.DisplayNames | undefined;
-    try {
-      display = new Intl.DisplayNames([intl.locale], { type: 'region' });
-    } catch {
-      display = undefined;
-    }
-    return countries
-      .map((code) => ({ code, name: display?.of(code) ?? code }))
-      .filter((c) => c.name && c.name !== c.code)
-      .sort((a, b) => a.name.localeCompare(b.name, intl.locale));
-  }, [intl.locale]);
+  const regionNames = useMemo(
+    () => regionOptions(intl.locale),
+    [intl.locale]
+  );
 
   if (!user) {
     return null;

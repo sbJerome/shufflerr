@@ -212,3 +212,19 @@ export interface NotificationAgentResponse {
 export interface NotificationAgentsOverview {
   agents: { key: string; name: string; enabled: boolean }[];
 }
+
+/** GET /settings/local/unresolved — albums MusicBrainz could not identify. */
+export interface LocalUnresolvedResponse {
+  results: {
+    /** Scanner's key for the album (its folder for local files). */
+    folder: string;
+    /** "Artist – Album" from the tags. */
+    label: string;
+    artist: string | null;
+    album: string | null;
+    attempts: number;
+    lastTried: string;
+    nextTry: string;
+    reason: string;
+  }[];
+}

@@ -105,7 +105,8 @@ describe('concert mapping', () => {
       startsAt: new Date('2099-03-15T00:00:00Z'),
       url: 'https://www.ticketmaster.com/event/vvG1VZbKfS7Gd0',
       // the smallest 16:9 image that is wide enough, through the image proxy
-      imageUrl: '/imageproxy/ticketmaster/dam/a/1f6/wide_TABLET_LANDSCAPE_16_9.jpg',
+      imageUrl:
+        '/imageproxy/ticketmaster/dam/a/1f6/wide_TABLET_LANDSCAPE_16_9.jpg',
     });
     assert.equal(mapTicketmasterEvent(cancelled, JOHN_SUMMIT), null);
     const mapped = mapTicketmasterEvent(dateOnly, JOHN_SUMMIT);
@@ -137,9 +138,20 @@ describe('concert mapping', () => {
 
 describe('concert refresh', () => {
   it('looks up library artists, the recently played first', async () => {
-    const other = { mbid: 'a6c6897a-7415-4f8d-b5a5-3a5e05f3be67', name: 'twenty one pilots' };
-    await addAlbum('11111111-1111-4111-8111-111111111111', JOHN_SUMMIT, '2026-01-01');
-    await addAlbum('22222222-2222-4222-8222-222222222222', JOHN_SUMMIT, '2026-02-01');
+    const other = {
+      mbid: 'a6c6897a-7415-4f8d-b5a5-3a5e05f3be67',
+      name: 'twenty one pilots',
+    };
+    await addAlbum(
+      '11111111-1111-4111-8111-111111111111',
+      JOHN_SUMMIT,
+      '2026-01-01'
+    );
+    await addAlbum(
+      '22222222-2222-4222-8222-222222222222',
+      JOHN_SUMMIT,
+      '2026-02-01'
+    );
     await addAlbum('33333333-3333-4333-8333-333333333333', other, '2026-09-01');
     // requested but not in the library: not looked up
     await getRepository(Media).save(
@@ -178,7 +190,11 @@ describe('concert refresh', () => {
   });
 
   it('stores upcoming Ticketmaster events once and purges them when the provider is switched off', async () => {
-    await addAlbum('11111111-1111-4111-8111-111111111111', JOHN_SUMMIT, '2026-01-01');
+    await addAlbum(
+      '11111111-1111-4111-8111-111111111111',
+      JOHN_SUMMIT,
+      '2026-01-01'
+    );
     http.get(`${TM}/attractions.json`, () => [200, ticketmasterAttractions]);
     http.get(`${TM}/events.json`, () => [200, ticketmasterEvents]);
     // a stale past event from an earlier run
@@ -201,7 +217,9 @@ describe('concert refresh', () => {
     assert.equal(eventsCall.params.get('attractionId'), 'K8vZ9179cV0');
     assert.equal(eventsCall.params.get('countryCode'), 'US');
 
-    let events = await getRepository(Event).find({ order: { startsAt: 'ASC' } });
+    let events = await getRepository(Event).find({
+      order: { startsAt: 'ASC' },
+    });
     assert.deepEqual(
       events.map((e) => e.externalId),
       ['vvG1VZbKfS7Gd0', 'vvG1VZbKfS7Gd2']
@@ -219,7 +237,12 @@ describe('concert refresh', () => {
 
     getSettings().discover = {
       ...getSettings().discover,
-      ticketmaster: { enabled: false, apiKey: 'tm-key', country: 'US', radiusMiles: 50 },
+      ticketmaster: {
+        enabled: false,
+        apiKey: 'tm-key',
+        country: 'US',
+        radiusMiles: 50,
+      },
     };
     await refreshConcerts();
     events = await getRepository(Event).find();
@@ -227,11 +250,20 @@ describe('concert refresh', () => {
   });
 
   it('asks Skiddle only when someone browses from the UK or Ireland', async () => {
-    await addAlbum('11111111-1111-4111-8111-111111111111', JOHN_SUMMIT, '2026-01-01');
+    await addAlbum(
+      '11111111-1111-4111-8111-111111111111',
+      JOHN_SUMMIT,
+      '2026-01-01'
+    );
     const settings = getSettings();
     settings.discover = {
       ...settings.discover,
-      ticketmaster: { enabled: false, apiKey: '', country: 'US', radiusMiles: 50 },
+      ticketmaster: {
+        enabled: false,
+        apiKey: '',
+        country: 'US',
+        radiusMiles: 50,
+      },
       skiddle: { enabled: true, apiKey: 'skiddle-key' },
     };
     http.get(SKIDDLE, () => [200, skiddleEvents]);

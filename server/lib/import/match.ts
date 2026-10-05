@@ -12,8 +12,8 @@ import { PersistCache } from '@server/lib/import/persistCache';
 import { coverUrlFor } from '@server/lib/metadata';
 import logger from '@server/logger';
 import type { AlbumResult } from '@server/models/music';
-import jaro from 'wink-jaro-distance';
 import { In } from 'typeorm';
+import jaro from 'wink-jaro-distance';
 
 /** One album as an import source describes it. */
 export interface AlbumCandidate {
@@ -275,12 +275,14 @@ export const matchAlbum = async (
     return { matchedBy: 'none', releaseGroup: null };
   }
 
-  const steps: [ImportMatch['matchedBy'], () => Promise<MatchedReleaseGroup | null>][] =
-    [
-      ['upc', () => byBarcode(candidate)],
-      ['isrc', () => byIsrc(candidate)],
-      ['name', () => byName(candidate)],
-    ];
+  const steps: [
+    ImportMatch['matchedBy'],
+    () => Promise<MatchedReleaseGroup | null>,
+  ][] = [
+    ['upc', () => byBarcode(candidate)],
+    ['isrc', () => byIsrc(candidate)],
+    ['name', () => byName(candidate)],
+  ];
 
   for (const [matchedBy, run] of steps) {
     const releaseGroup = await run();

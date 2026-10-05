@@ -91,7 +91,10 @@ type Params = Record<string, string | number | undefined>;
  * Last.fm signature: md5 of every parameter (except `format` and `callback`)
  * as `<name><value>`, sorted by name, followed by the shared secret.
  */
-export const signLastfmParams = (params: Params, sharedSecret: string): string => {
+export const signLastfmParams = (
+  params: Params,
+  sharedSecret: string
+): string => {
   const base = Object.keys(params)
     .filter(
       (k) => k !== 'format' && k !== 'callback' && params[k] !== undefined
@@ -244,7 +247,10 @@ class LastfmAPI extends ExternalAPI {
     return null;
   }
 
-  public async getTagTopAlbums(tag: string, limit = 20): Promise<LastfmTopAlbum[]> {
+  public async getTagTopAlbums(
+    tag: string,
+    limit = 20
+  ): Promise<LastfmTopAlbum[]> {
     try {
       const data = await this.call<{ albums?: { album: LastfmTopAlbum[] } }>(
         'tag.gettopalbums',

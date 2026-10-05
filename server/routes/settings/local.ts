@@ -1,7 +1,11 @@
 // Local files as a library source. Paths are relative to /api/v1/settings.
-import type { LocalFolderCheckResponse } from '@server/interfaces/api/settingsInterfaces';
+import type {
+  LocalFolderCheckResponse,
+  LocalUnresolvedResponse,
+} from '@server/interfaces/api/settingsInterfaces';
 import { detachSource } from '@server/lib/library/availability';
 import { withLibraryLock } from '@server/lib/library/ingest';
+import libraryState, { UNRESOLVED_RETRY_MS } from '@server/lib/library/state';
 import {
   localFilesScanner,
   syncLocalFilesWatcher,
@@ -55,6 +59,32 @@ const afterChange = async (): Promise<void> => {
     void localFilesScanner.run({ force: true });
   }
 };
+
+// GET /settings/local/unresolved · MANAGE_SETTINGS
+//   Albums in the folders that MusicBrainz could not identify, so they are
+//   not in the library index yet. Retried weekly or when their files change.
+router.get<never, LocalUnresolvedResponse>('/local/unresolved', (_req, res) => {
+  const results = libraryState
+    .albumsOf('local')
+    .filter(([, state]) => state.mbid === null)
+    .map(([folder, state]) => {
+      const label = state.label ?? '';
+      const [artist, ...rest] = label.split(' – ');
+      return {
+        folder,
+        label: label || folder,
+        artist: rest.length > 0 ? artist : null,
+        album: rest.length > 0 ? rest.join(' – ') : label || null,
+        attempts: state.attempts,
+        lastTried: new Date(state.lastTried).toISOString(),
+        nextTry: new Date(state.lastTried + UNRESOLVED_RETRY_MS).toISOString(),
+        reason:
+          'MusicBrainz has no album that matches these tags. Fix the tags (or add the release to MusicBrainz) and it is picked up on the next scan.',
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return res.status(200).json({ results });
+});
 
 router.get('/local', (_req, res) => {
   res.status(200).json(getSettings().localFiles);

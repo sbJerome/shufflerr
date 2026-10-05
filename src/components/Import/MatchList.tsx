@@ -11,6 +11,7 @@ import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.Import.MatchList', {
   nomatch: 'No match on MusicBrainz',
+  matching: 'Finding it on MusicBrainz…',
   pick: 'Request {title} by {artist}',
   viewalbum: 'View album',
 });
@@ -80,8 +81,10 @@ const MatchList = ({ matches, picked, onToggle }: MatchListProps) => {
                 </Link>
               </>
             ) : (
-              <StatusDot tone="none">
-                {intl.formatMessage(messages.nomatch)}
+              <StatusDot tone={match.pending ? 'processing' : 'none'}>
+                {intl.formatMessage(
+                  match.pending ? messages.matching : messages.nomatch
+                )}
               </StatusDot>
             )}
           </label>

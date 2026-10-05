@@ -10,7 +10,9 @@ const router = Router();
 //   Release-group MBID. Syncs the canonical tracklist into Track rows so every track has an `id`.
 router.get<{ mbid: string }, AlbumDetails>('/:mbid', async (req, res, next) => {
   try {
-    return res.status(200).json(await getAlbumDetails(req.params.mbid, req.user));
+    return res
+      .status(200)
+      .json(await getAlbumDetails(req.params.mbid, req.user));
   } catch (e) {
     return metadataError(e, next, 'album');
   }

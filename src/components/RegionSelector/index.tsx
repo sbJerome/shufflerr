@@ -1,6 +1,6 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import defineMessages from '@app/utils/defineMessages';
-import { countries } from 'country-flag-icons';
+import { regionName, regionOptions } from '@app/utils/regions';
 import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
 
@@ -36,25 +36,11 @@ const RegionSelector = ({
 }: RegionSelectorProps) => {
   const intl = useIntl();
 
-  const options = useMemo(
-    () =>
-      countries
-        .map((code) => ({
-          code,
-          label:
-            intl.formatDisplayName(code, {
-              type: 'region',
-              fallback: 'none',
-            }) ?? code,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label, intl.locale)),
-    [intl]
-  );
+  const options = useMemo(() => regionOptions(intl.locale), [intl.locale]);
 
-  const regionName = (code?: string) =>
+  const nameFor = (code?: string) =>
     code
-      ? (intl.formatDisplayName(code, { type: 'region', fallback: 'none' }) ??
-        code)
+      ? (regionName(code, intl.locale) ?? code)
       : intl.formatMessage(messages.regionDefault);
 
   return (
@@ -67,7 +53,7 @@ const RegionSelector = ({
       {isUserSetting && (
         <option value="">
           {intl.formatMessage(messages.regionServerDefault, {
-            region: regionName(serverValue),
+            region: nameFor(serverValue),
           })}
         </option>
       )}
@@ -76,7 +62,7 @@ const RegionSelector = ({
       )}
       {options.map((option) => (
         <option key={option.code} value={option.code}>
-          {option.label}
+          {option.name}
         </option>
       ))}
     </select>

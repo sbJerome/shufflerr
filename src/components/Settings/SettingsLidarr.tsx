@@ -56,7 +56,8 @@ const messages = defineMessages('components.Settings.SettingsLidarr', {
   loadFailed:
     'Lidarr servers couldn’t be loaded. Check that the server is running, then reload the page.',
   noDefault:
-    'No server is marked as default. Edit a server and turn on “Default server”, or requests can’t be sent.',
+    'No standard server is marked as default, so requests can’t be sent. A hi-res server only takes hi-res requests. Edit a server, turn on “Default server” and leave “Hi-res server” off.',
+  defaultHiResTag: 'Default for hi-res',
   cancel: 'Cancel',
 });
 
@@ -220,10 +221,14 @@ const SettingsLidarr = ({ isSetupSettings }: SettingsLidarrProps) => {
                   {server.name}
                   {server.isDefault && (
                     <span className="sh-tag s">
-                      {intl.formatMessage(messages.defaultTag)}
+                      {intl.formatMessage(
+                        server.isHiRes
+                          ? messages.defaultHiResTag
+                          : messages.defaultTag
+                      )}
                     </span>
                   )}
-                  {server.isHiRes && (
+                  {server.isHiRes && !server.isDefault && (
                     <span className="sh-tag s">
                       {intl.formatMessage(messages.hiResTag)}
                     </span>

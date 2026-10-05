@@ -62,7 +62,16 @@ const AccountMenu = () => {
       await axios.post('/api/v1/auth/logout');
     } finally {
       // full navigation so every cached response is dropped
-      window.location.href = '/logout';
+      // The signed-out page names the media server only for people who
+      // signed in through it.
+      const via =
+        user?.userType === UserType.PLEX
+          ? 'plex'
+          : user?.userType === UserType.JELLYFIN ||
+              user?.userType === UserType.EMBY
+            ? 'jellyfin'
+            : '';
+      window.location.href = via ? `/logout?via=${via}` : '/logout';
     }
   };
 

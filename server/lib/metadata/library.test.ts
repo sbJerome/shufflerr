@@ -14,9 +14,9 @@ import { User } from '@server/entity/User';
 import cacheManager from '@server/lib/cache';
 import { getAlbumDetails } from '@server/lib/metadata/details';
 import {
+  InvalidMbidError,
   ensureMedia,
   getDiscographyReleaseGroups,
-  InvalidMbidError,
   syncTracklist,
 } from '@server/lib/metadata/index';
 import { searchMusic } from '@server/lib/search';
@@ -53,7 +53,11 @@ const serveFixtures = (): RecordedCall[] => {
         }
         // the recording holds the first 8 of 78; later pages are empty here
         return Number(call.params.offset) > 0
-          ? { 'release-group-count': 8, 'release-group-offset': 8, 'release-groups': [] }
+          ? {
+              'release-group-count': 8,
+              'release-group-offset': 8,
+              'release-groups': [],
+            }
           : {
               ...fixture<object>(
                 'musicbrainz/release-group-browse-john-summit.json'
@@ -146,7 +150,11 @@ describe('metadata library helpers', () => {
     const synced = await syncTracklist(media);
     assert.equal(synced.trackCount, 13);
     assert.equal(synced.tracksAvailable, 1);
-    assert.equal(synced.status, MediaStatus.UNKNOWN, 'status is the scanners job');
+    assert.equal(
+      synced.status,
+      MediaStatus.UNKNOWN,
+      'status is the scanners job'
+    );
 
     const after = await trackRepository.findOneOrFail({
       where: { recordingMbid: SHADES },
@@ -193,7 +201,12 @@ describe('metadata library helpers', () => {
       })
     );
     const stray = await trackRepository.save(
-      new Track({ media, position: '77', title: 'Hidden bonus', status: MediaStatus.UNKNOWN })
+      new Track({
+        media,
+        position: '77',
+        title: 'Hidden bonus',
+        status: MediaStatus.UNKNOWN,
+      })
     );
     const strayOwned = await trackRepository.save(
       new Track({
@@ -215,9 +228,16 @@ describe('metadata library helpers', () => {
     assert.equal(find(byRecording.id)?.title, 'SHADES OF BLUE');
     assert.deepEqual(find(byRecording.id)?.sourceIds, { plex: '1001' });
     assert.equal(find(byTitle.id)?.position, '03');
-    assert.equal(find(byTitle.id)?.recordingMbid, '34e11944-3b08-487b-a782-9113df6a3d8a');
+    assert.equal(
+      find(byTitle.id)?.recordingMbid,
+      '34e11944-3b08-487b-a782-9113df6a3d8a'
+    );
     assert.equal(find(stray.id), undefined, 'unmatched empty row is removed');
-    assert.equal(find(strayOwned.id)?.discNumber, 0, 'library file is kept as an extra');
+    assert.equal(
+      find(strayOwned.id)?.discNumber,
+      0,
+      'library file is kept as an extra'
+    );
     assert.equal(tracks.length, 14);
     assert.equal(synced.trackCount, 13);
     assert.equal(synced.tracksAvailable, 2);
@@ -384,7 +404,10 @@ describe('metadata library helpers', () => {
 
     const three = details.tracks.find((t) => t.position === '03');
     assert.equal(three?.requestStatus, MediaRequestStatus.APPROVED);
-    assert.equal(details.tracks.find((t) => t.position === '04')?.requestStatus, undefined);
+    assert.equal(
+      details.tracks.find((t) => t.position === '04')?.requestStatus,
+      undefined
+    );
 
     assert.equal(details.request?.id, request.id);
     assert.deepEqual(details.request?.trackIds, [sata.id]);

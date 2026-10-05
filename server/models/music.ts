@@ -170,6 +170,8 @@ export interface AlbumDetails extends AlbumResult {
     albumId?: number | null;
     artistId?: number | null;
     monitored: boolean;
+    /** The viewer may call DELETE /media/:id/lidarr (request managers). */
+    canRemove?: boolean;
   } | null;
   /** Open issues count (backlog UI). */
   openIssues?: number;
@@ -200,6 +202,8 @@ export interface ArtistDetails extends ArtistResult {
     qualityProfileName?: string;
     metadataProfileName?: string;
     rootFolder?: string;
+    /** The viewer may call DELETE /media/:id/lidarr (request managers). */
+    canRemove?: boolean;
   } | null;
   /** All release groups, newest first; each carries status and any active request. */
   discography: AlbumResult[];

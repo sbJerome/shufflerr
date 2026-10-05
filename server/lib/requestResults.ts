@@ -1,6 +1,7 @@
 // Turns MediaRequest entities into the RequestResult shape lists show
 // (docs/API_CONTRACT.md): cover, profile name, what the viewer may do, the
 // "last change" line and whether the requested music can be played.
+import { getArtistImages } from '@server/api/fanart';
 import LidarrAPI from '@server/api/servarr/lidarr';
 import {
   MediaRequestStatus,
@@ -63,6 +64,24 @@ const isPlayable = (request: MediaRequest): boolean => {
  * profile names come from settings; only a request with its own profile
  * choice needs a (cached) call to its Lidarr server.
  */
+/** Album cover for album/tracks requests, the artist photo for discographies. */
+const coverFor = async (request: MediaRequest): Promise<string | null> => {
+  const media = request.media;
+  if (!media?.mbid) {
+    return null;
+  }
+  if (media.mediaType === MediaType.ARTIST) {
+    try {
+      return (await getArtistImages(media.mbid)).thumb ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return getSettings().metadata.coverArtArchive.enabled
+    ? coverUrlFor(media.mbid)
+    : null;
+};
+
 export const toRequestResults = async (
   requests: MediaRequest[],
   viewer: User
@@ -133,11 +152,7 @@ export const toRequestResults = async (
 
     results.push({
       ...request,
-      coverUrl:
-        media?.mediaType === MediaType.RELEASE_GROUP &&
-        getSettings().metadata.coverArtArchive.enabled
-          ? coverUrlFor(media.mbid)
-          : null,
+      coverUrl: await coverFor(request),
       profileName: await profileName(request),
       canManage,
       canRemove:

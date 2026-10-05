@@ -79,6 +79,12 @@ const messages = defineMessages('components.Import', {
   recentlinkssub: 'Open one to see its albums again.',
   jobalbums: '{count, plural, one {# album} other {# albums}}',
   jobresolving: 'Still finding albums',
+  stillmatching:
+    'Still matching {count, plural, one {# album} other {# albums}} to MusicBrainz. The list fills in as they’re found.',
+  matchfailed:
+    'Matching stopped before it finished. Paste the link again to retry.',
+  truncated:
+    '{count, plural, one {# more album was} other {# more albums were}} left out because the link is too long for one import.',
   jobrequested: 'Requested',
   jobfailed: 'Couldn’t be read',
   open: 'Open',
@@ -99,6 +105,24 @@ const defaultPicks = (matches: ImportMatch[]): string[] =>
     .map((m) => m.album?.mbid)
     .filter((mbid): mbid is string => !!mbid);
 
+interface ImportView {
+  jobId?: number;
+  title?: string;
+  matches: ImportMatch[];
+  status?: ImportResolveResponse['status'];
+  error?: string | null;
+  truncated?: number;
+}
+
+const viewOf = (data: ImportResolveResponse): ImportView => ({
+  jobId: data.jobId,
+  title: data.title,
+  matches: data.matches,
+  status: data.status,
+  error: data.error,
+  truncated: data.truncated,
+});
+
 const Import = () => {
   const intl = useIntl();
   const router = useRouter();
@@ -108,11 +132,7 @@ const Import = () => {
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState<string>();
   const [resolving, setResolving] = useState(false);
-  const [result, setResult] = useState<{
-    jobId?: number;
-    title?: string;
-    matches: ImportMatch[];
-  } | null>(null);
+  const [result, setResult] = useState<ImportView | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [requesting, setRequesting] = useState(false);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -129,14 +149,59 @@ const Import = () => {
     '/api/v1/import/jobs'
   );
 
-  const showResult = (next: {
-    jobId?: number;
-    title?: string;
-    matches: ImportMatch[];
-  }) => {
+  const showResult = (next: ImportView) => {
     setResult(next);
     setPicked(defaultPicks(next.matches));
   };
+
+  // Long links come back as 'resolving': matching runs at MusicBrainz's pace,
+  // so poll the job and fill the list in as albums are matched.
+  const resolvingJobId =
+    result?.status === 'resolving' ? result.jobId : undefined;
+  useEffect(() => {
+    if (!resolvingJobId) {
+      return;
+    }
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await axios.get<ImportResolveResponse>(
+          `/api/v1/import/jobs/${resolvingJobId}`
+        );
+        if (cancelled) {
+          return;
+        }
+        setResult((previous) => {
+          if (!previous || previous.jobId !== data.jobId) {
+            return previous;
+          }
+          // Check newly matched albums by default, keep what was already chosen.
+          const known = new Set(
+            previous.matches
+              .filter((m) => !m.pending && m.album)
+              .map((m) => m.album?.mbid)
+          );
+          const fresh = defaultPicks(
+            data.matches.filter((m) => m.album && !known.has(m.album.mbid))
+          );
+          if (fresh.length > 0) {
+            setPicked((current) => [...new Set([...current, ...fresh])]);
+          }
+          return viewOf(data);
+        });
+        if (data.status !== 'resolving') {
+          revalidateJobs();
+        }
+      } catch {
+        // keep polling; a restart or a blip should not lose the list
+      }
+    }, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvingJobId]);
 
   // A reload (or a "Recent links" click) restores the job named in the URL.
   const jobParam = Number(router.query.job) || undefined;
@@ -150,11 +215,7 @@ const Import = () => {
       .then(({ data }) => {
         if (!cancelled) {
           setUrl(data.url);
-          showResult({
-            jobId: data.jobId,
-            title: data.title,
-            matches: data.matches,
-          });
+          showResult(viewOf(data));
         }
       })
       .catch(() => {
@@ -187,11 +248,7 @@ const Import = () => {
         '/api/v1/import/resolve',
         { url: link }
       );
-      showResult({
-        jobId: data.jobId,
-        title: data.title,
-        matches: data.matches,
-      });
+      showResult(viewOf(data));
       router.replace(
         { pathname: '/import', query: { job: String(data.jobId) } },
         undefined,
@@ -455,7 +512,20 @@ const Import = () => {
                         count: result.matches.length,
                       })
                 }
-                sub={intl.formatMessage(messages.foundsub)}
+                sub={
+                  result.status === 'resolving'
+                    ? intl.formatMessage(messages.stillmatching, {
+                        count: result.matches.filter((m) => m.pending).length,
+                      })
+                    : result.status === 'failed'
+                      ? (result.error ??
+                        intl.formatMessage(messages.matchfailed))
+                      : result.truncated
+                        ? intl.formatMessage(messages.truncated, {
+                            count: result.truncated,
+                          })
+                        : intl.formatMessage(messages.foundsub)
+                }
                 actions={
                   <Button
                     buttonType="primary"

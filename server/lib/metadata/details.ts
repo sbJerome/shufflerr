@@ -5,6 +5,7 @@ import type {
   MbRelease,
   MbReleaseGroup,
 } from '@server/api/musicbrainz/interfaces';
+import LidarrAPI from '@server/api/servarr/lidarr';
 import { IssueStatus } from '@server/constants/issue';
 import {
   MediaRequestStatus,
@@ -19,6 +20,7 @@ import { MediaRequest } from '@server/entity/MediaRequest';
 import Track from '@server/entity/Track';
 import type { User } from '@server/entity/User';
 import cacheManager from '@server/lib/cache';
+import { Permission } from '@server/lib/permissions';
 import type { LidarrSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -31,7 +33,6 @@ import type {
   RequestSummary,
   TrackResult,
 } from '@server/models/music';
-import axios from 'axios';
 import { In, IsNull, Not } from 'typeorm';
 import { ensureMedia, isMbid } from './index';
 import {
@@ -56,7 +57,8 @@ import {
 } from './mappers';
 
 const musicBrainzSite = (): string => {
-  const url = getSettings().metadata.musicbrainz.url || 'https://musicbrainz.org';
+  const url =
+    getSettings().metadata.musicbrainz.url || 'https://musicbrainz.org';
   // links always point at the public site: a private mirror is not reachable for viewers
   return /musicbrainz\.org/.test(url)
     ? url.replace(/\/+$/, '')
@@ -230,12 +232,15 @@ export const getAlbumDetails = async (
     });
   }
 
-  const discs = new Set(tracks.filter((t) => t.discNumber > 0).map((t) => t.discNumber));
+  const discs = new Set(
+    tracks.filter((t) => t.discNumber > 0).map((t) => t.discNumber)
+  );
   const genres = [...(rg?.genres?.length ? rg.genres : (rg?.tags ?? []))]
     .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
     .slice(0, 6)
     .map((g) => g.name);
-  const label = release?.['label-info']?.find((l) => l.label?.name)?.label?.name;
+  const label = release?.['label-info']?.find((l) => l.label?.name)?.label
+    ?.name;
   const totalLengthMs = tracks.reduce((n, t) => n + (t.lengthMs ?? 0), 0);
 
   return {
@@ -260,7 +265,8 @@ export const getAlbumDetails = async (
             serverId: media.lidarrServerId ?? server?.id ?? 0,
             albumId: media.lidarrAlbumId,
             artistId: media.lidarrArtistId ?? null,
-            monitored: true,
+            monitored: await lidarrAlbumMonitored(media),
+            canRemove: !!user?.hasPermission(Permission.MANAGE_REQUESTS),
           }
         : null,
     openIssues,
@@ -271,16 +277,13 @@ export const getAlbumDetails = async (
 // Artist
 // ---------------------------------------------------------------------------
 
-interface LidarrArtistLite {
-  id: number;
-  foreignArtistId: string;
-  monitored: boolean;
-  monitorNewItems?: string;
-  qualityProfileId?: number;
-  metadataProfileId?: number;
-  rootFolderPath?: string;
-  path?: string;
-}
+const artistStateCacheKey = (artistMbid: string): string =>
+  `artist-state:${artistMbid}`;
+
+/** Forget the cached Lidarr state of an artist (after a write to Lidarr). */
+export const invalidateLidarrArtistState = (artistMbid: string): void => {
+  cacheManager.getCache('lidarr').data.del(artistStateCacheKey(artistMbid));
+};
 
 /**
  * What Lidarr knows about an artist (monitoring, profiles, folder). Read-only
@@ -295,41 +298,26 @@ export const getLidarrArtistState = async (
     return null;
   }
   const cache = cacheManager.getCache('lidarr').data;
-  const cacheKey = `sv1:artist-state:${artistMbid}`;
+  const cacheKey = artistStateCacheKey(artistMbid);
   const cached = cache.get<{ value: ArtistDetails['lidarr'] }>(cacheKey);
   if (cached) {
     return cached.value;
   }
 
-  const timeout = getSettings().network.apiRequestTimeout;
   let value: ArtistDetails['lidarr'] = null;
   const ordered = [...servers].sort(
     (a, b) => Number(b.isDefault) - Number(a.isDefault)
   );
   for (const server of ordered) {
-    const client = axios.create({
-      baseURL: `${lidarrBaseUrl(server)}/api/v1`,
-      headers: { 'X-Api-Key': server.apiKey },
-      timeout,
-    });
+    const lidarr = LidarrAPI.fromSettings(server);
     try {
-      const { data: artists } = await client.get<LidarrArtistLite[]>(
-        '/artist',
-        { params: { mbId: artistMbid } }
-      );
-      const artist = artists.find((a) => a.foreignArtistId === artistMbid);
-      if (!artist) {
+      const artist = await lidarr.getArtistByMbid(artistMbid);
+      if (!artist?.id) {
         continue;
       }
       const [quality, metadata] = await Promise.all([
-        client
-          .get<{ id: number; name: string }[]>('/qualityprofile')
-          .then((r) => r.data)
-          .catch(() => []),
-        client
-          .get<{ id: number; name: string }[]>('/metadataprofile')
-          .then((r) => r.data)
-          .catch(() => []),
+        lidarr.getProfiles().catch(() => []),
+        lidarr.getMetadataProfiles().catch(() => []),
       ]);
       value = {
         serverId: server.id,
@@ -352,6 +340,38 @@ export const getLidarrArtistState = async (
         errorMessage: e.message,
       });
     }
+  }
+  cache.set(cacheKey, { value }, 60);
+  return value;
+};
+
+/**
+ * Whether Lidarr is monitoring an album. Cached for a minute; falls back to
+ * true (Shufflerr only stores a lidarrAlbumId for albums it monitors) when
+ * Lidarr cannot be asked.
+ */
+const lidarrAlbumMonitored = async (media: Media): Promise<boolean> => {
+  const server = lidarrServer(media.lidarrServerId);
+  if (!server) {
+    return true;
+  }
+  const cache = cacheManager.getCache('lidarr').data;
+  const cacheKey = `album-monitored:${media.mbid}`;
+  const cached = cache.get<{ value: boolean }>(cacheKey);
+  if (cached) {
+    return cached.value;
+  }
+  let value = true;
+  try {
+    const album = await LidarrAPI.fromSettings(server).getAlbumByMbid(
+      media.mbid
+    );
+    value = album ? !!album.monitored : false;
+  } catch (e) {
+    logger.debug('Could not read the album from Lidarr', {
+      label: 'Metadata',
+      errorMessage: e.message,
+    });
   }
   cache.set(cacheKey, { value }, 60);
   return value;
@@ -421,9 +441,13 @@ export const getArtistDetails = async (
 
   const base = mapArtist(artist);
   const discography = await mergeAlbumLibrary(
-    groups.map(mapReleaseGroup).sort((a, b) =>
-      (b.firstReleaseDate || '0000').localeCompare(a.firstReleaseDate || '0000')
-    )
+    groups
+      .map(mapReleaseGroup)
+      .sort((a, b) =>
+        (b.firstReleaseDate || '0000').localeCompare(
+          a.firstReleaseDate || '0000'
+        )
+      )
   );
 
   const [images, bio, similar, lidarr, discographyRequest] = await Promise.all([
@@ -494,7 +518,12 @@ export const getArtistDetails = async (
       downloading,
       albums: discography.filter((a) => a.primaryType === 'Album').length,
     },
-    lidarr,
+    lidarr: lidarr
+      ? {
+          ...lidarr,
+          canRemove: !!user?.hasPermission(Permission.MANAGE_REQUESTS),
+        }
+      : null,
     discography,
     similar,
     links,
@@ -506,7 +535,9 @@ export const getArtistDetails = async (
 // Recording
 // ---------------------------------------------------------------------------
 
-export const getRecordingDetails = async (mbid: string): Promise<TrackResult> => {
+export const getRecordingDetails = async (
+  mbid: string
+): Promise<TrackResult> => {
   if (!isMbid(mbid)) {
     throw new Error('That is not a MusicBrainz ID.');
   }

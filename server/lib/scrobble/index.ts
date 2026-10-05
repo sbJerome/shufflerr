@@ -10,11 +10,11 @@ import { getLinked, getLinkedProviders } from '@server/lib/scrobble/linked';
 import { shouldScrobble } from '@server/lib/scrobble/rule';
 import type { Listen } from '@server/lib/scrobble/targets';
 import {
+  ScrobbleAuthError,
   lastfmNowPlaying,
   lastfmScrobble,
   listenBrainzNowPlaying,
   listenBrainzScrobble,
-  ScrobbleAuthError,
 } from '@server/lib/scrobble/targets';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -194,9 +194,7 @@ export const nowPlaying = async (raw: PlayEvent): Promise<void> => {
  * The row is written even when the user has no scrobble target, because the
  * same table is the play history behind "Recently played".
  */
-export const recordPlay = async (
-  raw: PlayEvent
-): Promise<ScrobbleTarget[]> => {
+export const recordPlay = async (raw: PlayEvent): Promise<ScrobbleTarget[]> => {
   const settings = getSettings();
   if (!settings.scrobble.sources[raw.source]) {
     return [];
@@ -206,7 +204,11 @@ export const recordPlay = async (
     return [];
   }
   if (
-    !shouldScrobble(settings.scrobble.rule, event.durationMs, event.playedSeconds)
+    !shouldScrobble(
+      settings.scrobble.rule,
+      event.durationMs,
+      event.playedSeconds
+    )
   ) {
     return [];
   }
@@ -285,7 +287,9 @@ export const processScrobbleQueue = async (): Promise<void> => {
       const failed = new Map<number, string>();
 
       for (const target of ['listenbrainz', 'lastfm'] as ScrobbleTarget[]) {
-        const pending = userRows.filter((r) => r.targets?.[target] === 'pending');
+        const pending = userRows.filter(
+          (r) => r.targets?.[target] === 'pending'
+        );
         if (!pending.length) {
           continue;
         }

@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Field from '@app/components/Common/Field';
 import Panel from '@app/components/Common/Panel';
 import SwitchRow from '@app/components/Common/SwitchRow';

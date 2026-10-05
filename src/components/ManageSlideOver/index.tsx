@@ -58,6 +58,14 @@ const messages = defineMessages('components.ManageSlideOver', {
   markedAvailable: 'Marked {title} as available.',
   clearData: 'Clear data',
   clearDataConfirm: 'Are you sure?',
+  removeLidarr: 'Remove from Lidarr',
+  removeLidarrSub:
+    'Lidarr stops tracking and downloading this. The files stay where they are.',
+  removeLidarrFiles: 'Remove from Lidarr and delete files',
+  removeLidarrFilesSub:
+    'Lidarr also deletes the music files. The next library scan marks it as not in the library.',
+  removedLidarr: 'Removed {title} from Lidarr.',
+  removedLidarrFiles: 'Removed {title} from Lidarr and deleted its files.',
   clearDataSub:
     'Removes what Shufflerr knows about this item, including its requests and issues. Files and Lidarr are not touched; the next scan finds the music again.',
   cleared: 'Cleared the data for {title}.',
@@ -108,10 +116,9 @@ const ManageSlideOver = ({
     show ? itemKey : null
   );
   const mediaId = data?.mediaInfo?.id;
-  // The issue list has no per-item filter, so open issues are filtered here.
   const { data: issues, mutate: mutateIssues } = useSWR<IssueResultsResponse>(
     show && canSeeIssues && mediaId
-      ? '/api/v1/issue?take=100&filter=open'
+      ? `/api/v1/issue?take=100&filter=open&mediaId=${mediaId}`
       : null
   );
   const [busy, setBusy] = useState<string | null>(null);
@@ -147,6 +154,7 @@ const ManageSlideOver = ({
       ]
     : [];
   const status = data?.mediaInfo?.status ?? data?.status;
+  const inLidarr = canManageRequests && !!data?.lidarr?.canRemove;
   const isBlocked = status === MediaStatus.BLOCKLISTED;
 
   const refresh = () => {
@@ -238,6 +246,7 @@ const ManageSlideOver = ({
                               name: request.requestedBy.displayName,
                               date: (
                                 <FormattedDate
+                                  key="date"
                                   value={request.createdAt}
                                   year="numeric"
                                   month="short"
@@ -376,6 +385,61 @@ const ManageSlideOver = ({
                           </p>
                         </div>
                       )}
+                    {inLidarr && (
+                      <>
+                        <div>
+                          <ConfirmButton
+                            className="min-w-[9rem]"
+                            confirmText={intl.formatMessage(
+                              messages.clearDataConfirm
+                            )}
+                            onClick={() =>
+                              run(
+                                'lidarr',
+                                () =>
+                                  axios.delete(
+                                    `/api/v1/media/${mediaId}/lidarr`
+                                  ),
+                                intl.formatMessage(messages.removedLidarr, {
+                                  title,
+                                })
+                              )
+                            }
+                          >
+                            {intl.formatMessage(messages.removeLidarr)}
+                          </ConfirmButton>
+                          <p className="sh-sub mt-1">
+                            {intl.formatMessage(messages.removeLidarrSub)}
+                          </p>
+                        </div>
+                        <div>
+                          <ConfirmButton
+                            className="min-w-[9rem]"
+                            confirmText={intl.formatMessage(
+                              messages.clearDataConfirm
+                            )}
+                            onClick={() =>
+                              run(
+                                'lidarr-files',
+                                () =>
+                                  axios.delete(
+                                    `/api/v1/media/${mediaId}/lidarr?deleteFiles=1`
+                                  ),
+                                intl.formatMessage(
+                                  messages.removedLidarrFiles,
+                                  { title }
+                                )
+                              )
+                            }
+                          >
+                            {intl.formatMessage(messages.removeLidarrFiles)}
+                          </ConfirmButton>
+                          <p className="sh-sub mt-1">
+                            {intl.formatMessage(messages.removeLidarrFilesSub)}
+                          </p>
+                        </div>
+                      </>
+                    )}
                     <div>
                       <ConfirmButton
                         className="min-w-[9rem]"

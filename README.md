@@ -10,15 +10,23 @@ automatically), Lidarr downloads it, and your media server — Plex, Jellyfin, N
 folders — marks it available.
 
 - **Requests** for missing tracks, whole albums or full discographies, with per-user limits and
-  auto-approval rules.
+  auto-approval rules. Lidarr does the downloading.
 - **Metadata** from MusicBrainz, the Cover Art Archive, fanart.tv and Last.fm.
-- **Sign-in** with Plex, Jellyfin or a local account.
-- **Library** scanning for Plex, Jellyfin, Navidrome and local folders, with a built-in player.
+- **Sign-in** with Plex, Jellyfin/Emby or a local account.
+- **Library** scanning for Plex, Jellyfin/Emby, Navidrome and local folders, with a built-in
+  player (waveform, range streaming, optional transcoding).
+- **Import** albums from Spotify, Deezer and Apple Music links; concerts from Ticketmaster and
+  Skiddle; scrobbling to ListenBrainz and Last.fm; missing tracks play from YouTube's own
+  player.
+- **Your own music app:** OpenSubsonic (`/rest`) and Jellyfin-compatible (`/jellyfin`) APIs for
+  Symfonium, Finamp, Feishin, Amperfy, Jellify and others, signed in with app passwords.
 - **Notifications** by email, web push, Discord, Slack, Telegram, Pushbullet, Pushover, webhook,
   Gotify and ntfy.
+- **Issues, a manage panel and a blocklist** for albums and artists.
 
-> Status: under construction (v0.1.0). See [CHANGES.md](CHANGES.md) for what is built so far
-> and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) for the plan.
+> Version 0.1.0. [RELEASELOG.md](RELEASELOG.md) says what is in it in plain words;
+> [CHANGES.md](CHANGES.md) records how it was built, what was verified against real services
+> and what was tested with recorded responses only.
 
 ## Quick start
 
@@ -30,9 +38,28 @@ docker compose up -d          # SQLite; data in ./config
 docker compose -f compose.postgres.yaml up -d
 ```
 
-Open <http://localhost:5055>, sign in (the first account becomes the owner) and add your Lidarr
-server and library sources under Settings. To index and play local music, mount it read-only
-(see the commented volume in `compose.yaml`) and add the folder under Settings → Local files.
+Open <http://localhost:5055>. The setup wizard creates the owner (sign in with Plex, Jellyfin
+or Emby, or create a local admin), then connects a library source and Lidarr.
+
+First things to set under Settings:
+
+1. **General → Application URL**: the address people use; it goes into links, app endpoints
+   and OAuth callbacks.
+2. **MusicBrainz and Last.fm → Contact**: an email or URL. MusicBrainz asks for one.
+3. **Lidarr**: host, port and API key, then Test and choose the profiles and root folder.
+4. **A library source**: Plex, Jellyfin/Emby, Navidrome, or Local files. For local files,
+   mount the music read-only (see the commented volume in `compose.yaml`) and add the folder,
+   for example `/music`.
+
+Everything else (Spotify, Ticketmaster, Skiddle, YouTube, fanart.tv, Last.fm, notification
+agents) is optional and off until its page is filled in.
+
+#### Volumes
+
+| Path in the container | Purpose |
+|---|---|
+| `/app/config` | Settings (`settings.json`, mode `0600`), SQLite database, logs, image and metadata caches. Keep it. |
+| `/music` (any path, read-only) | Optional: music folders for the Local files source and the player. |
 
 ### From source
 
@@ -53,7 +80,13 @@ pnpm build && pnpm start
 | `LOG_LEVEL` | `debug` | `debug`, `info`, `warn`, `error` |
 | `TZ` | system | Time zone for schedules and logs |
 | `API_KEY` | generated | Fix the API key instead of generating one |
-| `DB_TYPE` | `sqlite` | `postgres` to use PostgreSQL (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_USE_SSL`, …) |
+| `DB_TYPE` | `sqlite` | `postgres` to use PostgreSQL |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` | — / `5432` / — / — / `shufflerr` | PostgreSQL connection (`DB_SOCKET_PATH` for a Unix socket) |
+| `DB_USE_SSL`, `DB_SSL_CA`, `DB_SSL_KEY`, `DB_SSL_CERT`, `DB_SSL_REJECT_UNAUTHORIZED` | off | PostgreSQL TLS (each also accepts a `_FILE` variant) |
+| `DB_POOL_SIZE`, `DB_CONNECT_TIMEOUT_MS`, `DB_LOG_QUERIES` | driver default / `30000` / `false` | PostgreSQL pool and query logging |
+| `FFMPEG_PATH` | `ffmpeg` on `PATH` | ffmpeg binary for transcoding and waveforms (in the image already) |
+
+The database schema is created and upgraded by migrations at start-up.
 
 `config/settings.json` holds API keys and the server secret; it is written with mode `0600`.
 
@@ -62,9 +95,20 @@ pnpm build && pnpm start
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test           # unit tests (no network access)
+pnpm test           # unit tests (no network access), about a minute
 pnpm build
 ```
+
+After changing a route, regenerate the OpenAPI document (served at `/api-docs`):
+
+```bash
+pnpm exec ts-node -r tsconfig-paths/register --files --project server/tsconfig.json server/scripts/generateApiSpec.ts
+pnpm exec prettier --write shufflerr-api.yml
+```
+
+After changing an entity, generate a migration for both databases
+(`pnpm migration:generate server/migration/sqlite/<Name>` with `NODE_ENV=production`, and
+again with `DB_TYPE=postgres` for `server/migration/postgres/<Name>`).
 
 - [HANDOFF.md](HANDOFF.md) — product brief and decisions
 - [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — every HTTP route and its types

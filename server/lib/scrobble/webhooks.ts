@@ -92,7 +92,11 @@ export const readJellyfinPayload = async (
     if (typeof req.body === 'string') {
       return JSON.parse(req.body);
     }
-    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length) {
+    if (
+      req.body &&
+      typeof req.body === 'object' &&
+      Object.keys(req.body).length
+    ) {
       return req.body;
     }
     if (req.readableEnded) {

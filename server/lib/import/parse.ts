@@ -18,7 +18,9 @@ const SPOTIFY_ID = /^[A-Za-z0-9]{16,32}$/;
 
 const tryUrl = (input: string): URL | null => {
   try {
-    return new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `https://${input}`);
+    return new URL(
+      /^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `https://${input}`
+    );
   } catch {
     return null;
   }
@@ -95,7 +97,10 @@ export const parseImportUrl = (raw: string): ParsedImportUrl => {
     // optional locale prefix: /en/album/<id>
     const rest = parts.filter((p) => !/^[a-z]{2}(-[a-z]{2})?$/i.test(p));
     const [kind, id] = rest;
-    if ((kind === 'album' || kind === 'playlist' || kind === 'track') && /^\d+$/.test(id ?? '')) {
+    if (
+      (kind === 'album' || kind === 'playlist' || kind === 'track') &&
+      /^\d+$/.test(id ?? '')
+    ) {
       return { source: 'deezer', kind, id };
     }
     if (kind === 'artist') {
@@ -143,7 +148,11 @@ export const parseImportUrl = (raw: string): ParsedImportUrl => {
     );
   }
 
-  if (host === 'youtube.com' || host === 'music.youtube.com' || host === 'youtu.be') {
+  if (
+    host === 'youtube.com' ||
+    host === 'music.youtube.com' ||
+    host === 'youtu.be'
+  ) {
     throw new ImportLinkError(
       "YouTube links can't be imported. Paste an album or playlist link from Spotify, Deezer or Apple Music."
     );

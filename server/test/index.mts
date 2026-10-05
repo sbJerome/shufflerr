@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 // Runs unit tests using the `node:test` runner.
 
 import { Command, Option } from 'commander';
@@ -70,9 +71,15 @@ process.env.NODE_ENV = 'test';
 // configure ts
 process.env.TS_NODE_PROJECT = resolveImport('../tsconfig.json');
 process.env.TS_NODE_FILES = 'true';
+// Types are checked by `pnpm typecheck`; skipping the per-file type check here
+// takes several seconds off every test file's start-up.
+process.env.TS_NODE_TRANSPILE_ONLY ??= 'true';
 
 const stream = run({
   files,
+  // Every file runs in its own process with its own in-memory database, so
+  // files can run side by side.
+  concurrency: Number(process.env.TEST_CONCURRENCY) || 6,
   execArgv: [
     '--experimental-test-module-mocks',
     '-r',

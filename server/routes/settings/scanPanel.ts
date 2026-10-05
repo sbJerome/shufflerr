@@ -4,7 +4,10 @@ import type {
   ScanStatus,
 } from '@server/interfaces/api/settingsInterfaces';
 import type { SourceScanner } from '@server/lib/library/sourceScanner';
-import { combinedStatus } from '@server/lib/library/sourceScanner';
+import {
+  combinedStatus,
+  combinedStatusReady,
+} from '@server/lib/library/sourceScanner';
 import type { Router } from 'express';
 import { z } from 'zod';
 
@@ -24,8 +27,11 @@ export const addScanRoutes = (
   full: SourceScanner,
   recent?: SourceScanner
 ): void => {
-  router.get(`${path}/sync`, (_req, res) => {
-    res.status(200).json(combinedStatus(full, recent) satisfies ScanStatus);
+  router.get(`${path}/sync`, async (_req, res) => {
+    // counts are read from the database the first time (they do not survive
+    // a restart in memory), so the panel never shows "0 albums, 0 tracks"
+    const status: ScanStatus = await combinedStatusReady(full, recent);
+    res.status(200).json(status);
   });
 
   router.post(`${path}/sync`, (req, res, next) => {

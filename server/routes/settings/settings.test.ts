@@ -9,13 +9,13 @@ import { Permission } from '@server/lib/permissions';
 import type { AllSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import { checkUser, isAuthenticated } from '@server/middleware/auth';
+import authRoutes from '@server/routes/auth';
 import { setupTestDb } from '@server/test/db';
+import axios from 'axios';
 import type { Express } from 'express';
 import express from 'express';
 import session from 'express-session';
-import axios from 'axios';
 import request from 'supertest';
-import authRoutes from '@server/routes/auth';
 import settingsRoutes from './index';
 
 let app: Express;
@@ -88,9 +88,12 @@ function stubHttp(
       ? call.config.validateStatus(status)
       : status >= 200 && status < 300;
     if (!ok) {
-      throw Object.assign(new Error(`Request failed with status code ${status}`), {
-        response: { status, data },
-      });
+      throw Object.assign(
+        new Error(`Request failed with status code ${status}`),
+        {
+          response: { status, data },
+        }
+      );
     }
     return { status, data };
   });
@@ -343,7 +346,10 @@ describe('/settings/metadata', () => {
       musicbrainz: { url: 'http://mb.lan:5000', requestsPerSecond: 10 },
     });
     assert.strictEqual(mirror.status, 200, mirror.body.message);
-    assert.strictEqual(getSettings().metadata.musicbrainz.requestsPerSecond, 10);
+    assert.strictEqual(
+      getSettings().metadata.musicbrainz.requestsPerSecond,
+      10
+    );
   });
 
   it('wants a key before fanart.tv or Last.fm turn on, and drops unknown keys', async () => {
@@ -403,7 +409,12 @@ describe('/settings/youtube, /discover, /scrobble, /clients', () => {
         savedAlbumsSync: 'hourly',
       },
       deezer: { enabled: true },
-      ticketmaster: { enabled: true, apiKey: 'tm-key-12345678', country: 'GB', radiusMiles: 25 },
+      ticketmaster: {
+        enabled: true,
+        apiKey: 'tm-key-12345678',
+        country: 'GB',
+        radiusMiles: 25,
+      },
       listenbrainzTrending: { enabled: true },
     });
     assert.strictEqual(ok.status, 200, ok.body.message);
@@ -435,7 +446,9 @@ describe('/settings/youtube, /discover, /scrobble, /clients', () => {
     assert.strictEqual(ok.body.sources.plex, false);
     assert.strictEqual(ok.body.sources.web, true);
 
-    const badRule = await agent.post('/settings/scrobble').send({ rule: '10s' });
+    const badRule = await agent
+      .post('/settings/scrobble')
+      .send({ rule: '10s' });
     assert.strictEqual(badRule.status, 400);
   });
 
@@ -534,7 +547,10 @@ describe('connection tests', () => {
   });
 
   it('says when the address is not a MusicBrainz server', async () => {
-    const http = stubHttp('get', () => ({ status: 200, data: '<html></html>' }));
+    const http = stubHttp('get', () => ({
+      status: 200,
+      data: '<html></html>',
+    }));
     try {
       const agent = await admin();
       const res = await agent
@@ -609,7 +625,10 @@ describe('/settings/jobs and /settings/cache', () => {
       .send({ schedule: '0 30 5 * * *' });
     assert.strictEqual(ok.status, 200, ok.body.message);
     assert.strictEqual(ok.body.cronSchedule, '0 30 5 * * *');
-    assert.strictEqual(getSettings().jobs['lidarr-scan'].schedule, '0 30 5 * * *');
+    assert.strictEqual(
+      getSettings().jobs['lidarr-scan'].schedule,
+      '0 30 5 * * *'
+    );
 
     for (const schedule of ['every day', '* * * * *', '0 99 5 * * *', '']) {
       const bad = await agent
@@ -617,7 +636,10 @@ describe('/settings/jobs and /settings/cache', () => {
         .send({ schedule });
       assert.strictEqual(bad.status, 400, `accepted "${schedule}"`);
     }
-    assert.strictEqual(getSettings().jobs['lidarr-scan'].schedule, '0 30 5 * * *');
+    assert.strictEqual(
+      getSettings().jobs['lidarr-scan'].schedule,
+      '0 30 5 * * *'
+    );
 
     const missing = await agent
       .post('/settings/jobs/nope/schedule')
@@ -638,7 +660,12 @@ describe('/settings/jobs and /settings/cache', () => {
     const res = await agent.get('/settings/cache');
     assert.strictEqual(res.status, 200);
     const names = res.body.apiCaches.map((c: { name: string }) => c.name);
-    for (const name of ['MusicBrainz', 'Cover Art Archive', 'Last.fm', 'Lidarr']) {
+    for (const name of [
+      'MusicBrainz',
+      'Cover Art Archive',
+      'Last.fm',
+      'Lidarr',
+    ]) {
       assert.ok(names.includes(name), `missing ${name}`);
     }
     assert.ok('caa' in res.body.imageCache);
@@ -730,9 +757,17 @@ describe('/settings/notifications', () => {
       ['slack', { webhookUrl: 'not a url' }, /isn't a valid address/],
       ['telegram', { botAPI: 'x' }, /Enter the chat ID/],
       ['pushover', { accessToken: 'x' }, /user or group key/],
-      ['gotify', { url: 'https://g.example.test', token: 't', priority: 99 }, /0 to 10/],
+      [
+        'gotify',
+        { url: 'https://g.example.test', token: 't', priority: 99 },
+        /0 to 10/,
+      ],
       ['ntfy', { url: 'https://ntfy.example.test' }, /Enter the topic/],
-      ['email', { emailFrom: 'nope', smtpHost: 'smtp.example.test' }, /valid email/],
+      [
+        'email',
+        { emailFrom: 'nope', smtpHost: 'smtp.example.test' },
+        /valid email/,
+      ],
     ];
     for (const [key, options, pattern] of cases) {
       const res = await agent
@@ -780,7 +815,8 @@ describe('/settings/notifications', () => {
 
   it('stores the webhook template and rejects broken JSON', async () => {
     const agent = await admin();
-    const template = '{\n  "what": "{{event}}",\n  "album": "{{media_title}}"\n}';
+    const template =
+      '{\n  "what": "{{event}}",\n  "album": "{{media_title}}"\n}';
     const saved = await agent.post('/settings/notifications/webhook').send({
       enabled: true,
       types: ['pending'],
@@ -800,7 +836,10 @@ describe('/settings/notifications', () => {
     const bad = await agent.post('/settings/notifications/webhook').send({
       enabled: true,
       types: ['pending'],
-      options: { webhookUrl: 'https://hooks.example.test/in', jsonPayload: '{ nope' },
+      options: {
+        webhookUrl: 'https://hooks.example.test/in',
+        jsonPayload: '{ nope',
+      },
     });
     assert.strictEqual(bad.status, 400);
     assert.match(bad.body.message, /isn't valid JSON/);
