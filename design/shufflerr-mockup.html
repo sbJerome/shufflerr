@@ -1,0 +1,1576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shufflerr</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#F4F6FA;--surface:#FFFFFF;--raised:#FFFFFF;--hover:#EBEFF5;--line:#DDE3EC;--line-2:#C9D2DE;
+  --text:#121826;--muted:#4A5566;--faint:#5C6878;--accent:#D6002A;--on-accent:#FFFFFF;--link:#C4002A;
+  --rail:#FFFFFF;--scrim:244,246,250;--slot:#E3E8F0;--slot-ink:#8A96A8;
+  --st-available:#0B7F74;--st-partial:#2E7D32;--st-processing:#3557C4;--st-pending:#9A6400;--st-declined:#C0392B;--st-none:#5C6878;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C101B;--surface:#10151F;--raised:#141A26;--hover:#1A2131;--line:#1E2636;--line-2:#283143;
+  --text:#E9EEF4;--muted:#9CA8B0;--faint:#7F8A9A;--accent:#FF1744;--on-accent:#0C101B;--link:#FF5C7A;
+  --rail:#090C14;--scrim:16,21,31;--slot:#1A2131;--slot-ink:#3A4458;
+  --st-available:#5FD3C6;--st-partial:#7FD08A;--st-processing:#9DB4FF;--st-pending:#F5B83D;--st-declined:#F08C7A;--st-none:#7F8A9A;
+}}
+:root[data-theme="dark"]{
+  --bg:#0C101B;--surface:#10151F;--raised:#141A26;--hover:#1A2131;--line:#1E2636;--line-2:#283143;
+  --text:#E9EEF4;--muted:#9CA8B0;--faint:#7F8A9A;--accent:#FF1744;--on-accent:#0C101B;--link:#FF5C7A;
+  --rail:#090C14;--scrim:16,21,31;--slot:#1A2131;--slot-ink:#3A4458;
+  --st-available:#5FD3C6;--st-partial:#7FD08A;--st-processing:#9DB4FF;--st-pending:#F5B83D;--st-declined:#F08C7A;--st-none:#7F8A9A;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#view:focus{outline:none}
+img,svg{max-width:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mono{font-family:var(--mono)}
+
+/* shell */
+.app{display:flex;min-height:100vh}
+.rail{position:sticky;top:env(safe-area-inset-top,0px);height:calc(100vh - 76px);flex:0 0 76px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;background:var(--rail);border-right:1px solid var(--line)}
+.brand{width:44px;height:44px;display:grid;place-items:center;margin-bottom:18px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-family:var(--mono);font-weight:700;font-size:17px;letter-spacing:-.04em}
+.brand:hover{text-decoration:none}
+.rail a.nav{position:relative;width:48px;height:48px;display:grid;place-items:center;border-radius:12px;color:var(--faint)}
+.rail a.nav:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.rail a.nav[aria-current="page"]{background:var(--hover);color:var(--accent)}
+.rail .count{position:absolute;top:6px;right:4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--accent);color:var(--on-accent);font:700 10px/17px var(--mono);text-align:center}
+.rail .grow{flex:1}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;padding-bottom:96px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:16px 32px;border-bottom:1px solid var(--line)}
+.searchbox{flex:1 1 320px;max-width:620px;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;background:var(--raised);border:1px solid var(--line-2);border-radius:10px}
+.searchbox:focus-within{border-color:var(--accent)}
+.searchbox input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px}
+.searchbox input::placeholder{color:var(--faint)}
+.searchbox kbd{font:11px var(--mono);color:var(--faint);padding:2px 6px;border:1px solid var(--line-2);border-radius:4px}
+.top .spacer{flex:1}
+.pill{min-height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border:1px solid var(--line-2);border-radius:10px;background:transparent;font-size:14px;color:var(--text)}
+.pill:hover{background:var(--hover);text-decoration:none}
+.avatar{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:var(--slot);color:var(--muted);font:700 12px var(--mono)}
+.view{padding:32px;max-width:1400px;width:100%;display:flex;flex-direction:column;gap:48px}
+
+/* type */
+h1,h2,h3{margin:0;line-height:1.1}
+.h-section{font-size:22px;font-weight:600;letter-spacing:-.01em}
+.sub{font-size:13px;color:var(--faint);margin:4px 0 0}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.crumb{font:13px var(--mono);color:var(--faint)}
+.crumb a{color:var(--muted)}
+
+/* buttons */
+.btn{min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;border-radius:8px;border:1px solid var(--line-2);background:transparent;font-weight:600;font-size:14px;color:var(--text)}
+.btn:hover{background:var(--hover);text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn.small{min-height:40px;padding:0 14px;font-size:13px}
+.btn.ghost-accent{border-color:var(--accent);color:var(--accent)}
+.btn.ok{border-color:var(--st-available);color:var(--st-available)}
+.btn.no{border-color:var(--st-declined);color:var(--st-declined)}
+.btn[disabled]{opacity:.55;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line-2);background:transparent;font-size:13px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--text);background:var(--hover)}
+.chip .n{color:var(--faint);margin-left:4px;font-family:var(--mono);font-size:12px}
+
+/* status */
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--c)}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
+
+/* art slots */
+.cover{position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--tint,var(--slot));display:grid;place-items:center;color:var(--ink,var(--slot-ink))}
+.cover svg{width:30%;height:30%;opacity:.7}
+.cover .cap{position:absolute;left:10px;bottom:8px;font:10px var(--mono);opacity:.85}
+.cover .badge{position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:12px;background:rgba(9,12,20,.82);font-size:11px;font-weight:600;color:var(--c)}
+.cover.round{border-radius:50%}
+.thumb{width:48px;height:48px;flex:none;border-radius:6px}
+.thumb svg{width:44%;height:44%}
+
+/* hero */
+.hero{position:relative;margin:-32px -32px 0;min-height:480px;padding:56px 32px 36px;display:flex;flex-direction:column;justify-content:flex-end;gap:16px;overflow:hidden;background:var(--surface);border-bottom:1px solid var(--line)}
+.hero .photo{position:absolute;top:0;right:0;bottom:0;width:62%;background:var(--slot);color:var(--slot-ink);display:grid;place-items:center}
+.hero .photo svg{width:240px;height:240px}
+.hero .photo .cap{position:absolute;right:24px;top:20px;font:11px var(--mono);color:var(--faint)}
+.hero .scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgb(var(--scrim)) 34%,rgba(var(--scrim),.55) 62%,rgba(var(--scrim),.12))}
+.hero .fade{position:absolute;left:0;right:0;bottom:0;height:45%;background:linear-gradient(0deg,var(--bg),transparent)}
+.hero .content{position:relative;max-width:640px;display:flex;flex-direction:column;gap:16px}
+.hero .kicker{font-size:14px;font-weight:600;color:var(--accent)}
+.hero h1{font-size:clamp(48px,7vw,84px);font-weight:700;letter-spacing:-.04em;line-height:.92}
+.hero .by{font-size:17px;color:var(--muted)}
+.hero .by a{color:var(--text);font-weight:600}
+.hero p.blurb{margin:0;max-width:520px;color:var(--muted)}
+.hero .stats{position:relative;display:flex;flex-wrap:wrap;gap:6px 28px;margin:10px 0 0;padding:0}
+.hero .stats div{display:flex;align-items:baseline;gap:8px}
+.hero .stats dd{margin:0;font:700 20px var(--mono)}
+.hero .stats dt{font-size:13px;color:var(--faint)}
+
+/* rows & grids */
+.row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(176px,212px);gap:20px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
+.row>*{scroll-snap-align:start}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:24px 20px}
+.card{display:flex;flex-direction:column;gap:10px;min-width:0}
+.card .t{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .m{font-size:13px;color:var(--muted)}
+.card>a:first-child:hover{text-decoration:none}
+.artist-card{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:var(--text)}
+.artist-card:hover{text-decoration:none}
+.artist-card .m{font-size:13px;color:var(--faint)}
+
+/* lists/tables */
+.box{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.scroll-x{overflow-x:auto}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.list li:last-child{border-bottom:0}
+.list .grow{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.list .who{flex:0 1 180px;font-size:13px;color:var(--faint)}
+.table{min-width:760px}
+.tr{display:grid;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);min-height:58px}
+.tr:last-child{border-bottom:0}
+.tr.head{min-height:0;padding:12px 16px;font-size:12px;font-weight:600;color:var(--faint)}
+.tr .num{font:13px var(--mono);color:var(--faint)}
+.tr .dim{color:var(--muted);font-size:13px}
+.tr .actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.tr.missing .title{color:var(--muted)}
+.title{font-weight:600}
+.feat{font-size:13px;color:var(--muted)}
+
+/* detail header */
+.detail{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-end}
+.detail .art{width:280px;flex:none}
+.detail .info{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.detail h1{font-size:clamp(40px,5vw,64px);font-weight:700;letter-spacing:-.035em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:14px}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{padding:4px 12px;border-radius:14px;background:var(--hover);font-size:13px;color:var(--muted)}
+.progress{height:6px;max-width:420px;border-radius:3px;background:var(--line);overflow:hidden}
+.progress span{display:block;height:100%;background:var(--st-partial)}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0;flex:1 1 260px;max-width:380px}
+.facts div{padding:14px 16px;background:var(--surface)}
+.facts dt{font-size:12px;color:var(--faint)}
+.facts dd{margin:2px 0 0;font:700 24px var(--mono)}
+.two{display:flex;flex-wrap:wrap;gap:32px}
+.two>.wide{flex:2 1 480px}
+.two>.narrow{flex:1 1 280px}
+.kv{display:flex;flex-direction:column;gap:10px;padding:16px;font-size:13px}
+.kv div{display:flex;justify-content:space-between;gap:16px}
+.kv dt{color:var(--faint)}.kv dd{margin:0;font-family:var(--mono);text-align:right}
+
+/* switch */
+.switch{width:52px;height:44px;display:grid;place-items:center;border:0;background:transparent;padding:0}
+.switch span{width:42px;height:24px;border-radius:12px;background:var(--line-2);display:flex;padding:3px;transition:background .15s}
+.switch span::after{content:"";width:18px;height:18px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch[aria-pressed="true"] span{background:var(--st-available)}
+.switch[aria-pressed="true"] span::after{transform:translateX(18px)}
+.setting{display:flex;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.setting:last-child{border-bottom:0}
+.setting .grow{flex:1;display:flex;flex-direction:column;gap:2px}
+.setting .d{font-size:13px;color:var(--muted)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.field input,.field select{height:46px;padding:0 12px;border-radius:8px;border:1px solid var(--line-2);background:var(--raised);font-weight:400;font-size:14px;color:var(--text)}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.server{display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.server .name{font:700 16px var(--mono)}
+.server .url{font:12px var(--mono);color:var(--muted)}
+.server dl{flex:2 1 380px;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;font-size:13px}
+.server dt{color:var(--faint)}.server dd{margin:2px 0 0}
+.choice{min-height:76px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:4px;padding:12px 16px;border-radius:12px;border:1px solid var(--line-2);background:transparent;text-align:left}
+.choice[aria-checked="true"]{border-color:var(--accent);background:var(--hover)}
+.choice b{font-size:15px}.choice span{font-size:13px;color:var(--muted)}
+.settings-nav{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.settings-nav a{min-height:40px;display:flex;align-items:center;padding:0 14px;border-radius:8px;color:var(--muted);font-size:14px}
+.settings-nav a:hover{background:var(--hover);text-decoration:none}
+
+
+/* base discover hero */
+.base-hero{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-end;padding:32px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.base-hero .cmd{margin:0;font:13px var(--mono);color:var(--faint)}
+.base-hero h1{font-size:clamp(34px,4.4vw,54px);font-weight:700;letter-spacing:-.03em;line-height:1.05;margin:12px 0 14px}
+.base-hero h1 span{color:var(--accent)}
+.bh-copy{flex:1 1 440px;max-width:660px}
+.base-hero .blurb{margin:0 0 22px;color:var(--muted);max-width:56ch}
+.bh-cta{display:flex;gap:12px;flex-wrap:wrap}
+.bh-stats{flex:1 1 380px;max-width:520px;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.bh-stats div{padding:18px 20px;background:var(--surface)}
+.bh-stats dt{font-size:13px;color:var(--faint)}
+.bh-stats dd{margin:4px 0 0;font:700 30px var(--mono)}
+.hero.band{margin:0;border:1px solid var(--line);border-radius:16px;min-height:400px}
+/* mobile preview */
+.phone-wrap{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+.phone{position:relative;flex:none;width:390px;max-width:100%;height:844px;border:10px solid #05070C;border-radius:46px;overflow:hidden;background:var(--bg);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.phone .scr{height:calc(100% - 76px);overflow-y:auto;padding:20px 16px 24px;display:flex;flex-direction:column;gap:22px}
+.phone .mrow{display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px}
+.phone .mrow .card{flex:none;width:140px}
+.phone .tabs{position:absolute;left:0;right:0;bottom:0;height:76px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--rail);border-top:1px solid var(--line);padding-bottom:10px}
+.phone .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--faint)}
+.phone .tabs a.on{color:var(--accent)}
+.phone .tabs a:hover{text-decoration:none;color:var(--text)}
+.notes{flex:1 1 300px;max-width:520px;display:flex;flex-direction:column;gap:14px;color:var(--muted)}
+.notes h2{color:var(--text)}
+
+/* modal */
+.overlay{position:fixed;inset:0;z-index:40;background:rgba(5,7,12,.72);display:flex;justify-content:center;align-items:flex-start;padding:max(64px,env(safe-area-inset-top,0px)) 16px 32px;overflow-y:auto}
+.dialog{width:100%;max-width:640px;background:var(--raised);border:1px solid var(--line-2);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.dialog h2{font-size:18px;font-weight:600}
+.dialog .body{padding:20px;display:flex;flex-direction:column;gap:22px}
+.dialog footer{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--line)}
+.icon-btn{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--muted)}
+.icon-btn:hover{background:var(--hover);color:var(--text)}
+fieldset{margin:0;padding:0;border:0;display:flex;flex-direction:column;gap:8px}
+legend{padding:0;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.opt{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;border:1px solid var(--line-2);border-radius:10px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--accent);background:var(--hover)}
+.opt input{width:18px;height:18px;accent-color:var(--accent)}
+.opt .grow{flex:1;display:flex;flex-direction:column;gap:2px}
+.opt small{color:var(--muted);font-size:12px}
+.check{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.quota{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px dashed var(--line-2);border-radius:10px;font-size:13px;color:var(--muted)}
+.quota .bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.quota .bar span{display:block;height:100%;width:30%;background:var(--accent)}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:100px;z-index:50;transform:translate(-50%,20px);opacity:0;pointer-events:none;padding:12px 18px;border-radius:10px;background:var(--text);color:var(--bg);font-size:14px;font-weight:500;transition:opacity .2s,transform .2s;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* player */
+.player{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;min-height:76px;padding:12px 24px calc(12px + env(safe-area-inset-bottom,0px));background:var(--rail);border-top:1px solid var(--line)}
+.player .ctrls{display:flex;align-items:center;gap:4px}
+.player .play{width:48px;height:48px;display:grid;place-items:center;border:2px solid var(--accent);border-radius:50%;background:transparent;color:var(--accent)}
+.player .now{flex:0 1 260px;min-width:0;display:flex;align-items:center;gap:12px}
+.player .now .txt{min-width:0;display:flex;flex-direction:column}
+.player .now b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player .now span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wave{flex:1 1 280px;min-width:0;height:40px;display:flex;align-items:center;gap:2px;overflow:hidden;cursor:pointer;border:0;background:transparent;padding:0}
+.wave i{flex:1 0 2px;border-radius:2px;background:var(--line-2)}
+.wave i.on{background:var(--accent)}
+.player .time{font:12px var(--mono);color:var(--muted);min-width:92px}
+.player .src{font-size:12px;color:var(--faint)}
+
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .rail{position:sticky;top:0;z-index:20;height:auto;flex:none;flex-direction:row;justify-content:space-between;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
+  .rail .grow{display:none}.brand{margin:0}
+  .top{padding:12px 16px}
+  .view{padding:20px 16px;gap:36px}
+  .hero{margin:-20px -16px 0;padding:40px 16px 28px;min-height:420px}
+  .hero .photo{width:100%;opacity:.5}
+  .detail .art{width:200px}
+  .player{padding-left:12px;padding-right:12px}
+  .player .src,.player .time,.player .ctrls .icon-btn,.hide-sm{display:none}
+  .player .now{flex:1 1 0}
+  .hero.band{margin:0;padding:32px 20px}
+  .base-hero{padding:22px 18px}
+  .phone{border-width:6px;border-radius:32px}
+  .top .searchbox{flex-basis:200px}
+  .hero .photo svg{opacity:.4}
+  .wave{flex-basis:100%;order:5;height:28px}
+  .main{padding-bottom:140px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---------- auth screens (layout after the Rekord template's login page) ---------- */
+#auth[hidden],#shell[hidden]{display:none!important}
+.auth{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;overflow:hidden;background:#05070C;color:#E9EEF4}
+.fader{position:absolute;inset:-4%;z-index:0}
+.mosaic{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px;opacity:0;transition:opacity 2s ease;transform:rotate(-6deg) scale(1.15)}
+.mosaic.on{opacity:1}
+.tile{position:relative;aspect-ratio:1/1;border-radius:8px;background:var(--tint);color:var(--ink);display:grid;place-items:center;overflow:hidden}
+.tile svg{width:28%;height:28%;opacity:.45}
+.tile b{position:absolute;left:10px;bottom:8px;right:10px;font-size:12px;font-weight:600;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auth::after{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at center,rgba(5,7,12,.55) 0%,rgba(5,7,12,.88) 70%,#05070C 100%)}
+.auth>*{position:relative;z-index:2}
+.wordmark{font:600 14px var(--sans);letter-spacing:.32em;color:#E9EEF4;margin-bottom:40px;text-decoration:none}
+.wordmark:hover{text-decoration:none}
+.wordmark span{color:#FF1744}
+.auth-grid{width:100%;max-width:980px;display:grid;grid-template-columns:7fr 5fr;border-radius:16px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.6)}
+.auth-card{background:rgba(16,21,31,.94);padding:44px 48px;display:flex;flex-direction:column;gap:22px;backdrop-filter:blur(8px)}
+.auth-side{background:rgba(10,13,22,.78);padding:44px 40px;display:flex;flex-direction:column;justify-content:center;gap:18px;border-left:1px solid #1E2636;backdrop-filter:blur(8px)}
+.auth h1{font-size:30px;font-weight:600;letter-spacing:-.02em;color:#fff}
+.auth .lede{margin:0;color:#9CA8B0;max-width:46ch}
+.auth-side h2{font-size:34px;font-weight:300;letter-spacing:-.02em;line-height:1.15;color:#fff}
+.btn.plex{background:#E5A00D;border-color:#E5A00D;color:#1B1405;min-height:52px;font-size:15px}
+.btn.plex:hover{background:#F0B02A}
+.btn.plex .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(27,20,5,.3);border-top-color:#1B1405;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.or{display:flex;align-items:center;gap:14px;color:#7F8A9A;font-size:13px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:#283143}
+.fl{position:relative;padding-top:18px}
+.fl input{width:100%;height:42px;border:0;border-bottom:1px solid #3A4458;background:transparent;color:#E9EEF4;font-size:15px;padding:0;outline:none}
+.fl label{position:absolute;left:0;top:28px;color:#7F8A9A;font-size:15px;pointer-events:none;transition:top .2s,font-size .2s,color .2s}
+.fl::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:#FF1744;transform:scaleX(0);transition:transform .25s ease-in}
+.fl:focus-within::after{transform:scaleX(1)}
+.fl input:focus+label,.fl input:not(:placeholder-shown)+label{top:0;font-size:12px;color:#9CA8B0}
+.auth .btn{color:#E9EEF4;border-color:#3A4458}
+.auth .btn.outline-accent{border-color:#FF1744;color:#FF5C7A;background:transparent}
+.auth .btn.outline-accent:hover{background:rgba(255,23,68,.08)}
+.auth .err{margin:0;padding:10px 12px;border-radius:8px;background:rgba(240,140,122,.12);color:#F5A493;font-size:14px}
+.auth .hint{font-size:12px;color:#7F8A9A}
+.auth a{color:#FF5C7A}
+.auth-foot{margin-top:28px;font-size:12px;color:#7F8A9A;text-align:center;max-width:60ch}
+.signed-out{width:100%;max-width:560px;text-align:center;align-items:center;border-radius:16px;box-shadow:0 40px 120px rgba(0,0,0,.6)}
+.signed-out .tick{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;border:2px solid #5FD3C6;color:#5FD3C6}
+.plex-pop{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px}
+.plex-pop .win{width:100%;max-width:420px;background:#1F1F1F;color:#EEE;border-radius:12px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);font-family:var(--sans)}
+.plex-pop .bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#2A2A2A;font:12px var(--mono);color:#AAA}
+.plex-pop .bar i{width:10px;height:10px;border-radius:50%;background:#555;display:inline-block}
+.plex-pop .in{padding:22px;display:flex;flex-direction:column;gap:14px}
+.plex-pop h2{font-size:18px;font-weight:600;color:#fff}
+.plex-pop p{margin:0;font-size:14px;color:#BBB}
+.acct{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 12px;border-radius:8px;border:1px solid #3A3A3A;background:#262626;color:#EEE;text-align:left}
+.acct:hover{border-color:#E5A00D}
+.acct .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#E5A00D;color:#1B1405;font-weight:700;font-size:13px}
+.acct small{display:block;color:#AAA;font-size:12px}
+.plex-pop .note{font-size:12px;color:#999}
+
+/* ---------- account menu ---------- */
+.acct-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 8px);z-index:35;min-width:260px;padding:8px;border-radius:12px;background:var(--raised);border:1px solid var(--line-2);box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.menu[hidden]{display:none}
+.menu .who{padding:10px 12px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.menu .who b{display:block}
+.menu .who span{font-size:13px;color:var(--muted)}
+.menu a,.menu button{display:flex;align-items:center;width:100%;min-height:42px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--text);font-size:14px;text-align:left}
+.menu a:hover,.menu button:hover{background:var(--hover);text-decoration:none}
+
+/* ---------- users & permissions ---------- */
+.perm{display:flex;flex-direction:column;gap:2px}
+.perm label{display:flex;align-items:flex-start;gap:12px;padding:10px 4px;cursor:pointer}
+.perm label.child{padding-left:34px}
+.perm input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex:none}
+.perm input:disabled+span{opacity:.6}
+.perm span b{display:block;font-weight:600;font-size:14px}
+.perm span small{font-size:13px;color:var(--muted)}
+.perm h3{font-size:13px;font-weight:600;color:var(--faint);margin:14px 0 2px}
+.role{display:inline-flex;align-items:center;padding:3px 10px;border-radius:12px;background:var(--hover);font-size:12px;font-weight:600;color:var(--muted)}
+.role.admin{color:var(--accent)}
+.outcome{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);font-size:14px}
+.outcome.auto{border-color:var(--st-available);color:var(--st-available)}
+.outcome.wait{border-color:var(--st-pending);color:var(--st-pending)}
+.outcome.block{border-color:var(--st-declined);color:var(--st-declined)}
+.toast.bad{background:var(--st-declined);color:#0C101B}
+.credit{font-size:13px;color:var(--faint);border-top:1px solid var(--line);padding-top:18px}
+
+@media (max-width:820px){
+  .auth-grid{grid-template-columns:1fr}
+  .auth-side{border-left:0;border-top:1px solid #1E2636}
+  .auth-card,.auth-side{padding:32px 24px}
+  .mosaic{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){.mosaic{transition:none}}
+
+.rail a.nav[hidden]{display:none}
+.auth>.fader{position:absolute;z-index:0}
+.auth a.wordmark{color:#E9EEF4}
+.auth a.wordmark:hover{text-decoration:none}
+.auth::after{background:radial-gradient(ellipse at center,rgba(5,7,12,.45) 0%,rgba(5,7,12,.8) 65%,rgba(5,7,12,.95) 100%)}
+.mosaic{grid-template-columns:repeat(10,minmax(0,1fr));align-content:center;align-items:start}
+@media (max-width:820px){.mosaic{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* ---------- settings / admin layout ---------- */
+.admin{display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;align-items:start}
+.snav{position:sticky;top:16px;display:flex;flex-direction:column;gap:2px;padding:8px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.snav h3{margin:12px 10px 4px;font-size:12px;font-weight:600;color:var(--faint)}
+.snav h3:first-child{margin-top:4px}
+.snav a{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px;padding:0 12px;border-radius:8px;color:var(--muted);font-size:14px}
+.snav a:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.snav a[aria-current="page"]{background:var(--hover);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
+.snav .dot{width:7px;height:7px;border-radius:50%;background:var(--st-available)}
+.snav .dot.off{background:var(--line-2)}
+.snav-select{display:none}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px}
+.page-head h1{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.page-head .sub{margin-top:6px;max-width:70ch}
+.stack{display:flex;flex-direction:column;gap:20px}
+.panel{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:22px;display:flex;flex-direction:column;gap:18px}
+.panel>h2{font-size:18px;font-weight:600}
+.panel>.sub{margin-top:-12px}
+.panel .row-end{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+.inline{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.field .hint{font-weight:400;font-size:12px;color:var(--faint)}
+.field textarea{min-height:140px;padding:10px 12px;border-radius:8px;border:1px solid var(--line-2);background:var(--raised);font:13px/1.5 var(--mono);color:var(--text);resize:vertical}
+.field.full{grid-column:1/-1}
+.field input[readonly]{color:var(--muted);background:var(--hover)}
+.copyrow{display:flex;gap:8px}.copyrow input{flex:1;min-width:0}
+.checks{display:flex;flex-direction:column;gap:2px}
+.checks label{display:flex;align-items:flex-start;gap:12px;padding:8px 2px;cursor:pointer;font-size:14px}
+.checks input{width:18px;height:18px;margin-top:1px;accent-color:var(--accent);flex:none}
+.checks small{display:block;color:var(--muted);font-size:13px}
+.save-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;padding-top:6px}
+.badge-on{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-available)}
+.badge-on::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge-off{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--faint)}
+.badge-off::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.int-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.int{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.int header{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;flex:none;border-radius:10px;display:grid;place-items:center;font:700 14px var(--sans);color:#fff}
+.int h3{font-size:16px;font-weight:600}
+.int p{margin:0;font-size:14px;color:var(--muted)}
+.int .foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tag-row{display:flex;flex-wrap:wrap;gap:6px}
+.tag.s{font-size:12px;padding:2px 10px}
+.endpoint{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px dashed var(--line-2);border-radius:10px;font:13px var(--mono);overflow-x:auto}
+.kvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.kvs div{background:var(--surface);padding:14px 16px}
+.kvs dt{font-size:12px;color:var(--faint)}.kvs dd{margin:4px 0 0;font-weight:600}
+.lvl{font:600 11px var(--mono);padding:2px 8px;border-radius:10px}
+.lvl.debug{color:var(--faint);background:var(--hover)}.lvl.info{color:var(--st-processing);background:var(--hover)}.lvl.warn{color:var(--st-pending);background:var(--hover)}.lvl.error{color:var(--st-declined);background:var(--hover)}
+.mono-s{font:12px var(--mono)}
+.running{color:var(--st-processing);font-size:12px;font-weight:600}
+
+/* ---------- users ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.toolbar .searchbox{flex:1 1 220px;max-width:340px;height:44px}
+.tr.sel{background:var(--hover)}
+.tr input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.role.owner{color:var(--st-pending)}
+.uhead{display:flex;flex-wrap:wrap;align-items:center;gap:22px;padding:28px;border-radius:16px;background:var(--surface);border:1px solid var(--line);position:relative;overflow:hidden}
+.uhead .big{width:96px;height:96px;border-radius:24px;display:grid;place-items:center;font:700 32px var(--mono);background:var(--slot);color:var(--accent)}
+.uhead h1{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.uhead .meta{margin-top:6px}
+.tabs-h{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.tabs-h a{min-height:44px;display:flex;align-items:center;padding:0 16px;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs-h a:hover{color:var(--text);text-decoration:none}
+.tabs-h a[aria-current="page"]{color:var(--text);border-bottom-color:var(--accent)}
+.stats3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.stat{display:flex;align-items:center;gap:18px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.ring{--p:0;width:64px;height:64px;flex:none;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--line) 0)}
+.ring span{width:50px;height:50px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font:700 13px var(--mono)}
+.stat b{font:700 26px var(--mono);display:block}
+.stat small{font-size:13px;color:var(--muted)}
+.subnav-pills{display:flex;flex-wrap:wrap;gap:6px}
+.subnav-pills a{min-height:38px;display:flex;align-items:center;padding:0 14px;border-radius:19px;border:1px solid var(--line-2);color:var(--muted);font-size:13px}
+.subnav-pills a:hover{text-decoration:none;color:var(--text)}
+.subnav-pills a[aria-current="page"]{border-color:var(--accent);color:var(--text);background:var(--hover)}
+.linked{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.linked:last-child{border-bottom:0}
+.linked .grow{flex:1 1 220px;display:flex;flex-direction:column;gap:2px}
+.import-res{display:flex;flex-direction:column}
+.events li{gap:18px}
+.date{width:56px;flex:none;text-align:center;border-radius:10px;border:1px solid var(--line-2);padding:6px 0}
+.date b{display:block;font:700 20px var(--mono)}
+.date span{font-size:11px;color:var(--faint);text-transform:uppercase}
+.confirm-danger{border-color:var(--st-declined)!important;background:var(--st-declined)!important;color:#0C101B!important}
+
+@media (max-width:980px){
+  .admin{grid-template-columns:1fr}
+  .snav{display:none}
+  .snav-select{display:flex}
+}
+
+/* ---------- scrollbars ---------- */
+:root{--sb-track:transparent;--sb-thumb:var(--line-2);--sb-thumb-hover:var(--faint)}
+*{scrollbar-width:thin;scrollbar-color:var(--sb-thumb) var(--sb-track)}
+html{scrollbar-gutter:stable}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--sb-track)}
+::-webkit-scrollbar-thumb{background:var(--sb-thumb);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--sb-thumb-hover);background-clip:padding-box;border:2px solid transparent}
+::-webkit-scrollbar-thumb:active{background:var(--accent);background-clip:padding-box;border:2px solid transparent}
+::-webkit-scrollbar-corner{background:transparent}
+.row::-webkit-scrollbar,.mrow::-webkit-scrollbar,.scroll-x::-webkit-scrollbar,.endpoint::-webkit-scrollbar{height:8px}
+.row:hover,.mrow:hover,.scroll-x:hover{--sb-thumb:var(--faint)}
+.overlay,.phone .scr,.menu{--sb-thumb:var(--line-2)}
+.auth{scrollbar-color:#3A4458 transparent}
+.auth ::-webkit-scrollbar-thumb{background:#3A4458;background-clip:padding-box}
+.field textarea::-webkit-scrollbar{width:8px}
+</style>
+</head>
+<body>
+<div id="auth" hidden></div>
+
+<div id="shell" hidden>
+<div class="app">
+  <nav class="rail" aria-label="Primary">
+    <a class="brand" href="#/discover" aria-label="Shufflerr home">s/</a>
+    <a class="nav" href="#/discover" data-route="discover" aria-label="Discover" title="Discover"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></a>
+    <a class="nav" href="#/search" data-route="search" aria-label="Search" title="Search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>
+    <a class="nav" href="#/artist" data-route="artist" aria-label="Artists" title="Artists"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg></a>
+    <a class="nav" href="#/album" data-route="album" aria-label="Albums" title="Albums"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></a>
+    <a class="nav" href="#/requests" data-route="requests" aria-label="Requests" title="Requests"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="count" id="pendingCount">0</span></a>
+    <a class="nav" href="#/import" data-route="import" aria-label="Import playlists" title="Import playlists"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg></a>
+    <a class="nav" href="#/users" data-route="users" data-perm="MANAGE_USERS" aria-label="Users" title="Users"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18.5 14.4c1.8.8 3 2.8 3 5.6"/></svg></a>
+    <a class="nav" href="#/mobile" data-route="mobile" aria-label="Mobile preview" title="Mobile preview"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></a>
+    <div class="grow"></div>
+    <a class="nav" href="#/settings" data-route="settings" data-perm="MANAGE_SETTINGS" aria-label="Settings" title="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></a>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <form class="searchbox" role="search" id="searchForm">
+        <label for="q" class="sr">Search music</label>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search artists, albums and tracks" autocomplete="off">
+        <kbd>/</kbd>
+      </form>
+      <div class="spacer"></div>
+      <a class="pill hide-sm" href="#/requests"><span class="status" style="--c:var(--st-pending)"><span id="pendingPill"></span></span></a>
+      <button class="pill" type="button" id="themeBtn" aria-label="Switch light or dark theme"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+      <div class="acct-wrap">
+        <button class="pill" type="button" id="acctBtn" aria-haspopup="true" aria-expanded="false"><span class="avatar" id="acctAv">AD</span><span class="hide-sm" id="acctName">admin</span></button>
+        <div class="menu" id="acctMenu" hidden></div>
+      </div>
+    </header>
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<div class="player" role="region" aria-label="Player">
+  <div class="ctrls">
+    <button class="icon-btn" type="button" aria-label="Previous track"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><path d="M19 20 9 12l10-8z"/><path d="M5 19V5"/></svg></button>
+    <button class="play" type="button" id="playBtn" aria-label="Play"><svg id="playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg></button>
+    <button class="icon-btn" type="button" aria-label="Next track"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><path d="m5 4 10 8-10 8z"/><path d="M19 5v14"/></svg></button>
+  </div>
+  <div class="now">
+    <div class="cover thumb" style="--tint:#232A3A;--ink:#9DB4FF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
+    <div class="txt"><b id="nowTitle">SHADES OF BLUE</b><span id="nowArtist">John Summit, Devault, Julia Church</span></div>
+  </div>
+  <button class="wave" type="button" id="wave" aria-label="Seek"></button>
+  <span class="time" id="time">1:12 / 3:23</span>
+  <span class="src">Streaming from Plex</span>
+</div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+'use strict';
+/*
+ * Shufflerr mockup.
+ * The permission bitmask, hasPermission() and the request approval rules
+ * (permission check -> quota check -> duplicate check -> auto-approve or pending,
+ * approve/decline only by MANAGE_REQUESTS and only while pending) are adapted from
+ * Seerr (https://github.com/seerr-team/seerr), server/lib/permissions.ts and
+ * server/entity/MediaRequest.ts. MIT License, Copyright (c) 2020 sct.
+ * The Plex sign-in follows Seerr's PIN flow; here the Plex window is simulated.
+ */
+var ICON_IMG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>';
+var ICON_PERSON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+var ICON_X='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+/* ======================= permissions (adapted from Seerr) ======================= */
+var P={NONE:0,ADMIN:2,MANAGE_SETTINGS:4,MANAGE_USERS:8,MANAGE_REQUESTS:16,REQUEST:32,AUTO_APPROVE:128,
+  AUTO_APPROVE_ALBUM:256,AUTO_APPROVE_TRACK:512,REQUEST_DISCOGRAPHY:1024,REQUEST_VIEW:16384,
+  AUTO_APPROVE_DISCOGRAPHY:32768,REQUEST_ALBUM:262144,REQUEST_TRACK:524288};
+function hasPermission(perms,value,opts){
+  opts=opts||{type:'and'};
+  if(perms===0)return true;
+  if(Array.isArray(perms)){
+    if(value&P.ADMIN)return true;
+    return opts.type==='or'?perms.some(function(p){return !!(value&p);}):perms.every(function(p){return !!(value&p);});
+  }
+  return !!(value&P.ADMIN)||!!(value&perms);
+}
+function can(u,perm,opts){return !!u&&hasPermission(perm,u.perms,opts);}
+var TYPE={
+  album:{req:P.REQUEST_ALBUM,auto:P.AUTO_APPROVE_ALBUM,noun:'albums',label:'Album'},
+  tracks:{req:P.REQUEST_TRACK,auto:P.AUTO_APPROVE_TRACK,noun:'tracks',label:'Tracks'},
+  discography:{req:P.REQUEST_DISCOGRAPHY,auto:P.AUTO_APPROVE_DISCOGRAPHY,noun:'discographies',label:'Discography'}
+};
+var RS={PENDING:1,APPROVED:2,DECLINED:3,FAILED:4,COMPLETED:5};
+var RS_UI={1:{l:'Waiting for approval',c:'var(--st-pending)'},2:{l:'Approved, downloading',c:'var(--st-processing)'},3:{l:'Declined',c:'var(--st-declined)'},4:{l:'Failed',c:'var(--st-declined)'},5:{l:'Available',c:'var(--st-available)'}};
+
+/* ======================= data ======================= */
+var ST={available:{l:'Available',c:'var(--st-available)'},partial:{l:'Partly available',c:'var(--st-partial)'},processing:{l:'Downloading',c:'var(--st-processing)'},pending:{l:'Waiting for approval',c:'var(--st-pending)'},declined:{l:'Declined',c:'var(--st-declined)'},none:{l:'Not in library',c:'var(--st-none)'},lib:{l:'In library',c:'var(--st-available)'},miss:{l:'Missing',c:'var(--st-declined)'}};
+var TINT=[['#2B3A35','#7FE0D2'],['#3A2E22','#F5B83D'],['#232A3A','#9DB4FF'],['#382328','#F08C7A'],['#2E3322','#C8E07A'],['#30263A','#D2A6F5'],['#1F2E2E','#E6E8E3'],['#3A3520','#F2E3A0']];
+var CATALOG=[
+  {id:'ctrl',title:'CTRL ESCAPE',artist:'John Summit',year:2026,type:'Album',tracks:13,status:'partial',t:2},
+  {id:'cic',title:'Comfort in Chaos',artist:'John Summit',year:2024,type:'Album',tracks:12,status:'available',t:4},
+  {id:'lgo',title:'LIGHTS GO OUT',artist:'John Summit',year:2026,type:'Single',tracks:1,status:'available',t:5},
+  {id:'att',title:'ALL THE TIME',artist:'John Summit, The Chainsmokers',year:2026,type:'Single',tracks:1,status:'available',t:3},
+  {id:'ly',title:'light years',artist:'John Summit, Inéz',year:2025,type:'Single',tracks:1,status:'none',t:7},
+  {id:'focus',title:'Focus',artist:'John Summit, CLOVES',year:2025,type:'Single',tracks:1,status:'processing',t:0},
+  {id:'wya',title:'Where You Are',artist:'John Summit, Hayla',year:2023,type:'Single',tracks:1,status:'available',t:6},
+  {id:'human',title:'Human',artist:'John Summit, Echoes',year:2021,type:'Single',tracks:1,status:'none',t:1},
+  {id:'gw',title:'Glass Weather',artist:'Vera Okafor',year:2025,type:'Album',tracks:10,status:'available',t:2},
+  {id:'nbh',title:'Night Bus Hymns',artist:'Lowlight Assembly',year:2026,type:'Album',tracks:9,status:'available',t:3},
+  {id:'lts',title:'Low Tide Static',artist:'Neon Lagoon',year:2026,type:'Album',tracks:11,status:'available',t:4},
+  {id:'bhs',title:'Blue Hour Sessions',artist:'Juno Reyes Trio',year:2025,type:'Album',tracks:8,status:'available',t:6},
+  {id:'aa',title:'Ashes & Arcades',artist:'The Marrow Kings',year:2026,type:'Album',tracks:12,status:'none',t:5},
+  {id:'fr2',title:'Field Recordings Vol. 2',artist:'Pale Atlas',year:2026,type:'Album',tracks:7,status:'none',t:7},
+  {id:'ac',title:'Afterimage Club',artist:'Neon Lagoon',year:2026,type:'Album',tracks:10,status:'processing',t:4},
+  {id:'sl',title:'Salt Lines',artist:'Vera Okafor',year:2026,type:'Album',tracks:9,status:'pending',t:2},
+  {id:'ks',title:'Kinetic Saints',artist:'Ossie Vale',year:2025,type:'Album',tracks:10,status:'pending',t:1},
+  {id:'pm',title:'Paper Moons',artist:'Kiri Sato',year:2026,type:'Album',tracks:11,status:'pending',t:0},
+  {id:'mk',title:'The Marrow Kings',artist:'The Marrow Kings',year:2026,type:'Discography',tracks:12,status:'pending',t:5},
+  {id:'gs',title:'Ghost Signals (Live)',artist:'Pale Atlas',year:2025,type:'Album',tracks:9,status:'none',t:7},
+  {id:'cs',title:'Copper Sun',artist:'Kiri Sato',year:2024,type:'Album',tracks:10,status:'none',t:1}
+];
+var byId={};CATALOG.forEach(function(r){byId[r.id]=r;});
+var CTRL_TRACKS=[
+ ['01','STATUS:AWAY','John Summit','3:26',1],['02','SHADES OF BLUE','John Summit, Devault, Julia Church','3:23',1],['03','SATA','John Summit, Rohaan','3:02',1],
+ ['04','WITH ME','John Summit, Julia Wolf','3:03',1],['05',"DON'T BELIEVE IT",'John Summit, Absolutely','3:07',1],['06','LIGHTS GO OUT','John Summit','2:38',1],
+ ['07','MESS W/ ME','John Summit, Nija','4:09',0],['08','CHICA 305','John Summit, Feid','3:08',0],['09','ALL THE TIME','John Summit, The Chainsmokers, Ilsey','3:00',1],
+ ['10','OOO','John Summit','0:59',0],['11','SHADOWS','John Summit, LAVINIA','3:21',1],['12','TIME WITH YOU','John Summit, KILIMANJARO','3:58',1],['13','CYANIDE','John Summit, Absolutely','3:18',0]
+];
+var ARTISTS=[{name:'John Summit',meta:'8 releases, 4 in library',t:2},{name:'Vera Okafor',meta:'9 releases, all in library',t:2},{name:'Neon Lagoon',meta:'5 releases, 2 in library',t:4},{name:'The Marrow Kings',meta:'12 releases, none yet',t:5},{name:'Kiri Sato',meta:'7 releases, 3 in library',t:1},{name:'Pale Atlas',meta:'4 releases, 1 in library',t:7}];
+
+var NOTIFY_TYPES=[
+  ['pending','A request is waiting for approval','For people who manage requests',true],
+  ['autoApproved','A request was approved automatically','For people who manage requests',true],
+  ['approved','Your request was approved','',false],
+  ['declined','Your request was declined','',false],
+  ['available','Your music is available','',false],
+  ['failed','A request failed to download','',false]
+];
+function notifDefaults(){return {email:{on:true,types:['approved','declined','available','failed']},webpush:{on:true,types:['available']},discord:{on:false,id:'',types:['available']},telegram:{on:false,chat:'',silent:false,types:['available']},pushbullet:{on:false,token:'',types:['available']},pushover:{on:false,app:'',user:'',types:['available']}};}
+function mkUser(o){
+  return Object.assign({display:'',locale:'en',region:'US',created:'2026-09-01',
+    quota:{override:false,album:[0,7],track:[0,7]},notif:notifDefaults(),
+    linked:{plex:'',jellyfin:'',lastfm:'',listenbrainz:'',spotify:''},appPasswords:[],hasPassword:false,autoImport:false},o);
+}
+var USERS=[
+  mkUser({id:1,name:'admin',display:'Server owner',email:'admin@shufflerr.local',plex:'Server owner',kind:'Plex',av:'AD',perms:P.ADMIN,created:'2025-11-02',hasPassword:true,
+    linked:{plex:'admin',jellyfin:'',lastfm:'',listenbrainz:'admin-lb',spotify:''},appPasswords:[{name:'Symfonium on Pixel',created:'2026-08-14',last:'2 h ago'}]}),
+  mkUser({id:2,name:'maya',display:'Maya',email:'maya@shufflerr.local',plex:'Shared server',kind:'Plex',av:'MA',perms:P.REQUEST|P.AUTO_APPROVE_TRACK,created:'2026-02-11',
+    quota:{override:true,album:[10,7],track:[50,7]},linked:{plex:'maya',jellyfin:'',lastfm:'mayalistens',listenbrainz:'',spotify:'maya.k'},appPasswords:[{name:'Feishin on desktop',created:'2026-09-20',last:'yesterday'}]}),
+  mkUser({id:3,name:'sam',display:'Sam',email:'sam@shufflerr.local',plex:'Shared server',kind:'Plex',av:'SA',perms:P.REQUEST,created:'2026-04-03',
+    quota:{override:true,album:[3,7],track:[20,7]},linked:{plex:'sam',jellyfin:'',lastfm:'',listenbrainz:'',spotify:''}}),
+  mkUser({id:4,name:'dre',display:'Dre',email:'dre@shufflerr.local',plex:'',kind:'Jellyfin',av:'DR',perms:P.REQUEST|P.AUTO_APPROVE|P.REQUEST_VIEW,created:'2026-05-19',
+    linked:{plex:'',jellyfin:'dre',lastfm:'',listenbrainz:'dre',spotify:''},appPasswords:[{name:'Finamp on iPhone',created:'2026-07-02',last:'5 min ago'},{name:'Amperfy on Mac',created:'2026-07-30',last:'3 days ago'}]}),
+  mkUser({id:5,name:'guest',display:'Guest',email:'guest@shufflerr.local',plex:'',kind:'Local',av:'GU',perms:P.REQUEST_ALBUM,created:'2026-09-28',hasPassword:true})
+];
+var PLEX_POOL=[{name:'lena',email:'lena@plex.tv',plex:'Shared server',av:'LE'},{name:'ivo',email:'ivo@plex.tv',plex:'Plex Home',av:'IV'}];
+var JELLY_POOL=[{name:'kai',email:'kai@jellyfin.local',av:'KA'}];
+var PLEX_ONLY=PLEX_POOL[0];
+function userById(id){return USERS.filter(function(u){return u.id===id;})[0];}
+function uname(u){return u.display||u.name;}
+
+var REQUESTS=[
+  {id:1,rel:'sl',type:'album',count:1,userId:2,ago:12,status:RS.PENDING},
+  {id:2,rel:'mk',type:'discography',count:12,userId:3,ago:180,status:RS.PENDING},
+  {id:3,rel:'ks',type:'album',count:1,userId:3,ago:2880,status:RS.PENDING},
+  {id:4,rel:'pm',type:'album',count:1,userId:3,ago:2900,status:RS.PENDING},
+  {id:5,rel:'ac',type:'album',count:1,userId:4,ago:60,status:RS.APPROVED,modifiedBy:4,auto:true,pct:64},
+  {id:6,rel:'focus',type:'album',count:1,userId:2,ago:240,status:RS.APPROVED,modifiedBy:1,pct:30},
+  {id:7,rel:'gw',type:'album',count:1,userId:4,ago:1440,status:RS.COMPLETED,modifiedBy:4,auto:true},
+  {id:8,rel:'gs',type:'album',count:1,userId:3,ago:4320,status:RS.DECLINED,modifiedBy:1,note:'Already in the library under a different edition'},
+  {id:9,rel:'cs',type:'album',count:1,userId:2,ago:5000,status:RS.FAILED,modifiedBy:1,note:'Lidarr could not find a release that matches the quality profile'}
+];
+var nextId=10;
+
+var settings={
+  main:{title:'Shufflerr',url:'https://music.example.com',apiKey:'b3f1c9e2a7d64f0e9c51a8d2e6f73b04',locale:'en',region:'US',hideAvailable:false,partialRequests:true,cacheImages:true,versionCheck:true},
+  login:{local:true,plex:true,jellyfin:true,newPlex:true,newJellyfin:false},
+  discoReview:true,defaultPerms:P.REQUEST|P.AUTO_APPROVE_TRACK,globalQuota:{album:[10,7],track:[50,7]},
+  stream:{
+    plex:{on:true,host:'10.0.20.20',port:'32400',ssl:false,libs:{'Music':true,'Music (Hi-Res)':true,'Audiobooks':false}},
+    jellyfin:{on:true,url:'http://10.0.20.21:8096',apiKey:'',libs:{'Music':true,'Live Sets':false}},
+    navidrome:{on:true,url:'http://10.0.20.22:4533',user:'shufflerr',pass:''},
+    local:{on:true,folders:['/mnt/music','/mnt/music-hires'],watch:true,interval:'15'},
+    youtube:{on:false,apiKey:'',fill:true,region:'US'}
+  },
+  clients:{subsonic:true,jellyfinApi:true,transcode:'opus-160',allowDownloads:true},
+  lidarr:[{name:'lidarr-main',url:'http://10.0.20.15:8686',quality:'Lossless (FLAC)',root:'/mnt/music',def:true},{name:'lidarr-hires',url:'http://10.0.20.15:8687',quality:'Hi-Res 24-bit',root:'/mnt/music-hires',def:false}],
+  meta:{mbUrl:'https://musicbrainz.org',mbRate:'1',caa:true,lastfm:{on:true,key:'',secret:''},fanart:{on:true,key:''},order:'MusicBrainz first, Last.fm for bios and tags'},
+  disc:{
+    spotify:{on:true,clientId:'',secret:'',sync:'daily'},
+    deezer:{on:true},
+    itunes:{on:true,country:'US'},
+    ticketmaster:{on:true,key:'',country:'US',radius:'50'},
+    skiddle:{on:false,key:''}
+  },
+  scrobble:{listenbrainz:{on:true,url:'https://api.listenbrainz.org'},lastfm:{on:true},rule:'half',sources:{plex:true,jellyfin:true,navidrome:true,apps:true,web:true}},
+  network:{csrf:false,trustProxy:true,proxy:{on:false,host:'',port:'8080',ssl:false,user:'',pass:'',bypass:'',local:true},ipv4:false,dns:{on:true,min:'300',max:'3600'},timeout:'10000'},
+  notify:{
+    email:{on:true,types:['pending','approved','declined','available','failed'],fromName:'Shufflerr',from:'shufflerr@example.com',host:'smtp.example.com',port:'587',enc:'starttls',user:'',pass:'',selfSigned:false},
+    webpush:{on:true,types:['pending','available']},
+    discord:{on:true,types:['pending','autoApproved','available'],webhook:'https://discord.com/api/webhooks/…',botName:'Shufflerr',avatar:'',mentions:true},
+    slack:{on:false,types:['pending'],webhook:''},
+    telegram:{on:false,types:['available'],token:'',chat:'',silent:false},
+    pushbullet:{on:false,types:['available'],token:'',channel:''},
+    pushover:{on:false,types:['available'],app:'',user:'',sound:'default'},
+    webhook:{on:false,types:['pending','approved','available'],url:'',auth:'',payload:'{\n  "event": "{{event}}",\n  "subject": "{{subject}}",\n  "requestedBy": "{{requestedBy_username}}",\n  "album": "{{media_title}}",\n  "artist": "{{media_artist}}"\n}'},
+    gotify:{on:false,types:['pending'],url:'',token:'',priority:'5'},
+    ntfy:{on:true,types:['available'],url:'https://ntfy.sh',topic:'shufflerr',user:'',pass:''}
+  },
+  media:'plex'
+};
+var JOBS=[
+  ['plex-recent','Plex recently added scan','Process','Every 5 minutes',3],
+  ['plex-full','Plex full library scan','Process','Daily at 3:00',1140],
+  ['plex-token','Plex refresh token','Process','Daily at 5:00',1260],
+  ['jf-recent','Jellyfin recently added scan','Process','Every 5 minutes',2],
+  ['jf-full','Jellyfin full library scan','Process','Daily at 3:30',1170],
+  ['navidrome','Navidrome library scan','Process','Every 15 minutes',9],
+  ['local','Local files scan','Process','When files change',0],
+  ['lidarr','Lidarr scan','Process','Daily at 4:00',1200],
+  ['dl-sync','Download sync','Command','Every minute',1],
+  ['dl-reset','Download sync reset','Command','Daily at 1:00',1020],
+  ['avail','Music availability sync','Process','Daily at 0:00',960],
+  ['spotify','Spotify playlist sync','Process','Daily at 6:00',1320],
+  ['scrobble','Scrobble queue','Command','Every 30 seconds',0],
+  ['concerts','Concert listings refresh','Process','Daily at 7:00',1380],
+  ['img','Image cache cleanup','Process','Daily at 2:00',1080]
+].map(function(j){return {id:j[0],name:j[1],type:j[2],every:j[3],next:j[4],running:false};});
+var CACHES=[['MusicBrainz',8421,612,2140],['Cover Art Archive',12904,377,1810],['Last.fm',3110,240,520],['Spotify',902,61,140],['Ticketmaster',211,40,38],['Lidarr',5520,88,96]].map(function(c){return {name:c[0],hits:c[1],misses:c[2],keys:c[3]};});
+var LOG_LABELS=[['info','Lidarr','Sent “Afterimage Club” to lidarr-main'],['info','Plex Scan','Recently added scan found 3 new albums'],['debug','MusicBrainz','Cache hit for release-group 6f1a…'],['warn','Spotify','Playlist sync skipped: client secret not set'],['info','Request','maya requested “Salt Lines”, waiting for approval'],['info','Scrobbler','Scrobbled 12 plays to ListenBrainz'],['error','Lidarr','No release matched quality profile for “Copper Sun”'],['info','Notifications','Sent Discord notification: request available'],['debug','Jobs','Download sync finished in 412 ms'],['info','Auth','dre signed in with Jellyfin'],['warn','Ticketmaster','Rate limit close: 4,812 of 5,000 calls today'],['info','Navidrome','Library scan finished, 18,940 tracks']];
+var LOGS=[];(function(){for(var i=0;i<34;i++){var l=LOG_LABELS[i%LOG_LABELS.length];LOGS.push({t:new Date(Date.now()-i*97000),lvl:l[0],label:l[1],msg:l[2]});}})();
+
+var state={user:null,search:'john summit',searchTab:'all',discFilter:'all',reqFilter:'all',mon:true,authError:'',plexBusy:false,
+  userSearch:'',userSort:'created',selected:{},logLevel:'all',logPaused:false,logSearch:'',importText:'',importResult:null};
+
+/* ======================= request engine ======================= */
+function quotaFor(u){
+  function block(kind){
+    var q=u.quota.override?u.quota[kind]:settings.globalQuota[kind],days=q[1],limit=hasPermission([P.MANAGE_USERS],u.perms,{type:'or'})?0:q[0];
+    var used=REQUESTS.filter(function(r){return r.userId===u.id&&r.status!==RS.DECLINED&&r.ago<=days*1440;}).reduce(function(n,r){
+      if(kind==='album')return n+(r.type==='album'?1:r.type==='discography'?r.count:0);
+      return n+(r.type==='tracks'?r.count:0);},0);
+    var remaining=limit?Math.max(0,limit-used):null;
+    return {limit:limit,days:days,used:used,remaining:remaining,restricted:!!limit&&remaining<=0};
+  }
+  return {album:block('album'),track:block('track')};
+}
+function ReqError(msg,kind){var e=new Error(msg);e.kind=kind;return e;}
+/* Dry run or create. Mirrors MediaRequest.request() in Seerr. */
+function evaluateRequest(user,body){
+  var t=TYPE[body.type];
+  if(!hasPermission([P.REQUEST,t.req],user.perms,{type:'or'}))
+    throw ReqError('You don’t have permission to request '+t.noun+'.','permission');
+  var q=quotaFor(user),bypass=body.ignoreQuota&&can(user,P.MANAGE_REQUESTS);
+  if(!bypass){
+    if(body.type==='tracks'&&q.track.limit&&body.count>q.track.remaining)throw ReqError('That’s more tracks than your weekly limit allows ('+q.track.remaining+' left).','quota');
+    if(body.type==='album'&&q.album.restricted)throw ReqError('You’ve used your weekly limit of '+q.album.limit+' albums.','quota');
+    if(body.type==='discography'&&q.album.limit&&body.count>q.album.remaining)throw ReqError('A discography counts each release against your album limit. You have '+q.album.remaining+' left.','quota');
+  }
+  var dup=REQUESTS.filter(function(r){return r.rel===body.rel&&r.type===body.type&&r.status!==RS.DECLINED&&r.status!==RS.COMPLETED&&r.status!==RS.FAILED;})[0];
+  if(dup)throw ReqError('This has already been requested.','duplicate');
+  var auto=hasPermission([P.AUTO_APPROVE,t.auto],user.perms,{type:'or'});
+  if(body.type==='discography'&&settings.discoReview&&!can(user,P.ADMIN))auto=false;
+  return {auto:auto};
+}
+function createRequest(user,body){
+  var ev=evaluateRequest(user,body);
+  var r={id:nextId++,rel:body.rel,type:body.type,count:body.count,userId:user.id,ago:0,
+    status:ev.auto?RS.APPROVED:RS.PENDING,modifiedBy:ev.auto?user.id:null,auto:ev.auto,pct:0};
+  REQUESTS.unshift(r);syncMedia(r);return r;
+}
+function updateStatus(actor,r,action){
+  if(!can(actor,P.MANAGE_REQUESTS))throw ReqError('You don’t have permission to manage requests.','permission');
+  if(action==='retry'){if(r.status!==RS.FAILED)throw ReqError('Only failed requests can be retried.');r.status=RS.APPROVED;r.pct=0;r.note='';}
+  else{
+    if(r.status!==RS.PENDING)throw ReqError('Only pending requests can be approved or declined.');
+    r.status=action==='approve'?RS.APPROVED:RS.DECLINED;r.pct=0;
+  }
+  r.modifiedBy=actor.id;r.auto=false;r.modAgo=0;syncMedia(r);
+}
+function cancelRequest(actor,r){
+  if(!(r.userId===actor.id&&r.status===RS.PENDING)&&!can(actor,P.MANAGE_REQUESTS))throw ReqError('You can only cancel your own pending requests.');
+  REQUESTS.splice(REQUESTS.indexOf(r),1);var c=byId[r.rel];
+  if(c&&r.type!=='tracks')c.status='none';
+}
+function syncMedia(r){
+  var c=byId[r.rel];if(!c)return;
+  if(r.type==='tracks'){if(r.status===RS.COMPLETED){CTRL_TRACKS.forEach(function(t){t[4]=1;});c.status='available';}return;}
+  c.status=r.status===RS.PENDING?'pending':r.status===RS.APPROVED?'processing':r.status===RS.COMPLETED?'available':'none';
+}
+function visibleRequests(u){return REQUESTS.filter(function(r){return can(u,[P.MANAGE_REQUESTS,P.REQUEST_VIEW],{type:'or'})||r.userId===u.id;});}
+function reqTitle(r){var c=byId[r.rel];if(r.type==='tracks')return c.title+' ('+r.count+' missing tracks)';if(r.type==='discography')return 'Everything by '+c.artist+' ('+r.count+' releases)';return c.title;}
+function ago(m){if(m<1)return 'just now';if(m<60)return m+' min ago';if(m<1440)return Math.round(m/60)+' h ago';var d=Math.round(m/1440);return d===1?'yesterday':d+' days ago';}
+function ctrlTrackReq(){return REQUESTS.filter(function(r){return r.rel==='ctrl'&&r.type==='tracks'&&r.status!==RS.DECLINED;})[0];}
+
+/* ======================= helpers ======================= */
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function status(k){var s=ST[k];return '<span class="status" style="--c:'+s.c+'">'+s.l+'</span>';}
+function rstatus(r){var s=RS_UI[r.status];return '<span class="status" style="--c:'+s.c+'">'+s.l+'</span>';}
+function tint(i){var c=TINT[i%TINT.length];return '--tint:'+c[0]+';--ink:'+c[1];}
+function cover(r,opts){opts=opts||{};return '<div class="cover" style="'+tint(r.t)+'">'+ICON_IMG+(opts.badge?'<span class="badge" style="--c:'+ST[r.status].c+'">'+ST[r.status].l+'</span>':'')+'<span class="cap">Cover art</span></div>';}
+function thumb(r){return '<div class="cover thumb" style="'+tint(r.t)+'">'+ICON_IMG+'</div>';}
+function relHref(r){return r.id==='ctrl'?'#/album':r.artist.indexOf('John Summit')===0?'#/artist':'#/album';}
+function card(r,withReq){
+  var can_=withReq&&r.status==='none'&&can(state.user,[P.REQUEST,P.REQUEST_ALBUM],{type:'or'});
+  return '<div class="card"><a href="'+relHref(r)+'" aria-label="'+esc(r.title)+' by '+esc(r.artist)+'">'+cover(r,{badge:true})+'</a>'+
+   '<div><a class="t" href="'+relHref(r)+'" style="display:block">'+esc(r.title)+'</a><div class="m">'+esc(r.artist)+', '+r.year+'</div></div>'+
+   (can_?'<button class="btn small ghost-accent" type="button" data-act="quick-request" data-id="'+r.id+'">Request</button>':'')+'</div>';}
+function userChip(id){return userLink(id);}
+
+/* ======================= auth screens ======================= */
+function mosaicHtml(seed){
+  var list=CATALOG.slice();for(var i=list.length-1;i>0;i--){var j=(i*7+seed*13)%(i+1);var tmp=list[i];list[i]=list[j];list[j]=tmp;}
+  var out='';for(var k=0;k<70;k++){var r=list[k%list.length];var c=TINT[(r.t+seed+k)%TINT.length];out+='<div class="tile" style="--tint:'+c[0]+';--ink:'+c[1]+'">'+ICON_IMG+'<b>'+esc(r.title)+'</b></div>';}
+  return '<div class="mosaic'+(seed===0?' on':'')+'" aria-hidden="true">'+out+'</div>';
+}
+var faderT=null;
+function startFader(){
+  clearInterval(faderT);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var i=0;faderT=setInterval(function(){var m=document.querySelectorAll('.mosaic');if(!m.length){clearInterval(faderT);return;}m[i].classList.remove('on');i=(i+1)%m.length;m[i].classList.add('on');},6000);
+}
+function authShell(inner){
+  return '<div class="auth"><div class="fader">'+mosaicHtml(0)+mosaicHtml(1)+mosaicHtml(2)+'</div>'+
+   '<a class="wordmark" href="#/login">SHUFFLE<span>RR</span></a>'+inner+
+   '<p class="auth-foot">Background shows album art from your library. Sign-in and request approvals work like Seerr.</p></div>';
+}
+function vLogin(){
+  var plexBtn=(settings.login.plex?'<button class="btn plex" type="button" data-act="plex-login"'+(state.plexBusy?' disabled':'')+'>'+(state.plexBusy?'<span class="spin" aria-hidden="true"></span>Waiting for Plex…':'Sign in with Plex')+'</button>':'')+(settings.login.jellyfin?'<button class="btn" type="button" data-act="jf-login" style="min-height:52px;background:#7B5CD6;border-color:#7B5CD6;color:#fff">Sign in with Jellyfin</button>':'');
+  var local=settings.login.local?'<div class="or">or use a Shufflerr account</div>'+
+    '<form id="localForm" novalidate style="display:flex;flex-direction:column;gap:18px">'+
+    '<div class="fl"><input id="lemail" type="email" placeholder=" " autocomplete="username" required><label for="lemail">Email</label></div>'+
+    '<div class="fl"><input id="lpass" type="password" placeholder=" " autocomplete="current-password" required><label for="lpass">Password</label></div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><button class="btn outline-accent" type="submit">Sign in</button><a href="#/login" data-act="forgot">Forgot password?</a></div>'+
+    '<span class="hint">Demo: admin@shufflerr.local or guest@shufflerr.local with any password. Others use Plex or Jellyfin.</span></form>':'';
+  return authShell('<div class="auth-grid"><section class="auth-card" aria-labelledby="lt"><h1 id="lt">Sign in</h1><p class="lede">Use the Plex account you listen with. Your requests and limits follow you.</p>'+
+    (state.authError?'<p class="err" role="alert">'+esc(state.authError)+'</p>':'')+plexBtn+local+'</section>'+
+    '<aside class="auth-side"><h2>New here?</h2><p class="lede">If the server owner has shared their Plex library with you, sign in with Plex. Your Shufflerr account is created the first time, with the owner’s default permissions.</p>'+
+    '<div>'+(settings.login.plex?'<button class="btn outline-accent" type="button" data-act="plex-login">Sign in with Plex</button>':'')+'</div></aside></div>');
+}
+function vLogout(){
+  return authShell('<section class="auth-card signed-out" aria-labelledby="ot"><div class="tick" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'+
+   '<h1 id="ot">You’ve signed out</h1><p class="lede">Your requests keep going while you’re away. You’ll get a notification when your music arrives.</p>'+
+   '<p class="hint" style="margin:0">This signed you out of Shufflerr only. You’re still signed in to Plex.</p>'+
+   '<a class="btn outline-accent" href="#/login">Sign in again</a></section>');
+}
+function openPlexWindow(){
+  var accts=USERS.filter(function(u){return u.linked.plex;}).map(function(u){return '<button class="acct" type="button" data-act="plex-pick" data-id="'+u.id+'"><span class="av">'+u.av+'</span><span><b>'+esc(u.linked.plex)+'</b><small>'+esc(u.plex||'Plex account')+'</small></span></button>';}).join('')+
+    PLEX_POOL.filter(function(p){return !USERS.some(function(u){return u.email===p.email;});}).map(function(p){return '<button class="acct" type="button" data-act="plex-pick" data-id="pool:'+p.email+'"><span class="av">'+p.av+'</span><span><b>'+p.name+'</b><small>'+p.plex+', no Shufflerr account yet</small></span></button>';}).join('');
+  document.getElementById('modalRoot').innerHTML='<div class="plex-pop" role="dialog" aria-modal="true" aria-labelledby="pt"><div class="win"><div class="bar"><i></i><i></i><i></i><span style="margin-left:8px">app.plex.tv/auth</span></div>'+
+   '<div class="in"><h2 id="pt">Sign in to Shufflerr</h2><p>Choose the Plex account to continue with.</p>'+accts+
+   '<button class="btn" type="button" data-act="plex-cancel" style="color:#EEE;border-color:#444">Cancel</button>'+
+   '<p class="note">Simulated. In the real app this is Plex’s own sign-in window, opened with a PIN and polled until you approve.</p></div></div></div>';
+  var b=document.querySelector('.plex-pop .acct');b&&b.focus();
+}
+function signIn(u,how){
+  state.user=u;state.authError='';state.plexBusy=false;
+  try{localStorage.setItem('shufflerr-session',String(u.id));}catch(e){}
+  location.hash='#/discover';toast('Signed in as '+uname(u)+(how?' with '+how:'')+'.');
+}
+function signOut(){
+  state.user=null;try{localStorage.removeItem('shufflerr-session');}catch(e){}
+  setPlaying(false);document.getElementById('toast').classList.remove('show');location.hash='#/logout';
+}
+
+/* ======================= views ======================= */
+function vDiscover(){
+  var u=state.user;
+  var recent=['ctrl','cic','gw','nbh','lts','bhs'].map(function(id){return card(byId[id]);}).join('');
+  var trend=['aa','fr2','ac','sl','ks','pm'].map(function(id){return card(byId[id],true);}).join('');
+  var arts=ARTISTS.map(function(a){return '<a class="artist-card" href="#/artist"><div class="cover round" style="'+tint(a.t)+';width:100%">'+ICON_PERSON+'</div><b>'+esc(a.name)+'</b><span class="m">'+esc(a.meta)+'</span></a>';}).join('');
+  var reqs=visibleRequests(u).slice(0,5).map(function(r){return '<li>'+thumb(byId[r.rel])+'<div class="grow"><b>'+esc(reqTitle(r))+'</b><span class="feat">'+esc(byId[r.rel].artist)+'</span></div><span class="who">'+userChip(r.userId)+', '+ago(r.ago)+'</span>'+rstatus(r)+'</li>';}).join('');
+  return '<section class="base-hero" aria-labelledby="hero-t"><div class="bh-copy"><p class="cmd">$ shufflerr discover --since 7d</p>'+
+    '<h1 id="hero-t">Find it. Request it.<br><span>Hear it tonight.</span></h1>'+
+    '<p class="blurb">Search MusicBrainz, request an album or a whole discography, and Shufflerr hands it to Lidarr. You get a ping when it lands in the library.</p>'+
+    '<div class="bh-cta"><a class="btn primary" href="#/search">Search music</a><a class="btn" href="#/requests">See requests</a></div></div>'+
+    '<dl class="bh-stats"><div><dt>Albums in library</dt><dd>1,284</dd></div><div><dt>Artists</dt><dd>312</dd></div><div><dt>Tracks</dt><dd>18,940</dd></div><div><dt>Downloading now</dt><dd style="color:var(--st-processing)">'+REQUESTS.filter(function(r){return r.status===RS.APPROVED;}).length+'</dd></div></dl></section>'+
+    '<section class="hero band" aria-labelledby="feat-t"><div class="photo" aria-hidden="true">'+ICON_PERSON+'<span class="cap">Artist photo from fanart.tv</span></div><div class="scrim"></div>'+
+    '<div class="content"><span class="kicker">Featured release</span><h2 id="feat-t" style="font-size:clamp(44px,6vw,76px);font-weight:700;letter-spacing:-.04em;line-height:.92">CTRL ESCAPE</h2>'+
+    '<div class="by"><a href="#/artist">John Summit</a>, Experts Only / Darkroom, 2026</div>'+
+    '<p class="blurb">'+(byId.ctrl.status==='available'?'All 13 tracks are in your library.':'9 of 13 tracks are already here. Request the other 4 and Shufflerr sends them to Lidarr.')+'</p>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px">'+(byId.ctrl.status!=='available'&&!ctrlTrackReq()?'<button class="btn primary" type="button" data-act="open-request">Request missing tracks</button>':'')+'<a class="btn" href="#/album">View album</a><button class="btn" type="button" data-act="play">Play from library</button></div></div></section>'+
+    '<section aria-labelledby="s1"><div class="sec-head"><div><h2 class="h-section" id="s1">Recently added</h2><p class="sub">Imported from Lidarr this week</p></div><a href="#/search">See all</a></div><div class="row">'+recent+'</div></section>'+
+    '<section aria-labelledby="s2"><div class="sec-head"><div><h2 class="h-section" id="s2">Trending new releases</h2><p class="sub">Popular on ListenBrainz in the last 7 days</p></div></div><div class="row">'+trend+'</div></section>'+
+    '<section aria-labelledby="s3"><div class="sec-head"><div><h2 class="h-section" id="s3">Popular artists</h2><p class="sub">Most requested on this server</p></div></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">'+arts+'</div></section>'+
+    concertsRow()+'<section aria-labelledby="s4"><div class="sec-head"><div><h2 class="h-section" id="s4">'+(can(u,[P.MANAGE_REQUESTS,P.REQUEST_VIEW],{type:'or'})?'Recent requests':'Your recent requests')+'</h2><p class="sub">'+(can(u,[P.MANAGE_REQUESTS,P.REQUEST_VIEW],{type:'or'})?'Everyone on this server':'Only you can see these')+'</p></div><a href="#/requests">All requests</a></div>'+(reqs?'<ul class="list box">'+reqs+'</ul>':'<div class="box" style="padding:28px;text-align:center;color:var(--muted)">You haven’t requested anything yet. Search for an album to start.</div>')+'</section>';
+}
+
+function vSearch(){
+  var q=state.search.trim().toLowerCase();
+  var match=function(s){s=s.toLowerCase();return !q||s.indexOf(q)>-1||q.split(' ').every(function(w){return s.indexOf(w)>-1;});};
+  var albums=CATALOG.filter(function(r){return r.type!=='Discography'&&match(r.title+' '+r.artist);});
+  var tracks=CTRL_TRACKS.filter(function(t){return match(t[1]+' '+t[2]+' ctrl escape');});
+  var artists=[{name:'John Summit',meta:'House and tech house, Experts Only',t:2},{name:'Julia Wolf',meta:'Featured on WITH ME',t:5},{name:'LAVINIA',meta:'Featured on SHADOWS',t:3},{name:'Absolutely',meta:"Featured on DON'T BELIEVE IT and CYANIDE",t:1}].filter(function(a){return match(a.name+' '+a.meta+' john summit');});
+  var tabs=[['all','All',albums.length+tracks.length+artists.length],['artists','Artists',artists.length],['albums','Albums and singles',albums.length],['tracks','Tracks',tracks.length]];
+  var show=function(k){return state.searchTab==='all'||state.searchTab===k;};
+  var out='<div style="display:flex;flex-direction:column;gap:14px"><h1 style="font-size:32px;font-weight:700;letter-spacing:-.02em">Results for “'+esc(state.search)+'”</h1><div class="chips" role="group" aria-label="Filter results">'+
+    tabs.map(function(t){return '<button class="chip" type="button" data-act="search-tab" data-v="'+t[0]+'" aria-pressed="'+(state.searchTab===t[0])+'">'+t[1]+'<span class="n">'+t[2]+'</span></button>';}).join('')+'</div></div>';
+  if(show('artists')&&artists.length){var top=artists[0];
+    out+='<section aria-labelledby="sa"><h2 class="h-section" id="sa" style="margin-bottom:18px">Artists</h2><div class="two">'+
+     '<a href="#/artist" class="box" style="display:flex;gap:20px;align-items:center;padding:20px;color:var(--text);flex:1 1 380px;text-decoration:none"><div class="cover round" style="'+tint(top.t)+';width:120px;flex:none">'+ICON_PERSON+'</div><div style="display:flex;flex-direction:column;gap:6px"><span class="feat">Top result</span><b style="font-size:28px;letter-spacing:-.02em">'+esc(top.name)+'</b><span class="feat">'+esc(top.meta)+'</span>'+status('partial')+'</div></a>'+
+     '<ul class="list box" style="flex:1 1 380px">'+artists.slice(1).map(function(a){return '<li><div class="cover round thumb" style="'+tint(a.t)+'">'+ICON_PERSON+'</div><div class="grow"><b>'+esc(a.name)+'</b><span class="feat">'+esc(a.meta)+'</span></div>'+status('none')+'</li>';}).join('')+'</ul></div></section>';}
+  if(show('albums')&&albums.length)out+='<section aria-labelledby="sb"><h2 class="h-section" id="sb" style="margin-bottom:18px">Albums and singles</h2><div class="grid">'+albums.slice(0,12).map(function(r){return card(r,true);}).join('')+'</div></section>';
+  if(show('tracks')&&tracks.length){var cols='grid-template-columns:44px minmax(220px,2fr) minmax(140px,1fr) 64px 160px 110px';var tr=ctrlTrackReq();
+    out+='<section aria-labelledby="sc"><h2 class="h-section" id="sc" style="margin-bottom:18px">Tracks</h2><div class="box scroll-x"><div class="table"><div class="tr head" style="'+cols+'"><span>#</span><span>Title</span><span>Album</span><span>Length</span><span>Status</span><span></span></div>'+
+      tracks.map(function(t){var s=t[4]?'available':tr?(tr.status===RS.PENDING?'pending':'processing'):'none';return '<div class="tr" style="'+cols+'"><span class="num">'+t[0]+'</span><span><span class="title">'+esc(t[1])+'</span><br><span class="feat">'+esc(t[2])+'</span></span><a href="#/album">CTRL ESCAPE</a><span class="num">'+t[3]+'</span>'+status(s)+'<span class="actions">'+(t[4]?'<button class="btn small" type="button" data-act="play-track" data-t="'+esc(t[1])+'" data-a="'+esc(t[2])+'">Play</button>':s==='none'?'<button class="btn small ghost-accent" type="button" data-act="open-request">Request</button>':'')+'</span></div>';}).join('')+'</div></div></section>';}
+  if(!albums.length&&!tracks.length&&!artists.length)out+='<div class="box" style="padding:40px;text-align:center"><b>Nothing matches “'+esc(state.search)+'”.</b><p class="sub">Check the spelling, or search by artist name. Results come from MusicBrainz.</p></div>';
+  return out;
+}
+
+function vArtist(){
+  var disc=['ctrl','lgo','att','ly','focus','cic','wya','human'].map(function(id){return byId[id];});
+  var f=state.discFilter;var rows=disc.filter(function(r){return f==='all'||r.type===f;});
+  var cols='grid-template-columns:56px minmax(220px,2fr) 80px 64px 64px 170px 150px';
+  var chip=function(v,l,n){return '<button class="chip" type="button" data-act="disc" data-v="'+v+'" aria-pressed="'+(f===v)+'">'+l+'<span class="n">'+n+'</span></button>';};
+  var dreq=REQUESTS.filter(function(r){return r.rel==='js'&&r.type==='discography'&&r.status!==RS.DECLINED;})[0];
+  return '<p class="crumb"><a href="#/search">Artists</a> / john-summit</p>'+
+  '<section class="detail" aria-labelledby="an"><div class="art"><div class="cover round" style="'+tint(2)+'">'+ICON_PERSON+'<span class="cap" style="left:50%;transform:translateX(-50%);bottom:18%">Artist photo</span></div></div>'+
+   '<div class="info"><span class="feat">DJ and producer from Naperville, Illinois. Releasing since 2017.</span><h1 id="an">John Summit</h1>'+
+   '<div class="tags"><span class="tag">house</span><span class="tag">tech house</span><span class="tag">progressive house</span><span class="tag">drum and bass</span></div>'+
+   '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">'+
+   (dreq?'<button class="btn" type="button" disabled>Discography '+(dreq.status===RS.PENDING?'waiting for approval':'approved')+'</button>':'<button class="btn primary" type="button" data-act="disco">Request discography</button>')+
+   '<button class="btn" type="button" data-act="mon" aria-pressed="'+state.mon+'">'+(state.mon?'Watching for new releases':'Watch for new releases')+'</button><a class="btn" href="#/artist">Open in Plex</a></div></div>'+
+   '<dl class="facts"><div><dt>Releases</dt><dd>8</dd></div><div><dt>In library</dt><dd style="color:var(--st-available)">'+disc.filter(function(r){return r.status==='available';}).length+'</dd></div><div><dt>Downloading</dt><dd style="color:var(--st-processing)">'+disc.filter(function(r){return r.status==='processing';}).length+'</dd></div><div><dt>Albums</dt><dd>2</dd></div></dl></section>'+
+  '<section class="two" aria-labelledby="ab"><div class="wide" style="flex:2 1 480px"><h2 class="h-section" id="ab" style="margin-bottom:12px">About</h2><p style="margin:0;max-width:66ch;color:var(--muted);line-height:1.65">Former accountant from the Chicago area who now runs his own label, Experts Only. His second album, CTRL ESCAPE, pushes his house and tech house roots into drum and bass, trap and rock. This bio comes from MusicBrainz and Last.fm.</p></div>'+
+   '<dl class="box kv" style="flex:1 1 280px"><div><dt>MusicBrainz ID</dt><dd>[MBID]</dd></div><div><dt>Lidarr</dt><dd style="color:var(--st-available)">Monitored</dd></div><div><dt>Quality</dt><dd>Lossless (FLAC)</dd></div><div><dt>Folder</dt><dd>/mnt/music/John Summit</dd></div></dl></section>'+
+  '<section aria-labelledby="ad"><div class="sec-head"><h2 class="h-section" id="ad">Discography</h2><div class="chips" role="group" aria-label="Release type">'+chip('all','All',8)+chip('Album','Albums',2)+chip('Single','Singles',6)+'</div></div>'+
+   '<div class="box scroll-x"><div class="table"><div class="tr head" style="'+cols+'"><span></span><span>Release</span><span>Type</span><span>Year</span><span>Tracks</span><span>Status</span><span></span></div>'+
+   rows.map(function(r){var s=r.status;var act=s==='none'?'<button class="btn small ghost-accent" type="button" data-act="quick-request" data-id="'+r.id+'">Request</button>':s==='partial'?'<a class="btn small" href="#/album">Fill gaps</a>':s==='available'?'<button class="btn small" type="button" data-act="play-track" data-t="'+esc(r.title)+'" data-a="John Summit">Play</button>':'';
+     return '<div class="tr" style="'+cols+'">'+thumb(r)+'<a class="title" href="'+(r.id==='ctrl'?'#/album':'#/artist')+'" style="color:var(--text)">'+esc(r.title)+'</a><span class="dim">'+r.type+'</span><span class="num">'+r.year+'</span><span class="num">'+r.tracks+'</span>'+status(s)+'<span class="actions">'+act+'</span></div>';}).join('')+'</div></div></section>'+
+  '<section aria-labelledby="as"><h2 class="h-section" id="as" style="margin-bottom:14px">Similar artists</h2><div class="chips">'+['Dom Dolla','Chris Lake','FISHER','Mau P'].map(function(n){return '<a class="chip" style="display:inline-flex;align-items:center;color:var(--text)" href="#/search">'+n+'</a>';}).join('')+'</div></section>';
+}
+
+function vAlbum(){
+  var tr=ctrlTrackReq();var have=CTRL_TRACKS.filter(function(t){return t[4];}).length;
+  var cols='grid-template-columns:44px minmax(240px,3fr) 64px 130px 170px 100px';
+  var banner='';
+  if(tr&&tr.status===RS.PENDING)banner='<div class="outcome wait" role="status">'+(tr.userId===state.user.id?'Your request':userChip(tr.userId)+'’s request')+' for the 4 missing tracks is waiting for an admin to approve it.'+(can(state.user,P.MANAGE_REQUESTS)?' <a href="#/requests">Review it</a>':'')+'</div>';
+  if(tr&&tr.status===RS.APPROVED)banner='<div class="outcome auto" role="status">The 4 missing tracks were approved'+(tr.auto?' automatically':'')+'. Lidarr is downloading them ('+tr.pct+'%).</div>';
+  return '<p class="crumb"><a href="#/artist">john-summit</a> / ctrl-escape</p>'+banner+
+  '<section class="detail" aria-labelledby="alb"><div class="art"><div class="cover" style="'+tint(2)+'">'+ICON_IMG+'<span class="cap">Cover art from Cover Art Archive</span></div></div>'+
+   '<div class="info"><span class="feat">Album, released April 15, 2026 on Experts Only / Darkroom</span><h1 id="alb">CTRL ESCAPE</h1><a href="#/artist" style="font-size:18px;font-weight:600;color:var(--text)">John Summit</a>'+
+   '<div class="meta"><span>13 tracks</span><span>40:32</span>'+status(have===13?'available':'partial')+'<span>'+have+' of 13 in library</span></div><div class="progress"><span style="width:'+Math.round(have/13*100)+'%"></span></div>'+
+   '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">'+(have<13&&!tr?'<button class="btn primary" type="button" data-act="open-request">Request missing tracks</button>':'')+'<button class="btn" type="button" data-act="play">Play album</button><button class="btn" type="button" data-act="issue">Report a problem</button></div></div></section>'+
+  '<section aria-labelledby="tl"><h2 class="h-section" id="tl" style="margin-bottom:18px">Tracklist</h2><div class="box scroll-x"><div class="table"><div class="tr head" style="'+cols+'"><span>#</span><span>Title</span><span>Length</span><span>File</span><span>Status</span><span></span></div>'+
+   CTRL_TRACKS.map(function(t){var s=t[4]?'lib':tr?(tr.status===RS.PENDING?'pending':'processing'):'miss';return '<div class="tr'+(t[4]?'':' missing')+'" style="'+cols+'"><span class="num">'+t[0]+'</span><span><span class="title">'+esc(t[1])+'</span><br><span class="feat">'+esc(t[2])+'</span></span><span class="num">'+t[3]+'</span><span class="num" style="font-size:12px">'+(t[4]?'FLAC 16/44.1':'None')+'</span>'+status(s)+'<span class="actions">'+(t[4]?'<button class="btn small" type="button" data-act="play-track" data-t="'+esc(t[1])+'" data-a="'+esc(t[2])+'">Play</button>':'')+'</span></div>';}).join('')+'</div></div></section>';
+}
+
+function vRequests(){
+  var u=state.user,f=state.reqFilter,manage=can(u,P.MANAGE_REQUESTS),all=visibleRequests(u);
+  var key={pending:RS.PENDING,approved:RS.APPROVED,available:RS.COMPLETED,declined:RS.DECLINED,failed:RS.FAILED};
+  var count=function(k){return all.filter(function(r){return k==='all'||r.status===key[k];}).length;};
+  var chips=[['all','All'],['pending','Waiting'],['approved','Downloading'],['available','Available'],['declined','Declined'],['failed','Failed']].map(function(c){return '<button class="chip" type="button" data-act="req-filter" data-v="'+c[0]+'" aria-pressed="'+(f===c[0])+'">'+c[1]+'<span class="n">'+count(c[0])+'</span></button>';}).join('');
+  var rows=all.filter(function(r){return f==='all'||r.status===key[f];});
+  var cols='grid-template-columns:52px minmax(220px,2fr) 110px minmax(120px,1fr) minmax(170px,1.2fr) 180px 210px';
+  var q=quotaFor(u);
+  return '<div class="sec-head" style="margin:0"><div><h1 style="font-size:32px;font-weight:700;letter-spacing:-.02em">'+(manage?'Requests':'Your requests')+'</h1><p class="sub">'+(manage?count('pending')+' waiting for approval. Approved requests go straight to Lidarr.':'You can cancel a request while it’s waiting for approval.')+'</p></div>'+
+   '<div class="box" style="padding:12px 16px;font-size:13px;color:var(--muted);min-width:240px">Your weekly limit: '+(q.album.limit?'<b style="color:var(--text)">'+q.album.remaining+'</b> of '+q.album.limit+' albums':'unlimited albums')+', '+(q.track.limit?'<b style="color:var(--text)">'+q.track.remaining+'</b> of '+q.track.limit+' tracks':'unlimited tracks')+'</div></div>'+
+   '<div class="chips" role="group" aria-label="Filter by status">'+chips+'</div>'+
+   '<div class="box scroll-x"><div class="table" style="min-width:1080px"><div class="tr head" style="'+cols+'"><span></span><span>Request</span><span>Type</span><span>Requested by</span><span>Last change</span><span>Status</span><span></span></div>'+
+   (rows.length?rows.map(function(r){var c=byId[r.rel],act='';
+     if(r.status===RS.PENDING&&manage)act='<button class="btn small ok" type="button" data-act="approve" data-id="'+r.id+'">Approve</button><button class="btn small no" type="button" data-act="decline" data-id="'+r.id+'">Decline</button>';
+     else if(r.status===RS.PENDING&&r.userId===u.id)act='<button class="btn small" type="button" data-act="cancel" data-id="'+r.id+'">Cancel request</button>';
+     else if(r.status===RS.APPROVED)act='<span style="display:flex;flex-direction:column;gap:6px;width:180px"><span class="feat">'+r.pct+'% downloaded</span><span class="progress" style="height:4px"><span style="width:'+r.pct+'%;background:var(--st-processing)"></span></span></span>';
+     else if(r.status===RS.FAILED&&manage)act='<button class="btn small" type="button" data-act="retry" data-id="'+r.id+'">Retry</button>';
+     else if(r.status===RS.COMPLETED)act='<button class="btn small" type="button" data-act="play-track" data-t="'+esc(c.title)+'" data-a="'+esc(c.artist)+'">Play</button>';
+     var mod=r.modifiedBy?(r.auto?'Approved automatically':(r.status===RS.DECLINED?'Declined':r.status===RS.FAILED?'Failed after approval':'Approved')+' by '+userChip(r.modifiedBy)):'No changes yet';
+     return '<div class="tr" style="'+cols+'">'+thumb(c)+'<span><a class="title" href="'+relHref(c)+'" style="color:var(--text)">'+esc(reqTitle(r))+'</a><br><span class="feat">'+esc(c.artist)+'</span>'+(r.note?'<br><span style="font-size:12px;color:var(--st-declined)">'+esc(r.note)+'</span>':'')+'</span><span class="dim">'+TYPE[r.type].label+'</span><span><b style="font-weight:500">'+userChip(r.userId)+'</b><br><span class="feat">'+ago(r.ago)+'</span></span><span class="dim">'+mod+'</span>'+rstatus(r)+'<span class="actions">'+act+'</span></div>';}).join('')
+   :'<div style="padding:40px 16px;text-align:center;color:var(--muted)">No requests with this status. Try another filter.</div>')+'</div></div>';
+}
+
+var PERM_TREE=[
+  ['Access',[[P.ADMIN,'Admin','Full access to everything. Overrides every other setting.']]],
+  ['Management',[[P.MANAGE_SETTINGS,'Manage settings','Change servers, sign-in and notifications.'],[P.MANAGE_USERS,'Manage users','Import users and edit their permissions.'],[P.MANAGE_REQUESTS,'Manage requests','Approve, decline and retry anyone’s requests. Can go over limits.',[[P.REQUEST_VIEW,'See all requests','See what everyone has requested.']]]]],
+  ['Requests',[[P.REQUEST,'Request anything','Albums, tracks and discographies.',[[P.REQUEST_ALBUM,'Request albums',''],[P.REQUEST_TRACK,'Request tracks',''],[P.REQUEST_DISCOGRAPHY,'Request discographies','']]]]],
+  ['Auto-approve',[[P.AUTO_APPROVE,'Approve everything automatically','Requests skip the queue and go straight to Lidarr.',[[P.AUTO_APPROVE_ALBUM,'Approve albums automatically',''],[P.AUTO_APPROVE_TRACK,'Approve tracks automatically',''],[P.AUTO_APPROVE_DISCOGRAPHY,'Approve discographies automatically','Unless discographies always need review.']]]]]
+];
+function permEditor(value){
+  var admin=!!(value&P.ADMIN),out='<div class="perm" id="permEd">';
+  PERM_TREE.forEach(function(g){out+='<h3>'+g[0]+'</h3>';g[1].forEach(function(p){
+    var dis=admin&&p[0]!==P.ADMIN,chk=!!(value&p[0])||dis;
+    out+='<label><input type="checkbox" data-bit="'+p[0]+'"'+(chk?' checked':'')+(dis?' disabled':'')+'><span><b>'+p[1]+'</b><small>'+p[2]+'</small></span></label>';
+    (p[3]||[]).forEach(function(c){var cdis=admin||!!(value&p[0]);out+='<label class="child"><input type="checkbox" data-bit="'+c[0]+'" data-parent="'+p[0]+'"'+((value&c[0])||cdis?' checked':'')+(cdis?' disabled':'')+'><span><b>'+c[1]+'</b>'+(c[2]?'<small>'+c[2]+'</small>':'')+'</span></label>';});
+  });});
+  return out+'</div>';
+}
+function readPerms(root){var v=0;root.querySelectorAll('input[data-bit]').forEach(function(i){if(i.checked&&!i.disabled)v|=+i.dataset.bit;});if(v&P.ADMIN)v=P.ADMIN;return v;}
+function vMobile(){
+  var u=state.user;
+  var trend=['aa','ac','sl','pm'].map(function(id){var r=byId[id];return '<div class="card"><a href="#/album" aria-label="'+esc(r.title)+'">'+cover(r,{badge:true})+'</a><div><b class="t" style="display:block;font-size:14px">'+esc(r.title)+'</b><span class="m">'+esc(r.artist)+'</span></div></div>';}).join('');
+  var mine=REQUESTS.filter(function(r){return r.userId===u.id;}).slice(0,4).map(function(r){var c=byId[r.rel];return '<li style="gap:12px;padding:10px 12px">'+thumb(c)+'<div class="grow" style="flex:1 1 0"><b style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(c.title)+'</b><span class="feat" style="font-size:12px">'+esc(c.artist)+'</span></div>'+rstatus(r)+'</li>';}).join('');
+  var q=quotaFor(u).album;
+  var tab=function(h,l,on,ic){return '<a href="'+h+'"'+(on?' class="on"':'')+'><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">'+ic+'</svg>'+l+'</a>';};
+  return '<div><h1 style="font-size:32px;font-weight:700;letter-spacing:-.02em">Mobile</h1><p class="sub">Discover on a phone, as '+esc(u.name)+'. The whole app also adapts when you narrow this window.</p></div>'+
+   '<div class="phone-wrap"><div class="phone" role="region" aria-label="Phone preview"><div class="scr">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between"><a class="brand" href="#/discover" style="margin:0" aria-label="Shufflerr home">s/</a><span class="avatar" style="width:44px;height:44px">'+u.av+'</span></div>'+
+    '<div class="searchbox" style="max-width:none;flex:none"><label for="mq" class="sr">Search music</label><input id="mq" type="search" placeholder="Search music"></div>'+
+    '<section><div class="sec-head" style="margin-bottom:12px"><h2 class="h-section" style="font-size:18px">Trending</h2></div><div class="mrow">'+trend+'</div></section>'+
+    '<section><div class="sec-head" style="margin-bottom:12px"><h2 class="h-section" style="font-size:18px">My requests</h2><a href="#/requests" style="font-size:13px">See all</a></div>'+(mine?'<ul class="list box">'+mine+'</ul>':'<div class="box" style="padding:18px;font-size:14px;color:var(--muted)">Nothing requested yet.</div>')+'</section>'+
+    '<div class="quota"><div style="display:flex;justify-content:space-between"><span>Weekly limit</span><span>'+(q.limit?'<b style="color:var(--text)">'+q.remaining+'</b> of '+q.limit+' left':'No limit')+'</span></div><div class="bar"><span style="width:'+(q.limit?Math.round(q.used/q.limit*100):0)+'%"></span></div></div>'+
+   '</div><nav class="tabs" aria-label="Phone tabs">'+tab('#/discover','Discover',true,'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>')+tab('#/search','Search',false,'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')+tab('#/requests','Requests',false,'<path d="M4 6h16M4 12h16M4 18h10"/>')+tab('#/discover','Account',false,'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>')+'</nav></div>'+
+   '<div class="notes"><h2 class="h-section">What changes on a phone</h2><p style="margin:0">The icon rail moves to the top, the trending row scrolls sideways, and the player shrinks to play/pause and the waveform.</p><p style="margin:0">Your own requests and weekly limit move up, because most people open the app on a phone to check what they asked for.</p></div></div>';
+}
+
+/* ======================= request dialog ======================= */
+var SCOPES={tracks:{type:'tracks',count:4,label:'Only the missing tracks',sub:'4 tracks: MESS W/ ME, CHICA 305, OOO, CYANIDE'},album:{type:'album',count:1,label:'The whole album',sub:'13 tracks. Upgrades files if a better release exists'},discography:{type:'discography',count:8,rel:'js',label:'Everything by John Summit',sub:'8 releases, each counts toward your album limit'}};
+byId.js={id:'js',title:'John Summit',artist:'John Summit',year:2026,type:'Discography',tracks:8,status:'partial',t:2};
+function outcomeHtml(scope){
+  var s=SCOPES[scope],u=state.user,ignore=(document.getElementById('ignoreQ')||{}).checked;
+  try{var ev=evaluateRequest(u,{type:s.type,rel:s.rel||'ctrl',count:s.count,ignoreQuota:ignore});
+    return ev.auto?'<div class="outcome auto">This will be approved automatically and sent to Lidarr right away.</div>':'<div class="outcome wait">An admin will need to approve this before it downloads.</div>';
+  }catch(e){return '<div class="outcome block">'+esc(e.message)+'</div>';}
+}
+function openRequest(){
+  var u=state.user,q=quotaFor(u),manage=can(u,P.MANAGE_REQUESTS);
+  document.getElementById('modalRoot').innerHTML='<div class="overlay" data-act="close-bg"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">'+
+   '<header><h2 id="dlg-t">Request CTRL ESCAPE</h2><button class="icon-btn" type="button" data-act="close" aria-label="Close">'+ICON_X+'</button></header>'+
+   '<div class="body"><div style="display:flex;align-items:center;gap:14px">'+thumb(byId.ctrl)+'<div><b>CTRL ESCAPE</b><div class="feat">John Summit, 2026. 9 of 13 tracks in library.</div></div></div>'+
+   '<fieldset><legend>What do you want?</legend>'+Object.keys(SCOPES).map(function(k,i){var s=SCOPES[k];return '<label class="opt"><input type="radio" name="scope" value="'+k+'"'+(i===0?' checked':'')+'><span class="grow"><b>'+s.label+'</b><small>'+s.sub+'</small></span></label>';}).join('')+'</fieldset>'+
+   '<div id="outcome">'+outcomeHtml('tracks')+'</div>'+
+   (can(u,P.MANAGE_REQUESTS)||can(u,P.ADMIN)?'<div class="fields"><label class="field">Lidarr server<select><option>lidarr-main (default)</option><option>lidarr-hires</option></select></label><label class="field">Quality<select><option>Lossless (FLAC)</option><option>Hi-Res (24-bit FLAC)</option><option>High (MP3 320)</option></select></label><label class="field">Metadata profile<select><option>Standard</option><option>Albums only</option></select></label><label class="field">Folder<select><option>/mnt/music (2.1 TB free)</option><option>/mnt/music-archive (640 GB free)</option></select></label></div>':'')+
+   (manage&&(q.album.limit||q.track.limit)?'<label class="check"><input type="checkbox" id="ignoreQ"> Ignore my weekly limit for this request</label>':'')+
+   '<div class="quota"><div style="display:flex;justify-content:space-between"><span>Your weekly limit</span><span>'+(q.album.limit?'<b style="color:var(--text)">'+q.album.remaining+'</b> of '+q.album.limit+' albums':'No album limit')+', '+(q.track.limit?'<b style="color:var(--text)">'+q.track.remaining+'</b> of '+q.track.limit+' tracks':'no track limit')+'</span></div><div class="bar"><span style="width:'+(q.album.limit?Math.round(q.album.used/q.album.limit*100):0)+'%"></span></div></div></div>'+
+   '<footer><button class="btn" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="submit">Send request</button></footer></div></div>';
+  var f=document.querySelector('input[name=scope]:checked');f&&f.focus();
+}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+function doRequest(body,label){
+  try{var r=createRequest(state.user,body);
+    toast(r.status===RS.APPROVED?'Requested '+label+'. Approved automatically and sent to Lidarr.':'Requested '+label+'. It’s waiting for an admin to approve it.');return r;
+  }catch(e){toast(e.message,true);return null;}
+}
+
+/* ======================= toast ======================= */
+var toastT;function toast(msg,bad){var t=document.getElementById('toast');t.textContent=msg;t.classList.toggle('bad',!!bad);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},3200);}
+
+/* ======================= binding helpers ======================= */
+function walk(path){var parts=path.split('.'),root;var h=parts.shift();
+  if(h==='S')root=settings;else if(h.charAt(0)==='U')root=userById(+h.slice(1));else return [null,null];
+  for(var i=0;i<parts.length-1;i++)root=root[parts[i]];return [root,parts[parts.length-1]];}
+function getB(path){var w=walk(path);return w[0]?w[0][w[1]]:'';}
+function setB(path,v){var w=walk(path);if(w[0])w[0][w[1]]=v;}
+function fText(b,label,o){o=o||{};var v=o.value!==undefined?o.value:getB(b);
+  return '<label class="field'+(o.full?' full':'')+'">'+label+(o.hint?'<span class="hint">'+o.hint+'</span>':'')+'<input type="'+(o.type||'text')+'"'+(b?' data-bind="'+b+'"':'')+(o.id?' id="'+o.id+'"':'')+' value="'+esc(v==null?'':v)+'"'+(o.ph?' placeholder="'+esc(o.ph)+'"':'')+(o.ro?' readonly':'')+(o.auto?' autocomplete="'+o.auto+'"':'')+'></label>';}
+function fSelect(b,label,opts,o){o=o||{};var v=o.value!==undefined?o.value:getB(b);
+  return '<label class="field'+(o.full?' full':'')+'">'+label+(o.hint?'<span class="hint">'+o.hint+'</span>':'')+'<select'+(b?' data-bind="'+b+'"':'')+(o.id?' id="'+o.id+'"':'')+'>'+opts.map(function(p){return '<option value="'+esc(p[0])+'"'+(String(p[0])===String(v)?' selected':'')+'>'+esc(p[1])+'</option>';}).join('')+'</select></label>';}
+function fArea(b,label,o){o=o||{};return '<label class="field full">'+label+(o.hint?'<span class="hint">'+o.hint+'</span>':'')+'<textarea data-bind="'+b+'" spellcheck="false">'+esc(getB(b)||'')+'</textarea></label>';}
+function fSwitch(b,label,desc){var v=!!getB(b);return '<div class="setting"><div class="grow"><b style="font-weight:600">'+label+'</b>'+(desc?'<span class="d">'+desc+'</span>':'')+'</div><button class="switch" type="button" data-act="flip" data-bind="'+b+'" aria-pressed="'+v+'" aria-label="'+esc(label)+'"><span></span></button></div>';}
+function fChecks(b,list){var arr=getB(b)||[];return '<div class="checks">'+list.map(function(c){return '<label><input type="checkbox" data-bind-arr="'+b+'" value="'+esc(c[0])+'"'+(arr.indexOf(c[0])>-1?' checked':'')+'><span>'+c[1]+(c[2]?'<small>'+c[2]+'</small>':'')+'</span></label>';}).join('')+'</div>';}
+function fMap(b,label){var m=getB(b);return '<div class="checks">'+Object.keys(m).map(function(k){return '<label><input type="checkbox" data-bind-map="'+b+'" value="'+esc(k)+'"'+(m[k]?' checked':'')+'><span>'+esc(k)+'</span></label>';}).join('')+'</div>';}
+function panel(title,sub,body,foot){return '<section class="panel">'+(title?'<h2>'+title+'</h2>':'')+(sub?'<p class="sub">'+sub+'</p>':'')+body+(foot?'<div class="save-bar">'+foot+'</div>':'')+'</section>';}
+function fields(){return '<div class="fields">'+[].slice.call(arguments).join('')+'</div>';}
+function saveBtn(label){return '<button class="btn primary" type="button" data-act="saved" data-msg="'+(label||'Settings saved.')+'">Save changes</button>';}
+function logo(txt,color){return '<span class="logo" style="background:'+color+'" aria-hidden="true">'+txt+'</span>';}
+function onOff(v){return v?'<span class="badge-on">On</span>':'<span class="badge-off">Off</span>';}
+function noAccess(){return '<div class="box" style="padding:40px;text-align:center"><h1 style="font-size:24px">You don’t have access to this page</h1><p class="sub">Ask an admin if you need it.</p><p><a class="btn" href="#/discover">Back to Discover</a></p></div>';}
+function fmtDate(s){var d=new Date(s+'T12:00:00');return d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
+function userLink(id){var u=userById(id);if(!u)return 'someone';return can(state.user,P.MANAGE_USERS)||u.id===state.user.id?'<a href="#/users/'+u.id+'" style="color:var(--text)">'+esc(uname(u))+'</a>':esc(uname(u));}
+
+/* ======================= roles ======================= */
+function roleName(u){return u.id===1?'Owner':(u.perms&P.ADMIN)?'Admin':'User';}
+function roleOf(u){var r=roleName(u);return '<span class="role'+(r==='Owner'?' owner':r==='Admin'?' admin':'')+'">'+r+'</span>';}
+function kindLabel(u){return u.kind==='Local'?'Local user':u.kind+' user';}
+
+/* ======================= user list (after Seerr's UserList) ======================= */
+function vUserList(){
+  if(!can(state.user,P.MANAGE_USERS))return noAccess();
+  var q=state.userSearch.toLowerCase();
+  var list=USERS.filter(function(u){return !q||(u.name+' '+u.display+' '+u.email).toLowerCase().indexOf(q)>-1;});
+  var key=state.userSort;
+  list.sort(function(a,b){
+    if(key==='name')return uname(a).localeCompare(uname(b));
+    if(key==='requests')return REQUESTS.filter(function(r){return r.userId===b.id;}).length-REQUESTS.filter(function(r){return r.userId===a.id;}).length;
+    if(key==='type')return a.kind.localeCompare(b.kind);
+    if(key==='role')return roleName(a).localeCompare(roleName(b));
+    return a.created<b.created?-1:1;});
+  var selIds=Object.keys(state.selected).filter(function(k){return state.selected[k];});
+  var cols='grid-template-columns:32px 44px minmax(200px,1.6fr) 90px 120px 90px 150px 180px';
+  return '<div class="stack" style="gap:16px"><div class="page-head" style="margin-bottom:8px"><div><h1>Users</h1><p class="sub">Everyone who can sign in to Shufflerr. Permissions decide who can request what and whose requests skip the queue.</p></div>'+
+   '<div class="toolbar">'+(settings.login.local?'<button class="btn" type="button" data-act="create-user">Create local user</button>':'')+
+   (settings.stream.plex.on?'<button class="btn" type="button" data-act="import-users" data-v="Plex">Import Plex users</button>':'')+
+   (settings.stream.jellyfin.on?'<button class="btn" type="button" data-act="import-users" data-v="Jellyfin">Import Jellyfin users</button>':'')+'</div></div>'+
+  '<div class="toolbar" style="margin-bottom:16px"><div class="searchbox"><label for="us" class="sr">Search users</label><input id="us" type="search" placeholder="Search users" value="'+esc(state.userSearch)+'" data-act-input="user-search"></div>'+
+   fSelect('','<span class="sr">Sort by</span>',[['created','Sort by date joined'],['name','Sort by name'],['requests','Sort by requests'],['type','Sort by account type'],['role','Sort by role']],{value:key,id:'usort'})+
+   '<button class="btn" type="button" data-act="bulk-edit"'+(selIds.length?'':' disabled')+'>Edit permissions'+(selIds.length?' ('+selIds.length+')':'')+'</button></div>'+
+  '<div class="box scroll-x"><div class="table" style="min-width:980px"><div class="tr head" style="'+cols+'"><span><input type="checkbox" aria-label="Select all" data-act="sel-all"'+(selIds.length&&selIds.length===list.filter(function(u){return u.id!==1;}).length?' checked':'')+'></span><span></span><span>User</span><span>Requests</span><span>Type</span><span>Role</span><span>Joined</span><span></span></div>'+
+  list.map(function(u){var n=REQUESTS.filter(function(r){return r.userId===u.id;}).length,lock=u.id===1&&state.user.id!==1;
+    return '<div class="tr'+(state.selected[u.id]?' sel':'')+'" style="'+cols+'"><span><input type="checkbox" aria-label="Select '+esc(u.name)+'" data-act="sel" data-id="'+u.id+'"'+(state.selected[u.id]?' checked':'')+(u.id===1?' disabled':'')+'></span><a class="avatar" href="#/users/'+u.id+'" style="width:40px;height:40px;text-decoration:none">'+u.av+'</a>'+
+     '<span><a href="#/users/'+u.id+'" class="title" style="color:var(--text)">'+esc(uname(u))+'</a><br><span class="feat">'+esc(u.email)+'</span></span>'+
+     '<a class="num" href="#/users/'+u.id+'/requests">'+n+'</a><span class="dim">'+kindLabel(u)+'</span>'+roleOf(u)+'<span class="dim">'+fmtDate(u.created)+'</span>'+
+     '<span class="actions"><a class="btn small'+(lock?'" aria-disabled="true" style="pointer-events:none;opacity:.5':'')+'" href="#/users/'+u.id+'/settings">Edit</a><button class="btn small no" type="button" data-act="delete-user" data-id="'+u.id+'"'+(u.id===1||u.id===state.user.id?' disabled':'')+'>Delete</button></span></div>';}).join('')+
+  '</div></div><p class="credit">The user system, permissions and approval rules are adapted from Seerr (github.com/seerr-team/seerr), MIT License.</p></div>';
+}
+function dialog(title,body,foot,wide){document.getElementById('modalRoot').innerHTML='<div class="overlay" data-act="close-bg"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dg-t"'+(wide?' style="max-width:760px"':'')+'><header><h2 id="dg-t">'+title+'</h2><button class="icon-btn" type="button" data-act="close" aria-label="Close">'+ICON_X+'</button></header><div class="body">'+body+'</div><footer>'+foot+'</footer></div></div>';
+  var f=document.querySelector('.dialog input,.dialog select,.dialog textarea,.dialog footer .btn');f&&f.focus();}
+function openCreateUser(){
+  dialog('Create local user','<div class="fields">'+fText('','Username',{id:'nu-name',auto:'off'})+fText('','Email address',{id:'nu-email',type:'email'})+'</div>'+
+   '<label class="check"><input type="checkbox" id="nu-auto" checked> Email them a generated password</label>'+
+   '<div class="fields" id="nu-passrow" hidden>'+fText('','Password',{id:'nu-pass',type:'password',hint:'At least 8 characters'})+'</div>'+
+   '<p class="sub" style="margin:0">New users get the default permissions from Settings → Users.</p><div id="nu-err"></div>',
+   '<button class="btn" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="create-user-save">Create user</button>');
+}
+function openImportUsers(kind){
+  var pool=(kind==='Plex'?PLEX_POOL:JELLY_POOL).filter(function(p){return !USERS.some(function(u){return u.email===p.email;});});
+  dialog('Import '+kind+' users',pool.length?'<p class="sub" style="margin:0">These '+kind+' users can see your music library but don’t have a Shufflerr account yet. They’ll get the default permissions.</p><div class="checks">'+pool.map(function(p){return '<label><input type="checkbox" class="imp" value="'+esc(p.email)+'" checked><span>'+esc(p.name)+'<small>'+esc(p.email)+'</small></span></label>';}).join('')+'</div>':'<p style="margin:0">There are no '+kind+' users to import. Everyone with access already has an account.</p>',
+   '<button class="btn" type="button" data-act="close">Cancel</button>'+(pool.length?'<button class="btn primary" type="button" data-act="import-users-save" data-v="'+kind+'">Import users</button>':''));
+}
+function addUserFrom(p,kind){var u=mkUser({id:Math.max.apply(null,USERS.map(function(x){return x.id;}))+1,name:p.name,display:p.name.charAt(0).toUpperCase()+p.name.slice(1),email:p.email,plex:p.plex||'',kind:kind,av:(p.av||p.name.slice(0,2)).toUpperCase(),perms:settings.defaultPerms,created:new Date().toISOString().slice(0,10)});
+  if(kind==='Plex')u.linked.plex=p.name;if(kind==='Jellyfin')u.linked.jellyfin=p.name;USERS.push(u);return u;}
+function openBulkEdit(){
+  var ids=Object.keys(state.selected).filter(function(k){return state.selected[k];}).map(Number);
+  var common=ids.map(function(i){return userById(i).perms;}).reduce(function(a,b){return a&b;});
+  dialog('Edit permissions for '+ids.length+' user'+(ids.length>1?'s':''),'<p class="sub" style="margin:0">Replaces the permissions of: '+ids.map(function(i){return esc(uname(userById(i)));}).join(', ')+'.</p>'+permEditor(common),
+   '<button class="btn" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="bulk-save">Save permissions</button>',true);
+}
+function openDeleteUser(u){
+  dialog('Delete '+esc(uname(u))+'?','<p style="margin:0">This removes '+esc(uname(u))+'’s account and all '+REQUESTS.filter(function(r){return r.userId===u.id;}).length+' of their requests. Music already in the library stays.</p>',
+   '<button class="btn" type="button" data-act="close">Cancel</button><button class="btn confirm-danger" type="button" data-act="delete-user-confirm" data-id="'+u.id+'">Delete user</button>');
+}
+
+/* ======================= user profile & settings (after Seerr's UserProfile) ======================= */
+function canEditUser(target){var me=state.user;if(target.id===me.id)return true;if(!can(me,P.MANAGE_USERS))return false;if(target.id===1)return false;return true;}
+function vUser(id,tab,sub,sub2){
+  var me=state.user,u=userById(id);
+  if(!u)return '<div class="box" style="padding:40px;text-align:center"><h1 style="font-size:24px">User not found</h1><p><a class="btn" href="#/users">Back to users</a></p></div>';
+  if(u.id!==me.id&&!can(me,P.MANAGE_USERS))return noAccess();
+  var base='#/users/'+u.id,self=u.id===me.id;
+  var tabs=[['',base,'Overview'],['requests',base+'/requests','Requests']];
+  if(canEditUser(u))tabs.push(['settings',base+'/settings','Settings']);
+  var head='<section class="uhead"><span class="big" aria-hidden="true">'+u.av+'</span><div style="flex:1;min-width:220px"><h1>'+esc(uname(u))+'</h1><div class="meta"><span>'+esc(u.email)+'</span><span>'+kindLabel(u)+'</span><span>Joined '+fmtDate(u.created)+'</span>'+roleOf(u)+'</div></div>'+
+    (self?'':'<div class="inline">'+(canEditUser(u)?'<a class="btn" href="'+base+'/settings">Edit user</a>':'')+'</div>')+'</section>'+
+    '<nav class="tabs-h" aria-label="Profile">'+tabs.map(function(t){return '<a href="'+t[1]+'"'+((tab||'')===t[0]?' aria-current="page"':'')+'>'+t[2]+'</a>';}).join('')+'</nav>';
+  var W=function(x){return '<div class="stack" style="gap:24px">'+x+'</div>';};
+  if(tab==='requests')return W(head+userRequests(u));
+  if(tab==='settings'){if(!canEditUser(u))return W(head+noAccess());return W(head+userSettings(u,sub||'general',sub2));}
+  return W(head+userOverview(u));
+}
+function ring(used,limit){var p=limit?Math.min(100,Math.round(used/limit*100)):0;return '<span class="ring" style="--p:'+p+'"><span>'+(limit?Math.max(0,limit-used):'∞')+'</span></span>';}
+function userOverview(u){
+  var q=quotaFor(u),mine=REQUESTS.filter(function(r){return r.userId===u.id;});
+  var recent=mine.slice(0,6).map(function(r){var c=byId[r.rel];return '<div class="card"><a href="'+relHref(c)+'">'+cover(c)+'</a><div><b class="t" style="display:block">'+esc(reqTitle(r))+'</b>'+rstatus(r)+'</div></div>';}).join('');
+  var played=['cic','gw','lgo','nbh','att','bhs'].map(function(id){return card(byId[id]);}).join('');
+  var scro=[];if(u.linked.listenbrainz&&settings.scrobble.listenbrainz.on)scro.push('ListenBrainz');if(u.linked.lastfm&&settings.scrobble.lastfm.on)scro.push('Last.fm');
+  return '<div class="stats3"><div class="stat"><span class="ring" style="--p:100"><span>'+mine.length+'</span></span><div><b>'+mine.length+'</b><small>Total requests</small></div></div>'+
+   '<div class="stat">'+ring(q.album.used,q.album.limit)+'<div><b>'+(q.album.limit?(q.album.remaining+' of '+q.album.limit):'Unlimited')+'</b><small>Albums left'+(q.album.limit?' (past '+q.album.days+' days)':'')+'</small></div></div>'+
+   '<div class="stat">'+ring(q.track.used,q.track.limit)+'<div><b>'+(q.track.limit?(q.track.remaining+' of '+q.track.limit):'Unlimited')+'</b><small>Tracks left'+(q.track.limit?' (past '+q.track.days+' days)':'')+'</small></div></div></div>'+
+   '<section><div class="sec-head"><h2 class="h-section">Recent requests</h2><a href="#/users/'+u.id+'/requests">All requests</a></div>'+(recent?'<div class="row">'+recent+'</div>':'<div class="box" style="padding:24px;color:var(--muted)">No requests yet.</div>')+'</section>'+
+   '<section><div class="sec-head"><div><h2 class="h-section">Recently played</h2><p class="sub">From '+(u.kind==='Jellyfin'?'Jellyfin':'Plex')+' and connected apps'+(scro.length?'. Scrobbling to '+scro.join(' and '):'')+'</p></div></div><div class="row">'+played+'</div></section>';
+}
+function userRequests(u){
+  var mine=REQUESTS.filter(function(r){return r.userId===u.id;});
+  if(!mine.length)return '<div class="box" style="padding:28px;color:var(--muted)">'+esc(uname(u))+' hasn’t requested anything yet.</div>';
+  return '<ul class="list box">'+mine.map(function(r){var c=byId[r.rel];return '<li>'+thumb(c)+'<div class="grow"><a class="title" href="'+relHref(c)+'" style="color:var(--text)">'+esc(reqTitle(r))+'</a><span class="feat">'+esc(c.artist)+', '+TYPE[r.type].label.toLowerCase()+'</span></div><span class="who">'+ago(r.ago)+'</span>'+rstatus(r)+'</li>';}).join('')+'</ul>';
+}
+function userSettings(u,sub,sub2){
+  var me=state.user,self=u.id===me.id,base='#/users/'+u.id+'/settings';
+  var items=[['general','General'],['password','Password'],['linked','Linked accounts'],['apps','App passwords'],['notifications','Notifications']];
+  if(can(me,P.MANAGE_USERS)&&!(self&&me.id!==1))items.push(['permissions','Permissions']);
+  var nav='<nav class="subnav-pills" aria-label="User settings" style="margin:4px 0 6px">'+items.map(function(i){return '<a href="'+base+'/'+i[0]+'"'+(sub===i[0]?' aria-current="page"':'')+'>'+i[1]+'</a>';}).join('')+'</nav>';
+  var U='U'+u.id,body='';
+  if(sub==='general'){
+    var manage=can(me,P.MANAGE_USERS)&&!self;
+    body=panel('General','',fields(fText(U+'.display','Display name'),fText(U+'.email','Email',{type:'email'}),fText('','Account type',{value:kindLabel(u),ro:true}),fText('','Role',{value:roleName(u),ro:true}),
+      fSelect(U+'.locale','Display language',[['en','English'],['nl','Nederlands'],['de','Deutsch'],['fr','Français'],['es','Español']]),
+      fSelect(U+'.region','Discover region',[['US','United States'],['GB','United Kingdom'],['NL','Netherlands'],['DE','Germany'],['AU','Australia']],{hint:'Trending, charts and concerts for this country'}))+
+     (u.linked.spotify&&settings.disc.spotify.on?'<div class="box">'+fSwitch(U+'.autoImport','Request albums I save on Spotify','Checks your Spotify saved albums every day and requests new ones.')+'</div>':''),'',saveBtn('Settings saved.'))+
+     (manage||(self&&can(me,P.MANAGE_USERS))?panel('Request limits','Without an override, this user follows the global limits in Settings → Users. People who can manage users have no limit.',
+       '<label class="check"><input type="checkbox" data-bind-bool="'+U+'.quota.override"'+(u.quota.override?' checked':'')+'> Override the global limits</label>'+
+       (u.quota.override?fields(fText('','Albums',{type:'number',value:u.quota.album[0],id:'uq-a'}),fSelect('','Album period',[[7,'Every 7 days'],[14,'Every 14 days'],[30,'Every 30 days']],{value:u.quota.album[1],id:'uq-ad'}),fText('','Tracks',{type:'number',value:u.quota.track[0],id:'uq-t'}),fSelect('','Track period',[[7,'Every 7 days'],[14,'Every 14 days'],[30,'Every 30 days']],{value:u.quota.track[1],id:'uq-td'})):''),'',
+       '<button class="btn primary" type="button" data-act="save-quota" data-id="'+u.id+'">Save limits</button>'):'');
+  }
+  if(sub==='password'){
+    var needCurrent=self&&u.hasPassword;
+    body=panel('Password',u.hasPassword?'Used to sign in with an email address instead of '+(u.kind==='Local'?'':u.kind)+'.':'This account doesn’t have a password yet. Set one so '+(self?'you':esc(uname(u)))+' can also sign in with an email address.',
+      fields((needCurrent?fText('','Current password',{type:'password',id:'pw-cur',auto:'current-password'}):''),fText('','New password',{type:'password',id:'pw-new',hint:'At least 8 characters',auto:'new-password'}),fText('','Confirm new password',{type:'password',id:'pw-con',auto:'new-password'}))+'<div id="pw-err"></div>','',
+      '<button class="btn primary" type="button" data-act="save-password" data-id="'+u.id+'">Save password</button>');
+  }
+  if(sub==='linked'){
+    var rows=[['plex','Plex',logo('Px','#E5A00D'),'Sign in and see what you’ve played on Plex',settings.stream.plex.on],['jellyfin','Jellyfin',logo('Jf','#7B5CD6'),'Sign in and see what you’ve played on Jellyfin',settings.stream.jellyfin.on],
+      ['lastfm','Last.fm',logo('fm','#D51007'),'Scrobble everything you play in Shufflerr and connected apps',settings.scrobble.lastfm.on],['listenbrainz','ListenBrainz',logo('LB','#EB743B'),'Scrobble to ListenBrainz with your user token',settings.scrobble.listenbrainz.on],
+      ['spotify','Spotify',logo('Sp','#1DB954'),'Import your playlists and saved albums as requests',settings.disc.spotify.on]];
+    body=panel('Linked accounts','Accounts on other services that Shufflerr can use for '+(self?'you':esc(uname(u)))+'.','<div class="box">'+rows.filter(function(r){return r[4];}).map(function(r){var v=u.linked[r[0]];
+      return '<div class="linked">'+r[2]+'<div class="grow"><b>'+r[1]+'</b><span class="feat">'+(v?'Linked as '+esc(v):r[3])+'</span></div>'+(v?'<button class="btn small" type="button" data-act="unlink" data-k="'+r[0]+'" data-id="'+u.id+'"'+((r[0]==='plex'&&u.kind==='Plex')||(r[0]==='jellyfin'&&u.kind==='Jellyfin')?' disabled title="Used to sign in"':'')+'>Unlink</button>':'<button class="btn small ghost-accent" type="button" data-act="link" data-k="'+r[0]+'" data-id="'+u.id+'">Link '+r[1]+'</button>')+'</div>';}).join('')+'</div>');
+  }
+  if(sub==='apps'){
+    body=panel('App passwords','Use these to sign in from music apps like Symfonium, Finamp, Feishin, Amperfy and Jellify. Each app gets its own password so you can revoke one without changing the others.',
+      '<div class="endpoint"><span class="feat">Server</span><b>'+esc(settings.main.url)+'</b></div><div class="endpoint"><span class="feat">Username</span><b>'+esc(u.name)+'</b></div>'+
+      (u.appPasswords.length?'<div class="box">'+u.appPasswords.map(function(a,i){return '<div class="linked"><div class="grow"><b>'+esc(a.name)+'</b><span class="feat">Created '+fmtDate(a.created)+', last used '+esc(a.last)+'</span></div><button class="btn small no" type="button" data-act="revoke-app" data-id="'+u.id+'" data-i="'+i+'">Revoke</button></div>';}).join('')+'</div>':'<p class="sub" style="margin:0">No app passwords yet.</p>')+
+      '<div class="inline">'+fText('','New app password name',{id:'ap-name',ph:'For example: Finamp on my phone'})+'<button class="btn" type="button" data-act="add-app" data-id="'+u.id+'" style="align-self:flex-end">Create password</button></div><div id="ap-out"></div>');
+  }
+  if(sub==='notifications'){
+    var agents=[['email','Email'],['webpush','Web push'],['discord','Discord'],['telegram','Telegram'],['pushbullet','Pushbullet'],['pushover','Pushover']].filter(function(a){return settings.notify[a[0]].on;});
+    var ag=sub2&&agents.some(function(a){return a[0]===sub2;})?sub2:agents[0][0];
+    var types=NOTIFY_TYPES.filter(function(t){return !t[3]||can(u,P.MANAGE_REQUESTS);}).map(function(t){return [t[0],t[1],t[2]];});
+    var extra={discord:fText(U+'.notif.discord.id','Discord user ID',{hint:'So Shufflerr can mention you'}),telegram:fText(U+'.notif.telegram.chat','Telegram chat ID'),pushbullet:fText(U+'.notif.pushbullet.token','Access token',{type:'password'}),pushover:fText(U+'.notif.pushover.app','Application token',{type:'password'})+fText(U+'.notif.pushover.user','User key',{type:'password'})}[ag]||'';
+    body='<nav class="subnav-pills" aria-label="Notification channels">'+agents.map(function(a){return '<a href="'+base+'/notifications/'+a[0]+'"'+(a[0]===ag?' aria-current="page"':'')+'>'+a[1]+'</a>';}).join('')+'</nav>'+
+      panel(agents.filter(function(a){return a[0]===ag;})[0][1]+' notifications','Choose what you hear about on this channel.','<div class="box">'+fSwitch(U+'.notif.'+ag+'.on','Send me '+ag.replace('webpush','web push')+' notifications','')+'</div>'+(extra?fields(extra):'')+fChecks(U+'.notif.'+ag+'.types',types),'',saveBtn('Notification settings saved.'));
+  }
+  if(sub==='permissions'){
+    body=panel('Permissions',u.id===1?'The owner always has full access.':'What '+esc(uname(u))+' can do in Shufflerr.',u.id===1?'':permEditor(u.perms),'',u.id===1?'':'<button class="btn primary" type="button" data-act="save-perms" data-id="'+u.id+'">Save permissions</button>');
+  }
+  return nav+'<div class="stack">'+body+'</div>';
+}
+
+/* ======================= admin (after Seerr's Settings) ======================= */
+var ADMIN_NAV=[
+ ['General',[['general','General'],['users','Users'],['network','Network']]],
+ ['Stream from',[['plex','Plex','stream.plex'],['jellyfin','Jellyfin','stream.jellyfin'],['navidrome','Navidrome','stream.navidrome'],['local','Local files','stream.local'],['youtube','YouTube','stream.youtube']]],
+ ['Connect your apps',[['clients','Apps and devices']]],
+ ['Downloads',[['lidarr','Lidarr']]],
+ ['Metadata',[['metadata','MusicBrainz and Last.fm']]],
+ ['Discover and import',[['spotify','Spotify','disc.spotify'],['deezer','Deezer','disc.deezer'],['itunes','iTunes','disc.itunes'],['ticketmaster','Ticketmaster','disc.ticketmaster'],['skiddle','Skiddle','disc.skiddle']]],
+ ['Scrobble to',[['scrobbling','ListenBrainz and Last.fm']]],
+ ['Notifications',[['notifications','Notification agents']]],
+ ['System',[['logs','Logs'],['jobs','Jobs and cache'],['about','About']]]
+];
+function walkS(p){return p.split('.').reduce(function(o,k){return o[k];},settings);}
+function vAdmin(page,sub){
+  if(!can(state.user,P.MANAGE_SETTINGS))return noAccess();
+  var flat=[];ADMIN_NAV.forEach(function(g){g[1].forEach(function(i){flat.push(i);});});
+  if(!flat.some(function(i){return i[0]===page;}))page='general';
+  var nav='<nav class="snav" aria-label="Settings">'+ADMIN_NAV.map(function(g){return '<h3>'+g[0]+'</h3>'+g[1].map(function(i){return '<a href="#/settings/'+i[0]+'"'+(i[0]===page?' aria-current="page"':'')+'>'+i[1]+(i[2]?'<span class="dot'+(walkS(i[2]).on?'':' off')+'" title="'+(walkS(i[2]).on?'On':'Off')+'"></span>':'')+'</a>';}).join('');}).join('')+'</nav>';
+  var sel='<label class="field snav-select" style="margin-bottom:16px">Settings page<select data-act-nav="1">'+ADMIN_NAV.map(function(g){return '<optgroup label="'+g[0]+'">'+g[1].map(function(i){return '<option value="'+i[0]+'"'+(i[0]===page?' selected':'')+'>'+i[1]+'</option>';}).join('')+'</optgroup>';}).join('')+'</select></label>';
+  var fn=ADMIN_PAGES[page];
+  return '<div class="admin">'+nav+'<div>'+sel+fn(sub)+'</div></div>';
+}
+function head(t,s,right){return '<div class="page-head"><div><h1>'+t+'</h1>'+(s?'<p class="sub">'+s+'</p>':'')+'</div>'+(right||'')+'</div>';}
+function scanPanel(key,what){var p=state.scan&&state.scan[key];
+  return panel('Library scan','Shufflerr checks '+what+' to mark what’s already available.',p!=null?'<div class="progress" style="max-width:none;height:8px"><span style="width:'+p+'%;background:var(--st-processing)"></span></div><span class="feat">Scanning… '+p+'%</span>':'<span class="feat">Last full scan finished 4 hours ago. 1,284 albums, 18,940 tracks.</span>','',
+   p!=null?'<button class="btn" type="button" data-act="scan-cancel" data-k="'+key+'">Cancel scan</button>':'<button class="btn" type="button" data-act="scan" data-k="'+key+'">Scan recently added</button><button class="btn primary" type="button" data-act="scan" data-k="'+key+'">Start full scan</button>');}
+var NOTIFY_AGENTS=[['email','Email'],['webpush','Web push'],['discord','Discord'],['slack','Slack'],['telegram','Telegram'],['pushbullet','Pushbullet'],['pushover','Pushover'],['webhook','Webhook'],['gotify','Gotify'],['ntfy','ntfy']];
+var APPS=[['Symfonium','Android',['OpenSubsonic','Jellyfin'],'#6C4BD8','Sy'],['Finamp','iOS, Android',['Jellyfin'],'#00A4DC','Fi'],['Feishin','Windows, macOS, Linux, web',['OpenSubsonic','Jellyfin'],'#E34C67','Fe'],['Amperfy','iOS, macOS',['OpenSubsonic'],'#F28C28','Am'],['Jellify','iOS, Android',['Jellyfin'],'#8E5CF7','Je']];
+var ADMIN_PAGES={
+ general:function(){var S='S.main';return head('General','Basic settings for this Shufflerr server.')+'<div class="stack">'+
+   panel('Server','',fields(fText(S+'.title','Application title'),fText(S+'.url','Application URL',{hint:'The address people use to reach Shufflerr. Used in links and app setup.'}),
+     '<label class="field full">API key<span class="hint">For scripts and other apps. Keep it secret.</span><span class="copyrow"><input readonly value="'+esc(settings.main.apiKey)+'"><button class="btn" type="button" data-act="copy" data-v="'+esc(settings.main.apiKey)+'">Copy</button><button class="btn" type="button" data-act="regen-key">Make a new key</button></span></label>',
+     fSelect(S+'.locale','Display language',[['en','English'],['nl','Nederlands'],['de','Deutsch'],['fr','Français']]),fSelect(S+'.region','Discover region',[['US','United States'],['GB','United Kingdom'],['NL','Netherlands'],['DE','Germany']])),'',saveBtn())+
+   panel('Requests and browsing','','<div class="box">'+fSwitch(S+'.partialRequests','Allow track requests','People can request just the missing tracks from an album.')+fSwitch(S+'.hideAvailable','Hide music that’s already available','Keeps Discover and Search focused on things you can request.')+fSwitch(S+'.cacheImages','Cache album art','Stores cover art and artist photos on this server so pages load faster.')+fSwitch(S+'.versionCheck','Check for updates','Looks for new Shufflerr versions on GitHub.')+'</div>','',saveBtn())+'</div>';},
+ users:function(){return head('Users','How people sign in, and what new users can do.',' <a class="btn" href="#/users">Manage users</a>')+'<div class="stack">'+
+   panel('Sign-in methods','At least one has to stay on.','<div class="box">'+fSwitch('S.login.local','Shufflerr accounts','Email and password accounts you create on the Users page.')+fSwitch('S.login.plex','Plex sign-in','People sign in with the Plex account they listen with.')+fSwitch('S.login.newPlex','Let new Plex users sign in','Anyone you’ve shared your Plex music with gets an account the first time.')+fSwitch('S.login.jellyfin','Jellyfin sign-in','People sign in with their Jellyfin username and password.')+fSwitch('S.login.newJellyfin','Let new Jellyfin users sign in','Creates an account for Jellyfin users the first time they sign in.')+'</div>','',saveBtn())+
+   panel('Global request limits','Applies to everyone without their own limits. People who can manage users have no limit.',fields(fText('','Albums',{type:'number',id:'gq-a',value:settings.globalQuota.album[0],hint:'0 means no limit'}),fSelect('','Album period',[[7,'Every 7 days'],[14,'Every 14 days'],[30,'Every 30 days']],{id:'gq-ad',value:settings.globalQuota.album[1]}),fText('','Tracks',{type:'number',id:'gq-t',value:settings.globalQuota.track[0],hint:'0 means no limit'}),fSelect('','Track period',[[7,'Every 7 days'],[14,'Every 14 days'],[30,'Every 30 days']],{id:'gq-td',value:settings.globalQuota.track[1]}))+'<div class="box">'+fSwitch('S.discoReview','Always review discography requests','Only admins skip the queue for whole discographies, even if a user can auto-approve.')+'</div>','','<button class="btn primary" type="button" data-act="save-global-quota">Save limits</button>')+
+   panel('Default permissions','What new users can do when they’re created or imported.','<div id="defPermWrap">'+permEditor(settings.defaultPerms).replace('id="permEd"','id="defPerm"')+'</div>','',saveBtn('Default permissions saved.'))+'</div>';},
+ network:function(){var N='S.network';return head('Network','Proxy, DNS and connection settings. Most servers don’t need to change these.')+'<div class="stack">'+
+   panel('Security','','<div class="box">'+fSwitch(N+'.csrf','CSRF protection','Makes the external API read-only from other sites. Needs HTTPS.')+fSwitch(N+'.trustProxy','Behind a reverse proxy','Trust the address your proxy passes on, for example from Nginx or Traefik.')+'</div>','',saveBtn())+
+   panel('Outgoing proxy','Send Shufflerr’s requests to MusicBrainz, Spotify and others through a proxy.','<div class="box">'+fSwitch(N+'.proxy.on','Use an HTTP(S) proxy','')+'</div>'+(settings.network.proxy.on?fields(fText(N+'.proxy.host','Proxy hostname'),fText(N+'.proxy.port','Proxy port',{type:'number'}),fText(N+'.proxy.user','Username'),fText(N+'.proxy.pass','Password',{type:'password'}),fText(N+'.proxy.bypass','Skip the proxy for these addresses',{hint:'Comma-separated',full:true}))+'<div class="box">'+fSwitch(N+'.proxy.ssl','Use SSL for the proxy','')+fSwitch(N+'.proxy.local','Skip the proxy for local addresses','')+'</div>':''),'',saveBtn())+
+   panel('DNS and timeouts','','<div class="box">'+fSwitch(N+'.ipv4','Prefer IPv4','Try IPv4 addresses before IPv6.')+fSwitch(N+'.dns.on','Cache DNS lookups','')+'</div>'+fields(fText(N+'.dns.min','Minimum cache time (seconds)',{type:'number'}),fText(N+'.dns.max','Maximum cache time (seconds)',{type:'number'}),fText(N+'.timeout','Request timeout (milliseconds)',{type:'number'})),'',saveBtn())+'</div>';},
+ plex:function(){var S='S.stream.plex',v=settings.stream.plex;return head('Plex','Stream from Plex, sign in with Plex, and see what people play.',logo('Px','#E5A00D'))+'<div class="stack">'+
+   panel('Connection','','<div class="box">'+fSwitch(S+'.on','Use Plex','')+'</div>'+(v.on?fields(fSelect('','Server',[['manual','Manual setup'],['home','Home server (local)'],['remote','Home server (remote)']],{hint:'Or load your servers from plex.tv'}),fText(S+'.host','Hostname or IP address'),fText(S+'.port','Port',{type:'number'}))+'<div class="box">'+fSwitch(S+'.ssl','Use SSL','')+'</div>':''),'',v.on?'<button class="btn" type="button" data-act="toast" data-msg="Found 2 servers on plex.tv.">Load servers from plex.tv</button><button class="btn" type="button" data-act="toast" data-msg="Connected to Plex.">Test</button>'+saveBtn():'')+
+   (v.on?panel('Music libraries','Choose which libraries count toward “already in your library”.',fMap(S+'.libs'),'','<button class="btn" type="button" data-act="toast" data-msg="Libraries synced from Plex.">Sync libraries</button>'+saveBtn())+scanPanel('plex','your Plex music libraries')+
+   panel('Sign-in','Plex sign-in is set on the Users page.','<p style="margin:0">Plex sign-in is '+(settings.login.plex?'on':'off')+'. New Plex users '+(settings.login.newPlex?'can':'can’t')+' sign in. <a href="#/settings/users">Change sign-in methods</a></p>'):'')+'</div>';},
+ jellyfin:function(){var S='S.stream.jellyfin',v=settings.stream.jellyfin;return head('Jellyfin','Stream from Jellyfin and let Jellyfin users sign in.',logo('Jf','#7B5CD6'))+'<div class="stack">'+
+   panel('Connection','','<div class="box">'+fSwitch(S+'.on','Use Jellyfin','')+'</div>'+(v.on?fields(fText(S+'.url','Server URL'),fText(S+'.apiKey','API key',{type:'password',hint:'Dashboard → API keys in Jellyfin'})):''),'',v.on?'<button class="btn" type="button" data-act="toast" data-msg="Connected to Jellyfin.">Test</button>'+saveBtn():'')+
+   (v.on?panel('Music libraries','',fMap(S+'.libs'),'',saveBtn())+scanPanel('jellyfin','your Jellyfin music libraries'):'')+'</div>';},
+ navidrome:function(){var S='S.stream.navidrome',v=settings.stream.navidrome;return head('Navidrome','Stream from a Navidrome server using the Subsonic API.',logo('Nd','#2F6FDE'))+'<div class="stack">'+
+   panel('Connection','','<div class="box">'+fSwitch(S+'.on','Use Navidrome','')+'</div>'+(v.on?fields(fText(S+'.url','Server URL'),fText(S+'.user','Username'),fText(S+'.pass','Password',{type:'password'})):''),'',v.on?'<button class="btn" type="button" data-act="toast" data-msg="Connected to Navidrome.">Test</button>'+saveBtn():'')+(v.on?scanPanel('navidrome','Navidrome'):'')+'</div>';},
+ local:function(){var S='S.stream.local',v=settings.stream.local;return head('Local files','Read music straight from folders on this server. Connected apps can stream them too.',logo('Fs','#4A5566'))+'<div class="stack">'+
+   panel('Folders','','<div class="box">'+fSwitch(S+'.on','Use local files','')+'</div>'+(v.on?'<div class="box">'+v.folders.map(function(f,i){return '<div class="linked"><div class="grow"><b class="mono" style="font-size:14px">'+esc(f)+'</b></div><button class="btn small" type="button" data-act="rm-folder" data-i="'+i+'">Remove</button></div>';}).join('')+'</div><div class="inline">'+fText('','Add a folder',{id:'new-folder',ph:'/mnt/music-archive'})+'<button class="btn" type="button" data-act="add-folder" style="align-self:flex-end">Add folder</button></div>'+
+    '<div class="box">'+fSwitch(S+'.watch','Watch folders for changes','New files show up as soon as they’re copied in.')+'</div>'+fields(fSelect(S+'.interval','Full rescan',[['15','Every 15 minutes'],['60','Hourly'],['1440','Daily']])):''),'',saveBtn())+(v.on?scanPanel('local','these folders'):'')+'</div>';},
+ youtube:function(){var S='S.stream.youtube',v=settings.stream.youtube;return head('YouTube','Play tracks you don’t have yet with YouTube’s own player. Nothing is downloaded.',logo('YT','#E62117'))+'<div class="stack">'+
+   panel('YouTube','','<div class="box">'+fSwitch(S+'.on','Use YouTube','')+'</div>'+(v.on?fields(fText(S+'.apiKey','YouTube Data API key',{type:'password',hint:'From Google Cloud Console'}),fSelect(S+'.region','Region',[['US','United States'],['GB','United Kingdom'],['NL','Netherlands']]))+'<div class="box">'+fSwitch(S+'.fill','Fill gaps while requests download','Missing tracks play from YouTube until the real files arrive.')+'</div>':''),'',saveBtn())+'</div>';},
+ clients:function(){var C='S.clients',url=settings.main.url;return head('Apps and devices','Any OpenSubsonic or Jellyfin music app can connect to Shufflerr. People sign in with their username and an app password from their profile.')+'<div class="stack">'+
+   panel('Server APIs','','<div class="box">'+fSwitch(C+'.subsonic','OpenSubsonic API','For Symfonium, Feishin, Amperfy and other Subsonic apps.')+fSwitch(C+'.jellyfinApi','Jellyfin API','For Finamp, Jellify, Symfonium and other Jellyfin apps.')+fSwitch(C+'.allowDownloads','Allow downloads for offline listening','')+'</div>'+
+     (settings.clients.subsonic?'<div class="endpoint"><span class="feat">OpenSubsonic</span><b>'+esc(url)+'/rest</b><button class="btn small" type="button" data-act="copy" data-v="'+esc(url)+'/rest">Copy</button></div>':'')+(settings.clients.jellyfinApi?'<div class="endpoint"><span class="feat">Jellyfin</span><b>'+esc(url)+'/jellyfin</b><button class="btn small" type="button" data-act="copy" data-v="'+esc(url)+'/jellyfin">Copy</button></div>':'')+
+     fields(fSelect(C+'.transcode','Streaming quality on mobile data',[['original','Original files'],['opus-160','Opus 160 kbps'],['mp3-320','MP3 320 kbps'],['mp3-128','MP3 128 kbps']])),'',saveBtn())+
+   '<section class="stack"><h2 class="h-section">Tested apps</h2><div class="int-grid">'+APPS.map(function(a){var ok=a[2].some(function(p){return p==='OpenSubsonic'?settings.clients.subsonic:settings.clients.jellyfinApi;});
+     return '<div class="int"><header>'+logo(a[4],a[3])+'<div><h3>'+a[0]+'</h3><span class="feat">'+a[1]+'</span></div></header><div class="tag-row">'+a[2].map(function(p){return '<span class="tag s">'+p+'</span>';}).join('')+'</div>'+
+     '<details><summary style="cursor:pointer;font-size:14px;color:var(--link)">How to connect</summary><ol style="margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--muted)"><li>Add a '+(a[2][0]==='Jellyfin'?'Jellyfin':'Subsonic')+' server in '+a[0]+'.</li><li>Server address: '+esc(url)+(a[2][0]==='Jellyfin'?'/jellyfin':'')+'</li><li>Sign in with your Shufflerr username and an app password.</li></ol></details>'+
+     '<div class="foot">'+(ok?'<span class="badge-on">Ready</span>':'<span class="badge-off">Turn on its API above</span>')+'</div></div>';}).join('')+'</div></section>'+
+   panel('Connected devices','App passwords in use across all users.','<div class="box">'+USERS.map(function(u){return u.appPasswords.map(function(a,i){return '<div class="linked"><span class="avatar">'+u.av+'</span><div class="grow"><b>'+esc(a.name)+'</b><span class="feat">'+esc(uname(u))+', last used '+esc(a.last)+'</span></div><button class="btn small no" type="button" data-act="revoke-app" data-id="'+u.id+'" data-i="'+i+'">Revoke</button></div>';}).join('');}).join('')+'</div>')+'</div>';},
+ lidarr:function(){return head('Lidarr','Approved requests are sent to Lidarr, which finds and downloads them.',' <button class="btn" type="button" data-act="toast" data-msg="Adding servers isn’t part of this mockup.">Add Lidarr server</button>')+'<div class="stack">'+
+   settings.lidarr.map(function(s){return '<div class="server"><div style="flex:1 1 260px;display:flex;flex-direction:column;gap:4px"><span class="name">'+s.name+(s.def?' <span class="tag" style="font-family:var(--sans);font-size:12px;color:var(--accent)">Default</span>':'')+'</span><span class="url">'+s.url+'</span></div><dl><div><dt>Quality</dt><dd>'+s.quality+'</dd></div><div><dt>Folder</dt><dd class="mono" style="font-size:12px">'+s.root+'</dd></div><div><dt>Connection</dt><dd><span class="status" style="--c:var(--st-available)">Connected</span></dd></div></dl><div style="display:flex;gap:8px"><button class="btn small" type="button" data-act="toast" data-msg="Connected to '+s.name+'.">Test</button><button class="btn small" type="button" data-act="toast" data-msg="Editing servers isn’t part of this mockup.">Edit</button></div></div>';}).join('')+'</div>';},
+ metadata:function(){var M='S.meta';return head('MusicBrainz and Last.fm','Where artist, album and track details come from.')+'<div class="stack">'+
+   panel(logo('MB','#BA478F')+' MusicBrainz','Search, releases and track listings. Free and open.',fields(fText(M+'.mbUrl','Server',{hint:'Use your own mirror to skip the public rate limit'}),fSelect(M+'.mbRate','Requests per second',[['1','1 (public server)'],['10','10 (own mirror)'],['50','50 (own mirror)']])),'',saveBtn())+
+   panel('Album art and photos','','<div class="box">'+fSwitch(M+'.caa','Cover Art Archive','Album art for releases in MusicBrainz.')+fSwitch(M+'.fanart.on','fanart.tv','Artist photos and backgrounds.')+'</div>'+(settings.meta.fanart.on?fields(fText(M+'.fanart.key','fanart.tv API key',{type:'password'})):''),'',saveBtn())+
+   panel(logo('fm','#D51007')+' Last.fm','Artist bios, tags and similar artists. The same key is used for scrobbling.','<div class="box">'+fSwitch(M+'.lastfm.on','Use Last.fm','')+'</div>'+(settings.meta.lastfm.on?fields(fText(M+'.lastfm.key','API key',{type:'password'}),fText(M+'.lastfm.secret','Shared secret',{type:'password'})):''),'',saveBtn())+
+   panel('Priority','',fields(fSelect(M+'.order','When sources disagree',[['MusicBrainz first, Last.fm for bios and tags','MusicBrainz first, Last.fm for bios and tags'],['Last.fm first','Last.fm first']])),'',saveBtn())+'</div>';},
+ spotify:function(){var S='S.disc.spotify';return head('Spotify','Import playlists and saved albums as requests.',logo('Sp','#1DB954'))+'<div class="stack">'+
+   panel('Spotify','Needs a Spotify app. Create one at developer.spotify.com and add '+esc(settings.main.url)+'/callback/spotify as the redirect URL.','<div class="box">'+fSwitch(S+'.on','Use Spotify','')+'</div>'+(settings.disc.spotify.on?fields(fText(S+'.clientId','Client ID'),fText(S+'.secret','Client secret',{type:'password'}),fSelect(S+'.sync','Check linked accounts for new saved albums',[['daily','Daily'],['hourly','Hourly'],['off','Never']])):''),'',saveBtn())+
+   panel('What people can do','','<ul style="margin:0;padding-left:20px;color:var(--muted)"><li>Paste a Spotify playlist or album link on the Import page.</li><li>Link their Spotify account and have saved albums requested automatically.</li></ul><p class="sub" style="margin:0">Imports go through the same approval rules and limits as any other request.</p>')+'</div>';},
+ deezer:function(){var S='S.disc.deezer';return head('Deezer','Import public Deezer playlists and albums.',logo('Dz','#A238FF'))+'<div class="stack">'+panel('Deezer','Uses Deezer’s public API, so there’s nothing to set up.','<div class="box">'+fSwitch(S+'.on','Use Deezer','')+'</div>','',saveBtn())+'</div>';},
+ itunes:function(){var S='S.disc.itunes';return head('iTunes','Import Apple Music links and show iTunes charts on Discover.',logo('iT','#FB5BC5'))+'<div class="stack">'+panel('iTunes','Uses the public iTunes Search API.','<div class="box">'+fSwitch(S+'.on','Use iTunes','')+'</div>'+(settings.disc.itunes.on?fields(fSelect(S+'.country','Store country',[['US','United States'],['GB','United Kingdom'],['NL','Netherlands'],['DE','Germany']])):''),'',saveBtn())+'</div>';},
+ ticketmaster:function(){var S='S.disc.ticketmaster';return head('Ticketmaster','Show upcoming concerts for artists in your library.',logo('Tm','#026CDF'))+'<div class="stack">'+panel('Ticketmaster','Needs a Discovery API key from developer.ticketmaster.com.','<div class="box">'+fSwitch(S+'.on','Use Ticketmaster','')+'</div>'+(settings.disc.ticketmaster.on?fields(fText(S+'.key','API key',{type:'password'}),fSelect(S+'.country','Country',[['US','United States'],['GB','United Kingdom'],['NL','Netherlands'],['DE','Germany']]),fSelect(S+'.radius','Distance from each user’s region',[['25','25 miles'],['50','50 miles'],['100','100 miles']])):''),'',saveBtn())+'</div>';},
+ skiddle:function(){var S='S.disc.skiddle';return head('Skiddle','Show UK club nights, festivals and gigs for artists in your library.',logo('Sk','#1C1C1C'))+'<div class="stack">'+panel('Skiddle','Needs an API key from skiddle.com/api.','<div class="box">'+fSwitch(S+'.on','Use Skiddle','')+'</div>'+(settings.disc.skiddle.on?fields(fText(S+'.key','API key',{type:'password'})):''),'',saveBtn())+'</div>';},
+ scrobbling:function(){var S='S.scrobble';return head('Scrobble to ListenBrainz and Last.fm','Shufflerr records what people play and sends it to the services they link in their profile.')+'<div class="stack">'+
+   panel(logo('LB','#EB743B')+' ListenBrainz','Each person adds their own user token under Linked accounts.','<div class="box">'+fSwitch(S+'.listenbrainz.on','Scrobble to ListenBrainz','')+'</div>'+(settings.scrobble.listenbrainz.on?fields(fText(S+'.listenbrainz.url','Server',{hint:'Change this for a self-hosted ListenBrainz'})):''),'',saveBtn())+
+   panel(logo('fm','#D51007')+' Last.fm','Uses the API key from <a href="#/settings/metadata">MusicBrainz and Last.fm</a>. Each person signs in to Last.fm from their profile.','<div class="box">'+fSwitch(S+'.lastfm.on','Scrobble to Last.fm','')+'</div>','',saveBtn())+
+   panel('When a play counts','',fields(fSelect(S+'.rule','Scrobble a track after',[['half','Half the track or 4 minutes, whichever is first'],['end','The track finishes'],['30s','30 seconds']])),'',saveBtn())+
+   panel('Where plays come from','',fChecks2(S+'.sources',[['plex','Plex'],['jellyfin','Jellyfin'],['navidrome','Navidrome'],['apps','Connected apps'],['web','Shufflerr’s own player']]),'',saveBtn())+'</div>';},
+ notifications:function(sub){var ag=NOTIFY_AGENTS.some(function(a){return a[0]===sub;})?sub:'email',N='S.notify.'+ag,label=NOTIFY_AGENTS.filter(function(a){return a[0]===ag;})[0][1];
+   var f={email:fields(fText(N+'.fromName','Sender name'),fText(N+'.from','Sender address',{type:'email'}),fText(N+'.host','SMTP host'),fText(N+'.port','SMTP port',{type:'number'}),fSelect(N+'.enc','Encryption',[['none','None'],['starttls','STARTTLS'],['tls','Always TLS']]),fText(N+'.user','SMTP username'),fText(N+'.pass','SMTP password',{type:'password'}))+'<div class="box">'+fSwitch(N+'.selfSigned','Allow self-signed certificates','')+'</div>',
+     webpush:'<p class="sub" style="margin:0">Browser notifications. People allow them from their own browser.</p>',
+     discord:fields(fText(N+'.webhook','Webhook URL',{full:true}),fText(N+'.botName','Bot name'),fText(N+'.avatar','Bot avatar URL'))+'<div class="box">'+fSwitch(N+'.mentions','Mention users','Uses the Discord user ID people add in their notification settings.')+'</div>',
+     slack:fields(fText(N+'.webhook','Webhook URL',{full:true})),
+     telegram:fields(fText(N+'.token','Bot token',{type:'password'}),fText(N+'.chat','Chat ID'))+'<div class="box">'+fSwitch(N+'.silent','Send silently','')+'</div>',
+     pushbullet:fields(fText(N+'.token','Access token',{type:'password'}),fText(N+'.channel','Channel tag')),
+     pushover:fields(fText(N+'.app','Application token',{type:'password'}),fText(N+'.user','User or group key',{type:'password'}),fSelect(N+'.sound','Sound',[['default','Default'],['pushover','Pushover'],['none','Silent']])),
+     webhook:fields(fText(N+'.url','Webhook URL',{full:true}),fText(N+'.auth','Authorization header',{type:'password',full:true}))+fArea(N+'.payload','JSON payload',{hint:'Use variables like {{event}}, {{media_title}} and {{requestedBy_username}}'}),
+     gotify:fields(fText(N+'.url','Server URL'),fText(N+'.token','Application token',{type:'password'}),fSelect(N+'.priority','Priority',[['0','0'],['5','5'],['8','8']])),
+     ntfy:fields(fText(N+'.url','Server URL'),fText(N+'.topic','Topic'),fText(N+'.user','Username'),fText(N+'.pass','Password',{type:'password'}))}[ag];
+   return head('Notifications','Tell people when their music arrives, and tell admins when something needs approval.')+
+    '<nav class="subnav-pills" aria-label="Notification agents" style="margin-bottom:18px">'+NOTIFY_AGENTS.map(function(a){return '<a href="#/settings/notifications/'+a[0]+'"'+(a[0]===ag?' aria-current="page"':'')+'>'+a[1]+(settings.notify[a[0]].on?' ●':'')+'</a>';}).join('')+'</nav>'+
+    '<div class="stack">'+panel(label,'','<div class="box">'+fSwitch(N+'.on','Send '+label+' notifications','')+'</div>'+f+'<h3 style="font-size:14px;font-weight:600;margin:0">What to send</h3>'+fChecks(N+'.types',NOTIFY_TYPES.map(function(t){return [t[0],t[1],t[2]];})),'','<button class="btn" type="button" data-act="toast" data-msg="Sent a test notification with '+label+'.">Send test</button>'+saveBtn('Notification settings saved.'))+'</div>';},
+ logs:function(){var lv=state.logLevel,q=state.logSearch.toLowerCase();var rows=LOGS.filter(function(l){return (lv==='all'||l.lvl===lv)&&(!q||(l.label+' '+l.msg).toLowerCase().indexOf(q)>-1);});
+   var cols='grid-template-columns:170px 80px 130px minmax(260px,1fr)';
+   return head('Logs','What the server has been doing. New lines appear at the top.','<div class="toolbar"><div class="searchbox"><label for="ls" class="sr">Filter logs</label><input id="ls" type="search" placeholder="Filter logs" value="'+esc(state.logSearch)+'" data-act-input="log-search"></div>'+
+     fSelect('','<span class="sr">Level</span>',[['all','All levels'],['debug','Debug'],['info','Info'],['warn','Warning'],['error','Error']],{value:lv,id:'loglevel'})+'<button class="btn" type="button" data-act="log-pause">'+(state.logPaused?'Resume':'Pause')+'</button></div>')+
+     '<div class="box scroll-x"><div class="table" style="min-width:820px"><div class="tr head" style="'+cols+'"><span>Time</span><span>Level</span><span>Label</span><span>Message</span></div>'+rows.slice(0,60).map(function(l){return '<div class="tr" style="'+cols+';min-height:44px"><span class="mono-s">'+l.t.toLocaleString('en-US',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span><span><span class="lvl '+l.lvl+'">'+l.lvl+'</span></span><span class="dim">'+esc(l.label)+'</span><span style="font-size:14px">'+esc(l.msg)+'</span></div>';}).join('')+(rows.length?'':'<div style="padding:28px;text-align:center;color:var(--muted)">No log lines match.</div>')+'</div></div>';},
+ jobs:function(){var jc='grid-template-columns:minmax(220px,1.5fr) 100px minmax(150px,1fr) 140px 130px',cc='grid-template-columns:minmax(180px,1.5fr) 100px 100px 100px 130px';
+   return head('Jobs and cache','Scheduled tasks and cached lookups.')+'<div class="stack"><section><h2 class="h-section" style="margin-bottom:14px">Jobs</h2><div class="box scroll-x"><div class="table"><div class="tr head" style="'+jc+'"><span>Job</span><span>Type</span><span>Runs</span><span>Next run</span><span></span></div>'+
+     JOBS.map(function(j){return '<div class="tr" style="'+jc+'"><span class="title">'+j.name+'</span><span class="dim">'+j.type+'</span><span class="dim">'+j.every+'</span><span class="dim">'+(j.running?'<span class="running">Running…</span>':j.next?'In '+(j.next<60?j.next+' min':Math.round(j.next/60)+' h'):'On change')+'</span><span class="actions">'+(j.running?'<button class="btn small" type="button" data-act="job-cancel" data-id="'+j.id+'">Cancel</button>':'<button class="btn small" type="button" data-act="job-run" data-id="'+j.id+'">Run now</button>')+'</span></div>';}).join('')+'</div></div></section>'+
+     '<section><h2 class="h-section" style="margin-bottom:14px">Cache</h2><div class="box scroll-x"><div class="table"><div class="tr head" style="'+cc+'"><span>Cache</span><span>Hits</span><span>Misses</span><span>Keys</span><span></span></div>'+
+     CACHES.map(function(c,i){return '<div class="tr" style="'+cc+'"><span class="title">'+c.name+'</span><span class="num">'+c.hits.toLocaleString()+'</span><span class="num">'+c.misses.toLocaleString()+'</span><span class="num">'+c.keys.toLocaleString()+'</span><span class="actions"><button class="btn small" type="button" data-act="flush" data-i="'+i+'">Clear</button></span></div>';}).join('')+'</div></div></section>'+
+     panel('Image cache','',  '<dl class="kvs"><div><dt>Images cached</dt><dd>4,212</dd></div><div><dt>Size on disk</dt><dd>1.3 GB</dd></div></dl>','','<button class="btn" type="button" data-act="toast" data-msg="Image cache cleanup started.">Clean up now</button>')+'</div>';},
+ about:function(){return head('About Shufflerr','')+'<div class="stack">'+panel('This server','','<dl class="kvs"><div><dt>Version</dt><dd>0.1.0 (mockup)</dd></div><div><dt>Albums</dt><dd>1,284</dd></div><div><dt>Requests</dt><dd>'+REQUESTS.length+'</dd></div><div><dt>Users</dt><dd>'+USERS.length+'</dd></div><div><dt>Data folder</dt><dd class="mono-s">/app/config</dd></div><div><dt>Time zone</dt><dd>America/New_York</dd></div></dl>')+
+   panel('Getting help','','<ul style="margin:0;padding-left:20px;line-height:1.9"><li><a href="#/settings/about">Documentation</a></li><li><a href="#/settings/about">GitHub discussions</a></li><li><a href="#/settings/about">Report a problem</a></li></ul>')+
+   panel('Credits','','<p style="margin:0;color:var(--muted)">Shufflerr’s user system, permissions, request approval, sign-in and admin pages are adapted from <b style="color:var(--text)">Seerr</b> (github.com/seerr-team/seerr), the successor to Overseerr and Jellyseerr. MIT License, Copyright (c) 2020 sct.</p><p style="margin:0;color:var(--muted)">Music data from MusicBrainz and the Cover Art Archive. Artist details from Last.fm. Listening history with ListenBrainz and Last.fm.</p>')+'</div>';}
+};
+function fChecks2(b,list){var m=getB(b);return '<div class="checks">'+list.map(function(c){return '<label><input type="checkbox" data-bind-map="'+b+'" value="'+c[0]+'"'+(m[c[0]]?' checked':'')+'><span>'+c[1]+'</span></label>';}).join('')+'</div>';}
+
+/* ======================= import (Discover & import) ======================= */
+function vImport(){
+  var src=[['spotify','Spotify','open.spotify.com/playlist/…',settings.disc.spotify.on,'#1DB954','Sp'],['deezer','Deezer','deezer.com/playlist/…',settings.disc.deezer.on,'#A238FF','Dz'],['itunes','Apple Music / iTunes','music.apple.com/…',settings.disc.itunes.on,'#FB5BC5','iT']].filter(function(s){return s[3];});
+  var res=state.importResult;
+  return '<div>'+head('Import','Paste a playlist or album link. Shufflerr finds the albums and requests the ones you don’t have.')+'<div class="stack">'+
+   (src.length?panel('Paste a link','Works with '+src.map(function(s){return s[1];}).join(', ')+'.','<div class="int-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">'+src.map(function(s){return '<div class="inline">'+logo(s[5],s[4])+'<span><b>'+s[1]+'</b><br><span class="feat mono-s">'+s[2]+'</span></span></div>';}).join('')+'</div>'+
+     '<div class="inline">'+fText('','Playlist or album link',{id:'imp-url',value:state.importText,ph:'https://open.spotify.com/playlist/…'})+'<button class="btn primary" type="button" data-act="import-find" style="align-self:flex-end">Find albums</button></div>'):'<div class="box" style="padding:24px">No import sources are turned on. An admin can turn on Spotify, Deezer or iTunes in Settings.</div>')+
+   (res?panel('Found '+res.length+' albums','Albums already in your library are unchecked.','<div class="box import-res">'+res.map(function(id){var c=byId[id];return '<label class="linked" style="cursor:pointer"><input type="checkbox" class="imp-pick" value="'+id+'"'+(c.status==='none'?' checked':' disabled')+' style="width:18px;height:18px;accent-color:var(--accent)">'+thumb(c)+'<span class="grow"><b>'+esc(c.title)+'</b><span class="feat">'+esc(c.artist)+', '+c.year+'</span></span>'+status(c.status)+'</label>';}).join('')+'</div>','','<button class="btn primary" type="button" data-act="import-request">Request checked albums</button>'):'')+
+   (settings.disc.spotify.on?panel('Saved albums on Spotify',state.user.linked.spotify?'Linked as '+esc(state.user.linked.spotify)+'.':'Link Spotify to have albums you save requested automatically.',state.user.linked.spotify?'<div class="box">'+fSwitch('U'+state.user.id+'.autoImport','Request albums I save on Spotify','Runs daily. Requests follow your usual limits and approval rules.')+'</div>':'<a class="btn" href="#/users/'+state.user.id+'/settings/linked">Link Spotify</a>'):'')+'</div></div>';
+}
+function concertsRow(){
+  var on=[];if(settings.disc.ticketmaster.on)on.push('Ticketmaster');if(settings.disc.skiddle.on)on.push('Skiddle');if(!on.length)return '';
+  var ev=[['14','Nov','Vera Okafor','[VENUE], Brooklyn','Ticketmaster'],['22','Nov','Neon Lagoon','[VENUE], Philadelphia','Ticketmaster'],['06','Dec','Lowlight Assembly','[VENUE], Manchester','Skiddle']].filter(function(e){return on.indexOf(e[4])>-1;});
+  return '<section aria-labelledby="s5"><div class="sec-head"><div><h2 class="h-section" id="s5">Concerts for artists you have</h2><p class="sub">From '+on.join(' and ')+'</p></div></div><ul class="list box events">'+ev.map(function(e){return '<li><span class="date"><b>'+e[0]+'</b><span>'+e[1]+'</span></span><div class="grow"><b>'+e[2]+'</b><span class="feat">'+e[3]+'</span></div><span class="who">'+e[4]+'</span><a class="btn small" href="#/discover">Tickets</a></li>';}).join('')+'</ul></section>';
+}
+
+/* ======================= router ======================= */
+var VIEWS={discover:vDiscover,search:vSearch,artist:vArtist,album:vAlbum,requests:vRequests,mobile:vMobile,import:vImport};
+function parts(){return (location.hash||'#/discover').replace(/^#\/?/,'').split('?')[0].split('/').filter(Boolean);}
+function route(){return parts()[0]||'discover';}
+function render(keepScroll){
+  var p=parts(),r=p[0]||'discover',y=window.scrollY,auth=document.getElementById('auth'),shell=document.getElementById('shell');
+  if(!state.user||r==='login'||r==='logout'){
+    if(state.user&&(r==='login'||r==='logout')){location.hash='#/discover';return;}
+    shell.hidden=true;auth.hidden=false;auth.innerHTML=r==='logout'?vLogout():vLogin();
+    document.title=r==='logout'?'Signed out – Shufflerr':'Sign in – Shufflerr';startFader();return;
+  }
+  auth.hidden=true;auth.innerHTML='';shell.hidden=false;
+  var u=state.user,html,navKey=r;
+  if(r==='profile'){html=vUser(u.id,p[1],p[2],p[3]);navKey='profile';}
+  else if(r==='users'){html=p[1]?vUser(+p[1],p[2],p[3],p[4]):vUserList();}
+  else if(r==='settings'){html=vAdmin(p[1]||'general',p[2]);}
+  else{if(!VIEWS[r]){r='discover';navKey='discover';}html=VIEWS[r]();}
+  document.getElementById('view').innerHTML=html;
+  document.querySelectorAll('.rail a.nav').forEach(function(a){
+    if(a.dataset.route===navKey)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+    if(a.dataset.perm)a.hidden=!can(u,P[a.dataset.perm]);
+    if(a.dataset.route==='import')a.hidden=!(settings.disc.spotify.on||settings.disc.deezer.on||settings.disc.itunes.on);
+  });
+  var pend=visibleRequests(u).filter(function(x){return x.status===RS.PENDING&&(can(u,P.MANAGE_REQUESTS)||x.userId===u.id);}).length;
+  var pc=document.getElementById('pendingCount');pc.textContent=pend;pc.style.display=pend?'':'none';
+  document.getElementById('pendingPill').textContent=pend+(can(u,P.MANAGE_REQUESTS)?' waiting for approval':' of yours waiting');
+  document.getElementById('acctAv').textContent=u.av;document.getElementById('acctName').textContent=uname(u);
+  var sc=[];if(u.linked.listenbrainz&&settings.scrobble.listenbrainz.on)sc.push('ListenBrainz');if(u.linked.lastfm&&settings.scrobble.lastfm.on)sc.push('Last.fm');
+  document.querySelector('.player .src').textContent='Streaming from '+(u.kind==='Jellyfin'?'Jellyfin':'Plex')+(sc.length?', scrobbling to '+sc.join(' and '):'');
+  document.title=(r==='settings'?'Settings':r.charAt(0).toUpperCase()+r.slice(1))+' – '+settings.main.title;
+  if(keepScroll)window.scrollTo(0,y);
+}
+window.addEventListener('hashchange',function(){closeMenu();closeModal();render(false);window.scrollTo(0,0);var v=document.getElementById('view');if(v&&!document.getElementById('shell').hidden)v.focus({preventScroll:true});});
+
+/* ======================= account menu ======================= */
+function closeMenu(){var m=document.getElementById('acctMenu');m.hidden=true;document.getElementById('acctBtn').setAttribute('aria-expanded','false');}
+document.getElementById('acctBtn').addEventListener('click',function(e){
+  e.stopPropagation();var m=document.getElementById('acctMenu'),u=state.user;
+  if(!m.hidden){closeMenu();return;}
+  m.innerHTML='<div class="who"><b>'+esc(uname(u))+'</b><span>'+esc(u.email)+'</span><div style="margin-top:8px;display:flex;gap:8px;align-items:center">'+roleOf(u)+'<span class="feat">'+kindLabel(u)+'</span></div></div><a href="#/profile">Profile</a><a href="#/profile/requests">My requests</a><a href="#/profile/settings">Account settings</a>'+(can(u,P.MANAGE_SETTINGS)?'<a href="#/settings">Server settings</a>':'')+'<button type="button" data-act="signout">Sign out</button>';
+  m.hidden=false;this.setAttribute('aria-expanded','true');
+});
+document.addEventListener('click',function(e){if(!e.target.closest('.acct-wrap'))closeMenu();});
+
+/* ======================= Jellyfin sign-in ======================= */
+function openJellyfinLogin(){
+  document.getElementById('modalRoot').innerHTML='<div class="plex-pop" role="dialog" aria-modal="true" aria-labelledby="jt"><div class="win" style="background:#101418"><div class="bar" style="background:#1A2028">Jellyfin</div><div class="in"><h2 id="jt">Sign in with Jellyfin</h2><p>Use your Jellyfin username and password.</p>'+
+   '<form id="jfForm" style="display:flex;flex-direction:column;gap:14px"><div class="fl"><input id="jfu" placeholder=" " autocomplete="username"><label for="jfu">Username</label></div><div class="fl"><input id="jfp" type="password" placeholder=" " autocomplete="current-password"><label for="jfp">Password</label></div><div id="jferr"></div>'+
+   '<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" type="button" data-act="plex-cancel" style="color:#EEE;border-color:#444">Cancel</button><button class="btn" type="submit" style="background:#7B5CD6;border-color:#7B5CD6;color:#fff">Sign in</button></div>'+
+   '<p class="note">Try dre (existing) or kai (a Jellyfin user without a Shufflerr account).</p></form></div></div></div>';
+  document.getElementById('jfu').focus();
+}
+
+/* ======================= events ======================= */
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.dataset.bind&&t.tagName!=='SELECT'){setB(t.dataset.bind,t.value);if(t.dataset.bind==='S.main.title')document.title=t.value;}
+  if(t.dataset.actInput==='user-search'){state.userSearch=t.value;var pos=t.selectionStart;render(true);var n=document.getElementById('us');n.focus();n.setSelectionRange(pos,pos);}
+  if(t.dataset.actInput==='log-search'){state.logSearch=t.value;var p2=t.selectionStart;render(true);var n2=document.getElementById('ls');n2.focus();n2.setSelectionRange(p2,p2);}
+  if(t.id==='imp-url')state.importText=t.value;
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.name==='scope'||t.id==='ignoreQ'){var s=(document.querySelector('input[name=scope]:checked')||{}).value;document.getElementById('outcome').innerHTML=outcomeHtml(s);}
+  if(t.dataset.bind&&t.tagName==='SELECT'){setB(t.dataset.bind,t.value);if(/^S\./.test(t.dataset.bind))render(true);}
+  if(t.dataset.bindArr){var arr=getB(t.dataset.bindArr);var i=arr.indexOf(t.value);if(t.checked&&i<0)arr.push(t.value);if(!t.checked&&i>-1)arr.splice(i,1);}
+  if(t.dataset.bindMap){getB(t.dataset.bindMap)[t.value]=t.checked;}
+  if(t.dataset.bindBool){setB(t.dataset.bindBool,t.checked);render(true);}
+  if(t.dataset.actNav){location.hash='#/settings/'+t.value;}
+  if(t.id==='usort'){state.userSort=t.value;render(true);}
+  if(t.id==='loglevel'){state.logLevel=t.value;render(true);}
+  if(t.id==='nu-auto'){document.getElementById('nu-passrow').hidden=t.checked;}
+  var pe=t.closest('#permEd,#defPerm');
+  if(pe&&t.dataset.bit){var id=pe.id,v=readPerms(pe);pe.outerHTML=permEditor(v).replace('id="permEd"','id="'+id+'"');if(id==='defPerm')settings.defaultPerms=v;}
+});
+document.addEventListener('submit',function(e){
+  var t=e.target;
+  if(t.id==='localForm'){e.preventDefault();
+    var em=document.getElementById('lemail').value.trim().toLowerCase(),pw=document.getElementById('lpass').value;
+    var u=USERS.filter(function(x){return x.email===em;})[0];
+    if(!em||!pw)state.authError='Enter your email and password.';
+    else if(!u)state.authError='No Shufflerr account uses that email. Try signing in with Plex or Jellyfin.';
+    else if(!u.hasPassword&&u.kind!=='Local')state.authError='This account signs in with '+u.kind+'. Use the '+u.kind+' button, or set a password in your profile first.';
+    else{signIn(u,'');return;}
+    render(false);
+  }
+  if(t.id==='jfForm'){e.preventDefault();var n=document.getElementById('jfu').value.trim().toLowerCase(),pw2=document.getElementById('jfp').value,err=document.getElementById('jferr');
+    var ex=USERS.filter(function(x){return x.linked.jellyfin===n;})[0],pool=JELLY_POOL.filter(function(x){return x.name===n;})[0];
+    if(!n||!pw2){err.innerHTML='<p class="err" style="background:#3A1E22;color:#F5A493;padding:8px 10px;border-radius:8px;margin:0">Enter your username and password.</p>';return;}
+    if(ex){closeModal();signIn(ex,'Jellyfin');return;}
+    if(pool){if(!settings.login.newJellyfin){err.innerHTML='<p class="err" style="background:#3A1E22;color:#F5A493;padding:8px 10px;border-radius:8px;margin:0">Your Jellyfin account doesn’t have a Shufflerr account yet. Ask an admin to import you.</p>';return;}
+      closeModal();var nu=addUserFrom(pool,'Jellyfin');signIn(nu,'Jellyfin');return;}
+    err.innerHTML='<p class="err" style="background:#3A1E22;color:#F5A493;padding:8px 10px;border-radius:8px;margin:0">Jellyfin didn’t accept that username and password.</p>';
+  }
+  if(t.id==='searchForm'){e.preventDefault();state.search=document.getElementById('q').value||'';state.searchTab='all';if(route()==='search')render(false);else location.hash='#/search';}
+});
+function reqById(id){return REQUESTS.filter(function(x){return x.id===+id;})[0];}
+document.addEventListener('click',function(e){
+  var j=e.target.closest('[data-jump]');if(j){e.preventDefault();var el=document.getElementById(j.dataset.jump);el&&el.scrollIntoView({behavior:'smooth',block:'start'});return;}
+  var b=e.target.closest('[data-act]');if(!b)return;var a=b.dataset.act;
+  if(a==='close-bg'&&e.target!==b)return;
+  if(b.tagName==='INPUT'&&b.type==='checkbox'&&a!=='sel'&&a!=='sel-all')return;
+  var u=state.user,r,target;
+  switch(a){
+    /* sign-in */
+    case 'plex-login':if(!settings.login.plex){state.authError='Plex sign-in is turned off on this server.';render(false);break;}state.plexBusy=true;state.authError='';render(false);openPlexWindow();break;
+    case 'jf-login':openJellyfinLogin();break;
+    case 'plex-cancel':closeModal();state.plexBusy=false;render(false);break;
+    case 'plex-pick':closeModal();
+      if(b.dataset.id.indexOf('pool:')===0){var pp=PLEX_POOL.filter(function(x){return x.email===b.dataset.id.slice(5);})[0];
+        if(!settings.login.newPlex){state.plexBusy=false;state.authError='Your Plex account doesn’t have a Shufflerr account yet. Ask the server owner to import you.';render(false);break;}
+        var nu=addUserFrom(pp,'Plex');signIn(nu,'Plex');setTimeout(function(){toast('Welcome, '+uname(nu)+'. Your account was created with the default permissions.');},3300);
+      }else signIn(userById(+b.dataset.id),'Plex');
+      break;
+    case 'forgot':e.preventDefault();toast('If email notifications are set up, a reset link is sent to your address.');break;
+    case 'signout':closeMenu();signOut();break;
+    /* requests */
+    case 'quick-request':var c=byId[b.dataset.id];doRequest({type:'album',rel:c.id,count:1},c.title);render(true);break;
+    case 'open-request':openRequest();break;
+    case 'close':case 'close-bg':closeModal();break;
+    case 'submit':var sc=(document.querySelector('input[name=scope]:checked')||{}).value,s=SCOPES[sc],ig=(document.getElementById('ignoreQ')||{}).checked;
+      r=doRequest({type:s.type,rel:s.rel||'ctrl',count:s.count,ignoreQuota:ig},sc==='tracks'?'4 tracks from CTRL ESCAPE':sc==='album'?'CTRL ESCAPE':'everything by John Summit');
+      if(r){closeModal();render(true);}break;
+    case 'search-tab':state.searchTab=b.dataset.v;render(true);break;
+    case 'disc':state.discFilter=b.dataset.v;render(true);break;
+    case 'disco':doRequest({type:'discography',rel:'js',count:8},'everything by John Summit');render(true);break;
+    case 'mon':state.mon=!state.mon;render(true);toast(state.mon?'Watching for new John Summit releases.':'Stopped watching John Summit.');break;
+    case 'req-filter':state.reqFilter=b.dataset.v;render(true);break;
+    case 'approve':case 'decline':case 'retry':r=reqById(b.dataset.id);
+      try{updateStatus(u,r,a);toast((a==='approve'?'Approved ':a==='decline'?'Declined ':'Retrying ')+reqTitle(r)+(a==='decline'?'.':'. Sent to Lidarr.'));}catch(err){toast(err.message,true);}render(true);break;
+    case 'cancel':r=reqById(b.dataset.id);try{cancelRequest(u,r);toast('Cancelled your request for '+reqTitle(r)+'.');}catch(err){toast(err.message,true);}render(true);break;
+    /* import */
+    case 'import-find':var url=(document.getElementById('imp-url')||{}).value||'';
+      if(!/spotify\.com|deezer\.com|apple\.com|itunes/i.test(url)){toast('Paste a Spotify, Deezer or Apple Music link.',true);break;}
+      state.importResult=['aa','fr2','gs','cs','gw','ly'];render(true);break;
+    case 'import-request':var picks=[].slice.call(document.querySelectorAll('.imp-pick:checked')).map(function(i){return i.value;});
+      if(!picks.length){toast('Check at least one album.',true);break;}
+      var ok=0,wait=0,bad=[];picks.forEach(function(id){try{var rr=createRequest(u,{type:'album',rel:id,count:1});rr.status===RS.APPROVED?ok++:wait++;}catch(err){bad.push(err.message);}});
+      state.importResult=null;render(true);toast([ok?ok+' approved automatically':'',wait?wait+' waiting for approval':'',bad.length?bad.length+' not requested: '+bad[0]:''].filter(Boolean).join(', ')+'.',!!bad.length&&!ok&&!wait);break;
+    /* users */
+    case 'sel':state.selected[b.dataset.id]=b.checked;render(true);break;
+    case 'sel-all':USERS.forEach(function(x){if(x.id!==1)state.selected[x.id]=b.checked;});render(true);break;
+    case 'create-user':openCreateUser();break;
+    case 'create-user-save':var nm=document.getElementById('nu-name').value.trim(),ne=document.getElementById('nu-email').value.trim(),auto=document.getElementById('nu-auto').checked,np=(document.getElementById('nu-pass')||{}).value||'',er=document.getElementById('nu-err');
+      if(!nm){er.innerHTML='<div class="outcome block">Enter a username.</div>';break;}
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){er.innerHTML='<div class="outcome block">Enter a valid email address.</div>';break;}
+      if(USERS.some(function(x){return x.email.toLowerCase()===ne.toLowerCase();})){er.innerHTML='<div class="outcome block">That email address is already used.</div>';break;}
+      if(!auto&&np.length<8){er.innerHTML='<div class="outcome block">The password needs at least 8 characters.</div>';break;}
+      var cu=addUserFrom({name:nm,email:ne},'Local');cu.hasPassword=true;closeModal();render(true);toast('Created '+nm+(auto?'. A password was emailed to them.':'.'));break;
+    case 'import-users':openImportUsers(b.dataset.v);break;
+    case 'import-users-save':var kind=b.dataset.v,emails=[].slice.call(document.querySelectorAll('.imp:checked')).map(function(i){return i.value;});
+      var pool=kind==='Plex'?PLEX_POOL:JELLY_POOL;emails.forEach(function(em){addUserFrom(pool.filter(function(p){return p.email===em;})[0],kind);});
+      closeModal();render(true);toast(emails.length?'Imported '+emails.length+' '+kind+' user'+(emails.length>1?'s':'')+' with the default permissions.':'Nothing to import.');break;
+    case 'bulk-edit':openBulkEdit();break;
+    case 'bulk-save':var bv=readPerms(document.getElementById('permEd')),ids=Object.keys(state.selected).filter(function(k){return state.selected[k];}).map(Number);
+      ids.forEach(function(i){if(i!==1)userById(i).perms=bv;});state.selected={};closeModal();render(true);toast('Saved permissions for '+ids.length+' user'+(ids.length>1?'s':'')+'.');break;
+    case 'delete-user':openDeleteUser(userById(+b.dataset.id));break;
+    case 'delete-user-confirm':target=userById(+b.dataset.id);USERS.splice(USERS.indexOf(target),1);for(var k=REQUESTS.length-1;k>=0;k--)if(REQUESTS[k].userId===target.id)REQUESTS.splice(k,1);
+      delete state.selected[target.id];closeModal();location.hash='#/users';render(true);toast('Deleted '+uname(target)+'.');break;
+    case 'save-perms':target=userById(+b.dataset.id);target.perms=readPerms(document.getElementById('permEd'));render(true);toast('Saved '+uname(target)+'’s permissions.');break;
+    case 'save-quota':target=userById(+b.dataset.id);if(target.quota.override){target.quota.album=[+document.getElementById('uq-a').value||0,+document.getElementById('uq-ad').value];target.quota.track=[+document.getElementById('uq-t').value||0,+document.getElementById('uq-td').value];}render(true);toast('Saved request limits.');break;
+    case 'save-password':target=userById(+b.dataset.id);var cur=document.getElementById('pw-cur'),pn=document.getElementById('pw-new').value,pc=document.getElementById('pw-con').value,pe=document.getElementById('pw-err');
+      if(cur&&!cur.value){pe.innerHTML='<div class="outcome block">Enter your current password.</div>';break;}
+      if(pn.length<8){pe.innerHTML='<div class="outcome block">The new password needs at least 8 characters.</div>';break;}
+      if(pn!==pc){pe.innerHTML='<div class="outcome block">The passwords don’t match.</div>';break;}
+      target.hasPassword=true;render(true);toast('Password saved.');break;
+    case 'link':target=userById(+b.dataset.id);target.linked[b.dataset.k]=target.name;render(true);toast('Linked '+b.textContent.replace('Link ','')+'.');break;
+    case 'unlink':target=userById(+b.dataset.id);target.linked[b.dataset.k]='';render(true);toast('Unlinked.');break;
+    case 'add-app':target=userById(+b.dataset.id);var an=(document.getElementById('ap-name').value||'').trim()||'New app';var pwd=Math.random().toString(36).slice(2,8)+'-'+Math.random().toString(36).slice(2,8)+'-'+Math.random().toString(36).slice(2,8);
+      target.appPasswords.push({name:an,created:new Date().toISOString().slice(0,10),last:'never'});render(true);document.getElementById('ap-out').innerHTML='<div class="outcome auto">Password for '+esc(an)+': <b class="mono">'+pwd+'</b>. Copy it now, it won’t be shown again.</div>';break;
+    case 'revoke-app':target=userById(+b.dataset.id);var gone=target.appPasswords.splice(+b.dataset.i,1)[0];render(true);toast('Revoked '+gone.name+'.');break;
+    /* settings */
+    case 'flip':var cur2=!!getB(b.dataset.bind);
+      if(!cur2===false&&/^S\.login\.(local|plex|jellyfin)$/.test(b.dataset.bind)){var L=settings.login,cnt=(L.local?1:0)+(L.plex?1:0)+(L.jellyfin?1:0);if(cnt<=1){toast('At least one sign-in method has to stay on.',true);break;}}
+      setB(b.dataset.bind,!cur2);render(true);break;
+    case 'saved':toast(b.dataset.msg||'Settings saved.');break;
+    case 'toast':toast(b.dataset.msg);break;
+    case 'copy':try{navigator.clipboard.writeText(b.dataset.v);}catch(err){}toast('Copied to clipboard.');break;
+    case 'regen-key':settings.main.apiKey=Array.from({length:32},function(){return '0123456789abcdef'[Math.floor(Math.random()*16)];}).join('');render(true);toast('Made a new API key. Update any scripts that used the old one.');break;
+    case 'save-global-quota':settings.globalQuota.album=[+document.getElementById('gq-a').value||0,+document.getElementById('gq-ad').value];settings.globalQuota.track=[+document.getElementById('gq-t').value||0,+document.getElementById('gq-td').value];render(true);toast('Saved global limits.');break;
+    case 'add-folder':var nf=(document.getElementById('new-folder').value||'').trim();if(!nf||nf.charAt(0)!=='/'){toast('Enter a folder path that starts with /.',true);break;}settings.stream.local.folders.push(nf);render(true);toast('Added '+nf+'.');break;
+    case 'rm-folder':var rf=settings.stream.local.folders.splice(+b.dataset.i,1)[0];render(true);toast('Removed '+rf+'.');break;
+    case 'scan':state.scan=state.scan||{};state.scan[b.dataset.k]=0;render(true);break;
+    case 'scan-cancel':delete state.scan[b.dataset.k];render(true);toast('Scan cancelled.');break;
+    case 'job-run':var jb=JOBS.filter(function(x){return x.id===b.dataset.id;})[0];jb.running=true;render(true);toast(jb.name+' started.');setTimeout(function(){jb.running=false;LOGS.unshift({t:new Date(),lvl:'info',label:'Jobs',msg:jb.name+' finished'});if(location.hash.indexOf('settings/jobs')>-1)render(true);},4000);break;
+    case 'job-cancel':var jc=JOBS.filter(function(x){return x.id===b.dataset.id;})[0];jc.running=false;render(true);toast(jc.name+' cancelled.');break;
+    case 'flush':var ch=CACHES[+b.dataset.i];ch.hits=0;ch.misses=0;ch.keys=0;render(true);toast('Cleared the '+ch.name+' cache.');break;
+    case 'log-pause':state.logPaused=!state.logPaused;render(true);break;
+    case 'issue':toast('Problem reports are coming in a later version.');break;
+    case 'play':setPlaying(true);break;
+    case 'play-track':setNow(b.dataset.t,b.dataset.a);setPlaying(true);break;
+  }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){if(document.querySelector('.plex-pop')){closeModal();state.plexBusy=false;render(false);}else if(document.querySelector('.overlay'))closeModal();closeMenu();}
+  if(e.key==='/'&&state.user&&!/input|select|textarea/i.test(document.activeElement.tagName)){e.preventDefault();document.getElementById('q').focus();}
+});
+
+/* ======================= simulations ======================= */
+setInterval(function(){
+  var changed=false;
+  REQUESTS.forEach(function(r){
+    if(r.status!==RS.APPROVED)return;
+    r.pct=Math.min(100,r.pct+5+Math.floor(Math.random()*9));changed=true;
+    if(r.pct>=100){r.status=RS.COMPLETED;syncMedia(r);LOGS.unshift({t:new Date(),lvl:'info',label:'Lidarr',msg:'Imported “'+reqTitle(r)+'”'});if(state.user&&r.userId===state.user.id)toast(reqTitle(r)+' is now in your library.');}
+  });
+  if(state.scan){Object.keys(state.scan).forEach(function(k){state.scan[k]+=12;if(state.scan[k]>=100){delete state.scan[k];toast('Library scan finished.');}});}
+  var onScan=state.scan&&location.hash.indexOf('#/settings/')===0;
+  if(state.user&&!document.querySelector('.overlay')&&(((changed&&['requests','album'].indexOf(route())>-1))||onScan))render(true);
+},2500);
+setInterval(function(){
+  if(state.logPaused)return;var l=LOG_LABELS[Math.floor(Math.random()*LOG_LABELS.length)];LOGS.unshift({t:new Date(),lvl:l[0],label:l[1],msg:l[2]});
+  if(LOGS.length>200)LOGS.pop();
+  if(state.user&&location.hash.indexOf('#/settings/logs')===0&&!document.querySelector('.overlay')&&document.activeElement.id!=='ls')render(true);
+},4000);
+
+/* ======================= theme ======================= */
+document.getElementById('themeBtn').addEventListener('click',function(){
+  var cur=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  var next=cur==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('shufflerr-theme',next);}catch(err){}
+});
+try{var saved=localStorage.getItem('shufflerr-theme');if(saved)document.documentElement.setAttribute('data-theme',saved);}catch(err){}
+
+/* ======================= player ======================= */
+var BARS=96,pos=0.35,playing=false,dur=203,timer=null,wave=document.getElementById('wave');
+var hs=[];for(var i=0;i<BARS;i++){hs.push(Math.round(Math.min(1,0.25+0.75*Math.abs(Math.sin(i*0.37)*0.6+Math.sin(i*1.13)*0.3+Math.sin(i*0.07)*0.25))*100));}
+wave.innerHTML=hs.map(function(h){return '<i style="height:'+h+'%"></i>';}).join('');
+function fmt(s){s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function paint(){var on=Math.floor(pos*BARS);wave.querySelectorAll('i').forEach(function(el,i){el.classList.toggle('on',i<on);});document.getElementById('time').textContent=fmt(pos*dur)+' / '+fmt(dur);}
+function setPlaying(p){playing=p;document.getElementById('playBtn').setAttribute('aria-label',p?'Pause':'Play');
+  document.getElementById('playIcon').innerHTML=p?'<path d="M7 4h4v16H7zM13 4h4v16h-4z"/>':'<path d="M7 4v16l13-8z"/>';
+  clearInterval(timer);if(p){timer=setInterval(function(){pos+=1/dur;if(pos>=1)pos=0;paint();},1000);}}
+function setNow(t,a){document.getElementById('nowTitle').textContent=t;document.getElementById('nowArtist').textContent=a;pos=0;paint();}
+document.getElementById('playBtn').addEventListener('click',function(){setPlaying(!playing);});
+wave.addEventListener('click',function(e){var rc=wave.getBoundingClientRect();pos=Math.max(0,Math.min(1,(e.clientX-rc.left)/rc.width));paint();});
+paint();
+
+/* ======================= boot ======================= */
+try{var sid=localStorage.getItem('shufflerr-session');if(sid&&userById(+sid))state.user=userById(+sid);}catch(err){}
+document.getElementById('q').value=state.search;
+render(false);
+})();
+
+</script>
+</body>
+</html>

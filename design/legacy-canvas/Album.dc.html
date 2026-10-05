@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shufflerr — Album: CTRL ESCAPE</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0C101B}
+a{color:#FF5C7A;text-decoration:none}a:hover{color:#FF8FA3}
+input::placeholder{color:#7F8A9A}
+@media (max-width: 720px){.rail{flex-direction:row!important;flex-basis:100%!important;justify-content:space-between;border-right:0!important;border-bottom:1px solid #1E2636;padding:8px 12px!important}.rail .sp{display:none}.rail .brand{margin:0!important}}
+
+select option{background:#141A26;color:#E9EEF4}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: #0C101B; color: #E9EEF4; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+<nav aria-label="Primary" class="rail" style="flex: 1 0 76px; box-sizing: border-box; padding: 20px 14px; background: #090C14; border-right: 1px solid #1E2636; display: flex; flex-direction: column; align-items: center; gap: 6px">
+<a href="Main.dc.html" class="brand" aria-label="Shufflerr home" style="width: 44px; height: 44px; display: grid; place-items: center; margin-bottom: 18px; border-radius: 12px; background: {{accent}}; color: #0C101B; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 17px; letter-spacing: -0.04em">s/</a>
+<a href="Main.dc.html" aria-label="Discover" title="Discover" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.discover.bg}}; color: {{rail.discover.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2 5-5 2 2-5z"></path></svg></a>
+<a href="Search.dc.html" aria-label="Search" title="Search" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.search.bg}}; color: {{rail.search.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></a>
+<a href="Artist.dc.html" aria-label="Artists" title="Artists" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.artists.bg}}; color: {{rail.artists.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v4"></path></svg></a>
+<a href="Album.dc.html" aria-label="Albums" title="Albums" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.albums.bg}}; color: {{rail.albums.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg></a>
+<a href="Requests.dc.html" aria-label="Requests" title="Requests" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.requests.bg}}; color: {{rail.requests.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg><span style="position: absolute; top: 6px; right: 5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: {{accent}}; color: #0C101B; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center">4</span></a>
+<div class="sp" style="flex: 1"></div>
+<a href="Settings.dc.html" aria-label="Settings" title="Settings" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.settings.bg}}; color: {{rail.settings.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><path d="M18 7h2"></path><circle cx="16" cy="7" r="2"></circle><path d="M4 17h2"></path><path d="M10 17h10"></path><circle cx="8" cy="17" r="2"></circle></svg></a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 32px; border-bottom: 1px solid #1E2636">
+<div style="flex: 1 1 320px; max-width: 640px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; box-sizing: border-box; background: #141A26; border: 1px solid #283143; border-radius: 6px">
+<label for="q" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: {{accent}}">search&gt;</label>
+<input id="q" type="search" placeholder="artists, albums, tracks…" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: #E9EEF4; font-family: inherit; font-size: 15px">
+<kbd style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9CA8B0; padding: 2px 6px; border: 1px solid #283143; border-radius: 3px">/</kbd>
+</div>
+<div style="flex: 1 1 0"></div>
+<a href="Requests.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid #283143; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #F5B83D">4 pending</a>
+<button type="button" aria-label="Account menu" style="height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 6px; background: transparent; border: 1px solid #283143; border-radius: 6px; color: #E9EEF4; font-family: inherit; font-size: 14px; cursor: pointer"><span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 4px; display: grid; place-items: center; background: #2B3A35; color: #7FE0D2; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">AD</span>admin</button>
+</header>
+
+<div style="padding: 32px; display: flex; flex-direction: column; gap: 36px; box-sizing: border-box; width: 100%; max-width: 1360px">
+
+<p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #7F8A9A"><a href="Artist.dc.html" style="color: #9CA8B0">john-summit</a> / ctrl-escape</p>
+
+<sc-if value="{{sent}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid #5FD3C6; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5FD3C6">✓ request #1042 sent → lidarr-main · 4 tracks · Lossless (FLAC)</div>
+</sc-if>
+
+<section aria-labelledby="alb" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end">
+<span aria-hidden="true" style="position: relative; width: 280px; height: 280px; flex: none; border-radius: 6px; overflow: hidden; background: #232A3A; border: 1px dashed #3B4660; box-sizing: border-box; display: grid; place-items: center; color: #9DB4FF">
+<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg>
+<span style="position: absolute; left: 14px; bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em">COVER ART · COVERARTARCHIVE</span>
+</span>
+<div style="flex: 1 1 420px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">ALBUM · APR 15, 2026 · EXPERTS ONLY / DARKROOM</span>
+<h1 id="alb" style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 56px; line-height: 1.05; font-weight: 700; letter-spacing: -0.03em">CTRL ESCAPE</h1>
+<a href="Artist.dc.html" style="font-size: 18px; font-weight: 600; color: #E9EEF4">John Summit</a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9CA8B0">
+<span>13 tracks</span><span aria-hidden="true">·</span><span>40:32</span><span aria-hidden="true">·</span><span style="padding: 3px 8px; border: 1px solid #7FD08A; border-radius: 3px; color: #7FD08A; font-size: 11px; letter-spacing: 0.08em">PARTIAL · 9 / 13</span>
+</div>
+<div aria-hidden="true" style="height: 6px; max-width: 420px; border-radius: 3px; background: #1E2636; overflow: hidden"><div style="width: 69%; height: 100%; background: #7FD08A"></div></div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px">
+<button type="button" onClick="{{openModal}}" style="min-height: 44px; padding: 0 18px; border-radius: 5px; border: 1px solid {{accent}}; background: {{accent}}; color: #0C101B; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; cursor: pointer">request missing tracks (4)</button>
+<button type="button" onClick="{{openModal}}" style="min-height: 44px; padding: 0 16px; border-radius: 5px; border: 1px solid #283143; background: transparent; color: #E9EEF4; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer">request full album</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 5px; border: 1px solid #283143; background: transparent; color: #9CA8B0; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer">report issue</button>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="h-tl" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="h-tl" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: #E9EEF4">Tracklist</h2>
+<div style="overflow-x: auto; border: 1px solid #1E2636; border-radius: 6px">
+<div style="min-width: 680px">
+<div style="display: grid; grid-template-columns: 48px minmax(240px, 3fr) 72px 150px 140px; gap: 14px; align-items: center; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A; border-bottom: 1px solid #1E2636">
+<span>#</span><span>TITLE</span><span>TIME</span><span>FILE</span><span>STATUS</span>
+</div>
+<sc-for list="{{tracks}}" as="t" hint-placeholder-count="10">
+<div style="display: grid; grid-template-columns: 48px minmax(240px, 3fr) 72px 150px 140px; gap: 14px; align-items: center; min-height: 52px; padding: 0 16px; border-bottom: 1px solid #171D2A; font-size: 14px; color: {{t.fg}}">
+<span style="font-family: 'JetBrains Mono', monospace; color: #7F8A9A">{{t.n}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 500">{{t.title}}</span><span style="font-size: 12px; color: #9CA8B0">{{t.feat}}</span></span>
+<span style="font-family: 'JetBrains Mono', monospace; color: #9CA8B0">{{t.dur}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9CA8B0">{{t.file}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: {{t.st.c}}">{{t.st.l}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+</div>
+</main>
+<div class="player" style="flex: 1 1 100%; position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; min-height: 76px; padding: 12px 24px; box-sizing: border-box; background: #090C14; border-top: 1px solid #1E2636">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.24em; color: {{accent}}">SHUFFLERR</span>
+<div style="display: flex; align-items: center; gap: 4px"><button type="button" aria-label="Previous track" style="width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: #9CA8B0; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 9 12l10-8z"></path><path d="M5 19V5"></path></svg></button><button type="button" aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 48px; height: 48px; display: grid; place-items: center; border: 2px solid {{accent}}; border-radius: 50%; background: transparent; color: {{accent}}; font-size: 16px; cursor: pointer">{{playGlyph}}</button><button type="button" aria-label="Next track" style="width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: #9CA8B0; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 10 8-10 8z"></path><path d="M19 5v14"></path></svg></button></div>
+<div style="flex: 0 1 260px; min-width: 0; display: flex; align-items: center; gap: 12px"><span aria-hidden="true" style="width: 44px; height: 44px; flex: none; border-radius: 6px; background: #232A3A; display: grid; place-items: center; color: #9DB4FF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg></span><span style="min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600; font-size: 14px; color: #E9EEF4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">SHADES OF BLUE</span><span style="font-size: 12px; color: #9CA8B0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">John Summit, Devault, Julia Church</span></span></div>
+<div aria-hidden="true" style="flex: 1 1 280px; min-width: 0; height: 40px; display: flex; align-items: center; gap: 2px; overflow: hidden"><sc-for list="{{wave}}" as="w" hint-placeholder-count="96"><span style="flex: 1 0 2px; height: {{w.h}}; border-radius: 2px; background: {{w.c}}"></span></sc-for></div>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9CA8B0">1:12 / 3:23</span>
+<span style="padding: 3px 8px; border: 1px solid #283143; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #9CA8B0">VIA NAVIDROME</span>
+</div>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+<div style="position: absolute; inset: 0; background: rgba(5,6,6,0.78); display: flex; justify-content: center; align-items: flex-start; padding: 96px 16px 32px; box-sizing: border-box">
+<section role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 100%; max-width: 640px; background: #141A26; border: 1px solid #283143; border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #1E2636">
+<h2 id="dlg-title" style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700"><span style="color: {{accent}}">$</span> request album</h2>
+<button type="button" aria-label="Close" onClick="{{closeModal}}" style="width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: #9CA8B0; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+</div>
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; gap: 14px">
+<span aria-hidden="true" style="width: 56px; height: 56px; flex: none; border-radius: 3px; background: #232A3A; display: grid; place-items: center; color: #9DB4FF"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">CTRL ESCAPE</span><span style="font-size: 13px; color: #9CA8B0">John Summit · 2026 · 9 of 13 tracks in library</span></div>
+</div>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">WHAT TO REQUEST</legend>
+<sc-for list="{{scopes}}" as="o" hint-placeholder-count="3">
+<label style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border: 1px solid {{o.bd}}; border-radius: 6px; background: {{o.bg}}; cursor: pointer">
+<input type="radio" name="scope" checked="{{o.checked}}" onChange="{{o.pick}}" style="width: 18px; height: 18px; accent-color: {{accent}}">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600; font-size: 14px">{{o.label}}</span><span style="font-size: 12px; color: #9CA8B0">{{o.sub}}</span></span>
+</label>
+</sc-for>
+</fieldset>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">SERVER
+<select style="height: 44px; padding: 0 10px; background: #0C101B; border: 1px solid #283143; border-radius: 5px; color: #E9EEF4; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; letter-spacing: 0"><option>lidarr-main (default)</option><option>lidarr-hires</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">QUALITY PROFILE
+<select style="height: 44px; padding: 0 10px; background: #0C101B; border: 1px solid #283143; border-radius: 5px; color: #E9EEF4; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; letter-spacing: 0"><option>Lossless (FLAC)</option><option>Hi-Res (24-bit FLAC)</option><option>High (MP3 320)</option><option>Any</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">METADATA PROFILE
+<select style="height: 44px; padding: 0 10px; background: #0C101B; border: 1px solid #283143; border-radius: 5px; color: #E9EEF4; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; letter-spacing: 0"><option>Standard</option><option>Albums only</option><option>Everything</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">ROOT FOLDER
+<select style="height: 44px; padding: 0 10px; background: #0C101B; border: 1px solid #283143; border-radius: 5px; color: #E9EEF4; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; letter-spacing: 0"><option>/mnt/music · 2.1 TB free</option><option>/mnt/music-archive · 640 GB free</option></select></label>
+</div>
+
+<label style="display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; font-size: 14px">
+<input type="checkbox" checked="{{monitor}}" onChange="{{toggleMonitor}}" style="width: 18px; height: 18px; accent-color: {{accent}}">
+Monitor future releases from John Summit
+</label>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px dashed #283143; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9CA8B0">
+<div style="display: flex; justify-content: space-between"><span>weekly quota</span><span><span style="color: #E9EEF4">7</span> / 10 albums left</span></div>
+<div aria-hidden="true" style="height: 4px; border-radius: 2px; background: #1E2636; overflow: hidden"><div style="width: 30%; height: 100%; background: {{accent}}"></div></div>
+<div style="color: #7F8A9A">admins auto-approve · resets mon 00:00</div>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #1E2636">
+<button type="button" onClick="{{closeModal}}" style="min-height: 44px; padding: 0 18px; border-radius: 5px; border: 1px solid #283143; background: transparent; color: #E9EEF4; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer">cancel</button>
+<button type="button" onClick="{{submit}}" style="min-height: 44px; padding: 0 20px; border-radius: 5px; border: 1px solid {{accent}}; background: {{accent}}; color: #0C101B; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; cursor: pointer">{{submitLabel}}</button>
+</div>
+</section>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FF1744","options":["#FF1744","#F5B83D","#5FD3C6","#9DB4FF"]},"showRequestModal":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":1700}}'>
+var ST={lib:{l:'IN LIBRARY',c:'#5FD3C6'},miss:{l:'MISSING',c:'#F08C7A'},pending:{l:'PENDING',c:'#F5B83D'}};
+var NAV=[['Discover','Main.dc.html','g d'],['Search','Search.dc.html','/'],['Artists','Artist.dc.html','g a'],['Albums','Album.dc.html','g l'],['Requests','Requests.dc.html','g r','4'],['Settings','Settings.dc.html','g s']];
+function navFor(active,accent){return NAV.map(function(n){var on=n[0]===active;return {label:n[0],href:n[1],key:n[2],count:n[3]||'',hasCount:!!n[3],bg:on?'#1A2131':'transparent',fg:on?'#E9EEF4':'#9CA8B0',mark:on?'▸':'',markC:accent};});}
+
+function railFor(active,accent){var keys={Discover:'discover',Search:'search',Artists:'artists',Albums:'albums',Requests:'requests',Settings:'settings'};var r={};Object.keys(keys).forEach(function(k){var on=k===active;r[keys[k]]={bg:on?'#1A2131':'transparent',fg:on?accent:'#7F8A9A'};});return r;}
+function waveFor(accent){var out=[];for(var i=0;i<96;i++){var v=0.25+0.75*Math.abs(Math.sin(i*0.37)*0.6+Math.sin(i*1.13)*0.3+Math.sin(i*0.07)*0.25);out.push({h:Math.round(Math.min(1,v)*100)+'%',c:i<34?accent:'#2E3850'});}return out;}
+var TR=[['01','STATUS:AWAY','John Summit','3:26',1],['02','SHADES OF BLUE','John Summit, Devault, Julia Church','3:23',1],['03','SATA','John Summit, Rohaan','3:02',1],['04','WITH ME','John Summit, Julia Wolf','3:03',1],['05',"DON'T BELIEVE IT",'John Summit, Absolutely','3:07',1],['06','LIGHTS GO OUT','John Summit','2:38',1],['07','MESS W/ ME','John Summit, Nija','4:09',0],['08','CHICA 305','John Summit, Feid','3:08',0],['09','ALL THE TIME','John Summit, The Chainsmokers, Ilsey','3:00',1],['10','OOO','John Summit','0:59',0],['11','SHADOWS','John Summit, LAVINIA','3:21',1],['12','TIME WITH YOU','John Summit, KILIMANJARO','3:58',1],['13','CYANIDE','John Summit, Absolutely','3:18',0]];
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var accent = this.props.accent ?? '#FF1744';
+    var st = this.state || {};
+    var open = st.open !== undefined ? st.open : (this.props.showRequestModal ?? true);
+    var scope = st.scope || 'missing';
+    var monitor = st.monitor !== undefined ? st.monitor : true;
+    var sent = !!st.sent;
+    var scopes = [['missing','Missing tracks only','4 tracks · 07, 08, 10, 13'],['album','Entire album','13 tracks · upgrades existing files if a better release exists'],['disco','Entire discography','8 releases · needs admin approval']].map(function(o){
+      var on = o[0] === scope;
+      return { label: o[1], sub: o[2], checked: on, bd: on ? accent : '#283143', bg: on ? '#1C1424' : 'transparent', pick: function(){ self.setState({ scope: o[0] }); } };
+    });
+    var tracks = TR.map(function(t){
+      var s = t[4] ? 'lib' : (sent ? 'pending' : 'miss');
+      return { n: t[0], title: t[1], feat: t[2], dur: t[3], st: ST[s], file: t[4] ? 'FLAC 16/44.1' : '—', fg: t[4] ? '#E9EEF4' : '#C5CED8' };
+    });
+    return {
+      accent: accent, nav: navFor('Albums', accent), rail: railFor('Albums', accent), wave: waveFor(accent), playLabel: (this.state && this.state.playing) ? 'Pause' : 'Play', playGlyph: (this.state && this.state.playing) ? '❚❚' : '▶', togglePlay: (function(c){ return function(){ c.setState({ playing: !(c.state && c.state.playing) }); }; })(this), open: open, sent: sent, scopes: scopes, tracks: tracks, monitor: monitor,
+      submitLabel: scope === 'missing' ? 'request 4 tracks' : (scope === 'album' ? 'request album' : 'request discography'),
+      openModal: function(){ self.setState({ open: true }); },
+      closeModal: function(){ self.setState({ open: false }); },
+      toggleMonitor: function(){ self.setState({ monitor: !monitor }); },
+      submit: function(){ self.setState({ open: false, sent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

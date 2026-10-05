@@ -1,0 +1,79 @@
+# Seerr → Shufflerr reuse map
+
+Seerr reference: `seerr-team/seerr@2cfbcf8940225f1597d44f507fd78040887c5597` (develop, 2026-10-03), MIT.
+Shufflerr-only additions (no Seerr source): Player, Waveform, Import page, LinkedAccount, AppPassword, ScrobbleQueue, client APIs (`/rest`, `/jellyfin`), Navidrome/local/YouTube/Spotify/Deezer/iTunes/Ticketmaster/Skiddle/ListenBrainz/Last.fm clients.
+Legend: **Keep** = reuse as-is (rename only) · **Adapt** = reuse structure, change domain
+logic · **Rewrite** = new code, Seerr used only as reference · **Drop** = remove.
+Every Keep/Adapt row must be listed in `NOTICE.md` and carry the attribution header.
+
+## Server
+
+| Seerr path | Action | Shufflerr notes |
+|---|---|---|
+| `server/index.ts`, `server/datasource.ts`, `server/logger.ts`, `server/middleware/*` | Keep | Bootstrap, DB, logging, auth middleware |
+| `server/lib/settings/*` | Adapt | Replace radarr/sonarr/tmdb blocks with lidarr[], musicbrainz, coverart, listenbrainz, lastfm, mediaServer |
+| `server/lib/permissions.ts` | Adapt | New music bits (CLAUDE.md §4) |
+| `server/lib/cache.ts`, `server/lib/imageproxy.ts`, `server/routes/imageproxy.ts`, `server/routes/avatarproxy.ts` | Keep | Add CAA/fanart hosts to image proxy |
+| `server/lib/notifications/**` (agents: discord, email, gotify, ntfy, pushbullet, pushover, slack, telegram, webhook, webpush) | Adapt | Keep all 10 agents; new types (pending, autoApproved, approved, declined, available, failed) and music payload vars (ADMIN_PAGES.md) |
+| `server/lib/email/*`, `server/templates/*` | Adapt | Music wording |
+| `server/lib/refreshToken.ts`, `server/routes/auth.ts` | Keep | Plex PIN + Jellyfin + local login (AUTH.md); add `jellyfin.newLogin` rule; logout page |
+| `server/lib/scanners/baseScanner.ts` | Keep | |
+| `server/lib/scanners/plex`, `server/lib/scanners/jellyfin` | Adapt | Music libraries only |
+| `server/lib/scanners/radarr` | Adapt → `lidarr` | |
+| `server/lib/scanners/sonarr` | Drop | |
+| — | Rewrite | `server/lib/scanners/subsonic` (Navidrome) |
+| `server/lib/availabilitySync.ts`, `server/lib/downloadtracker.ts` | Adapt | Track-level availability |
+| `server/lib/search.ts` | Rewrite | MusicBrainz search |
+| `server/lib/overrideRules.ts`, `server/entity/OverrideRule.ts` | Adapt | Route by genre/user to a Lidarr instance |
+| `server/lib/watchlistsync.ts`, `server/entity/Watchlist.ts` | Adapt (later) | "Follow artist" — v0.2 |
+| `server/lib/overseerrMerge.ts` | Drop | |
+| `server/api/externalapi.ts` | Keep | Base HTTP client |
+| `server/api/servarr/base.ts` | Keep | Lidarr extends it; override API version |
+| `server/api/servarr/radarr.ts` | Reference | Pattern for `lidarr.ts` |
+| `server/api/servarr/sonarr.ts` | Drop | |
+| `server/api/plexapi.ts`, `plextv.ts`, `jellyfin.ts` | Adapt | Music endpoints |
+| `server/api/themoviedb/*`, `tvdb/*`, `animelist.ts`, `rating/*`, `ratings.ts`, `tautulli.ts`, `metadata.ts`, `provider.ts` | Drop | |
+| — | Rewrite | `server/api/musicbrainz/*`, `server/api/coverartarchive.ts`, `server/api/listenbrainz.ts`, `server/api/lastfm.ts`, `server/api/fanart.ts`, `server/api/subsonic.ts`, `server/api/servarr/lidarr.ts` |
+| `server/entity/User.ts`, `UserSettings.ts`, `Session.ts`, `UserPushSubscription.ts` | Keep | Quota fields → album/track |
+| `server/entity/Media.ts`, `MediaRequest.ts` | Adapt | MBID keys, scopes |
+| `server/entity/Season.ts`, `SeasonRequest.ts` | Drop → `TrackRequest.ts` | |
+| `server/entity/Issue.ts`, `IssueComment.ts` | Adapt | Issue types: wrong release, bad tags, low quality, missing tracks |
+| `server/entity/Blocklist.ts` | Adapt | Block artists/releases |
+| `server/entity/DiscoverSlider.ts` | Adapt | Music slider types |
+| `server/migration/*` | Drop | New initial migration for SQLite + Postgres |
+| `server/routes/request.ts`, `media.ts`, `issue.ts`, `issueComment.ts`, `blocklist.ts`, `service.ts`, `settings/*`, `user/*` | Adapt | |
+| `server/routes/movie.ts`, `tv.ts`, `person.ts`, `collection.ts` | Drop → `artist.ts`, `release.ts`, `recording.ts` | |
+| `server/routes/discover.ts`, `search.ts` | Rewrite | |
+| `server/job/schedule.ts` | Adapt | Jobs: media-server scan, Lidarr sync, availability sync, image cache cleanup |
+| `server/test/*`, `*.test.ts` | Keep for kept modules | |
+
+## Front end
+
+| Seerr path | Action | Notes |
+|---|---|---|
+| `src/components/Common/*` | Keep, restyle | Primitives |
+| `src/components/Layout`, `Login`, `Setup`, `PermissionEdit`, `PermissionOption`, `QuotaSelector`, `NotificationTypeSelector`, `Toast`, `LoadingBar`, `StatusChecker`, `ServiceWorkerSetup`, `PWAHeader`, `ResetPassword`, `LanguageSelector` | Adapt | Restyle to design tokens; music wording |
+| `src/components/UserList/*` (index, BulkEditModal, PlexImportModal, JellyfinImportModal) | Adapt | Exactly as USER_SYSTEM.md |
+| `src/components/UserProfile/*`, `UserSettings/*` (General, Password, LinkedAccounts, Notifications, Permissions) | Adapt | + new App passwords tab; linked accounts gain Last.fm, ListenBrainz, Spotify |
+| `src/components/Settings/*` (SettingsLayout, Main, Users, Plex, Jellyfin, Services, Network, Notifications/*, Logs, JobsCache, About, Metadata) | Adapt | Grouped-sidebar layout; Services → Lidarr; add Navidrome, Local files, YouTube, Apps and devices, Spotify, Deezer, iTunes, Ticketmaster, Skiddle, Scrobbling (ADMIN_PAGES.md) |
+| `src/components/Settings/RadarrModal` | Adapt → LidarrModal | + metadata profile, hi-res flag |
+| `src/components/Settings/SonarrModal`, `OverrideRule` UI | Drop / backlog | OverrideRule UI comes back with the backlog item |
+| `src/components/RequestList`, `RequestCard`, `RequestBlock`, `RequestButton`, `ManageSlideOver`, `StatusBadge`, `IssueList`, `IssueDetails`, `IssueModal`, `IssueBlock`, `Blocklist*`, `DownloadBlock` | Adapt | |
+| `src/components/RequestModal/index.tsx`, `QuotaDisplay`, `AdvancedRequester` | Adapt → `ReleaseRequestModal` | Scope radio, server/quality/metadata profile/root folder |
+| `RequestModal/MovieRequestModal.tsx`, `TvRequestModal.tsx`, `CollectionRequestModal.tsx` | Reference/Drop | TvRequestModal's season picker → track picker |
+| `src/components/Discover`, `MediaSlider`, `Slider`, `TitleCard`, `Search` | Adapt | Album cards, artist cards |
+| `MovieDetails`, `TvDetails` | Rewrite → `ArtistDetails`, `ReleaseDetails` | Use `design/Artist.dc.html`, `design/Album.dc.html` |
+| `PersonDetails`, `PersonCard`, `CollectionDetails`, `CompanyCard`, `GenreCard`, `KeywordTag`, `AirDateBadge`, `RegionSelector` | Drop | |
+| `src/hooks/*`, `src/context/*`, `src/utils/*`, `src/i18n/*` | Keep/Adapt | |
+| `tailwind.config.js` | Adapt | Tokens from CLAUDE.md §6 |
+| `public/*` logos, `preview.jpg` | Drop | Seerr branding must not ship |
+
+## Infra
+
+| Seerr path | Action |
+|---|---|
+| `Dockerfile`, `compose.yaml`, `compose.postgres.yaml`, `charts/seerr-chart` | Adapt (rename to shufflerr) |
+| `.github/workflows/*` | Adapt (CI only; drop Seerr release/publish targets) |
+| `seerr-api.yml` | Rewrite as `shufflerr-api.yml` |
+| `docs/`, `gen-docs/` | Drop; new docs later |
+| `cypress/*` | Adapt for new flows |

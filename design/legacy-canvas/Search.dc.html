@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shufflerr — Search</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0C101B}
+a{color:#FF5C7A;text-decoration:none}a:hover{color:#FF8FA3}
+input::placeholder{color:#7F8A9A}
+@media (max-width: 720px){.rail{flex-direction:row!important;flex-basis:100%!important;justify-content:space-between;border-right:0!important;border-bottom:1px solid #1E2636;padding:8px 12px!important}.rail .sp{display:none}.rail .brand{margin:0!important}}
+
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #0C101B; color: #E9EEF4; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+<nav aria-label="Primary" class="rail" style="flex: 1 0 76px; box-sizing: border-box; padding: 20px 14px; background: #090C14; border-right: 1px solid #1E2636; display: flex; flex-direction: column; align-items: center; gap: 6px">
+<a href="Main.dc.html" class="brand" aria-label="Shufflerr home" style="width: 44px; height: 44px; display: grid; place-items: center; margin-bottom: 18px; border-radius: 12px; background: {{accent}}; color: #0C101B; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 17px; letter-spacing: -0.04em">s/</a>
+<a href="Main.dc.html" aria-label="Discover" title="Discover" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.discover.bg}}; color: {{rail.discover.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2 5-5 2 2-5z"></path></svg></a>
+<a href="Search.dc.html" aria-label="Search" title="Search" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.search.bg}}; color: {{rail.search.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></a>
+<a href="Artist.dc.html" aria-label="Artists" title="Artists" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.artists.bg}}; color: {{rail.artists.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v4"></path></svg></a>
+<a href="Album.dc.html" aria-label="Albums" title="Albums" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.albums.bg}}; color: {{rail.albums.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg></a>
+<a href="Requests.dc.html" aria-label="Requests" title="Requests" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.requests.bg}}; color: {{rail.requests.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg><span style="position: absolute; top: 6px; right: 5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: {{accent}}; color: #0C101B; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center">4</span></a>
+<div class="sp" style="flex: 1"></div>
+<a href="Settings.dc.html" aria-label="Settings" title="Settings" style="position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: {{rail.settings.bg}}; color: {{rail.settings.fg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><path d="M18 7h2"></path><circle cx="16" cy="7" r="2"></circle><path d="M4 17h2"></path><path d="M10 17h10"></path><circle cx="8" cy="17" r="2"></circle></svg></a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 32px; border-bottom: 1px solid #1E2636">
+<div style="flex: 1 1 320px; max-width: 640px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; box-sizing: border-box; background: #141A26; border: 1px solid {{accent}}; border-radius: 6px">
+<label for="q" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: {{accent}}">search&gt;</label>
+<input id="q" type="search" value="{{q}}" onChange="{{onQ}}" placeholder="artists, albums, tracks…" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: #E9EEF4; font-family: inherit; font-size: 15px">
+<kbd style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9CA8B0; padding: 2px 6px; border: 1px solid #283143; border-radius: 3px">esc</kbd>
+</div>
+<div style="flex: 1 1 0"></div>
+<a href="Requests.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid #283143; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #F5B83D">4 pending</a>
+<button type="button" aria-label="Account menu" style="height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 6px; background: transparent; border: 1px solid #283143; border-radius: 6px; color: #E9EEF4; font-family: inherit; font-size: 14px; cursor: pointer"><span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 4px; display: grid; place-items: center; background: #2B3A35; color: #7FE0D2; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">AD</span>admin</button>
+</header>
+
+<div style="padding: 32px; display: flex; flex-direction: column; gap: 36px; box-sizing: border-box; width: 100%; max-width: 1360px">
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #7F8A9A">$ shufflerr search "{{q}}" --source musicbrainz</p>
+<h1 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">57 matches</h1>
+<div role="group" aria-label="Filter results" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 44px; padding: 0 16px; border-radius: 5px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer">{{t.label}} <span style="opacity: 0.7">{{t.n}}</span></button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{showArtists}}" hint-placeholder-val="{{true}}">
+<section aria-labelledby="h-art" style="display: flex; flex-wrap: wrap; gap: 20px">
+<h2 id="h-art" style="flex: 1 1 100%; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #9CA8B0"><span style="color: {{accent}}">##</span> Artists</h2>
+<a href="Artist.dc.html" style="flex: 1 1 380px; display: flex; gap: 20px; align-items: center; padding: 20px; background: #10151F; border: 1px solid #1E2636; border-radius: 8px; color: #E9EEF4">
+<span aria-hidden="true" style="position: relative; width: 120px; height: 120px; flex: none; border-radius: 50%; background: #2B3A35; display: grid; place-items: center; color: #7FE0D2"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A">TOP RESULT · ARTIST</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">John Summit</span>
+<span style="font-size: 14px; color: #9CA8B0">House / Tech house · Experts Only · 2017–present</span>
+<span style="align-self: flex-start; padding: 3px 8px; border: 1px solid #7FD08A; border-radius: 3px; color: #7FD08A; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em">4 OF 8 IN LIBRARY</span>
+</span>
+</a>
+<ul style="flex: 1 1 380px; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid #1E2636; border-radius: 8px; overflow: hidden">
+<sc-for list="{{artists}}" as="r" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #171D2A">
+<span aria-hidden="true" style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: {{r.bg}}; display: grid; place-items: center; color: {{r.ink}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><a href="Artist.dc.html" style="color: #E9EEF4; font-weight: 600">{{r.name}}</a><span style="font-size: 13px; color: #9CA8B0">{{r.meta}}</span></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: {{r.st.c}}">{{r.st.l}}</span>
+</li>
+</sc-for>
+</ul>
+</section>
+</sc-if>
+
+<sc-if value="{{showAlbums}}" hint-placeholder-val="{{true}}">
+<section aria-labelledby="h-alb" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="h-alb" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: #E9EEF4">Albums &amp; EPs</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 24px 20px">
+<sc-for list="{{albums}}" as="a" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<a href="Album.dc.html" aria-label="{{a.title}} by {{a.artist}}" style="position: relative; display: block; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; background: {{a.bg}}">
+<span aria-hidden="true" style="position: absolute; inset: 0; display: grid; place-items: center; color: {{a.ink}}; opacity: 0.6"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: {{a.ink}}">COVER ART</span>
+<span style="position: absolute; left: 10px; top: 10px; padding: 3px 7px; border-radius: 3px; background: rgba(11,13,12,0.85); color: {{a.st.c}}; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em">{{a.st.l}}</span>
+</a>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<a href="Album.dc.html" style="color: #E9EEF4; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.title}}</a>
+<span style="font-size: 13px; color: #9CA8B0">{{a.artist}} · {{a.year}} · {{a.kind}}</span>
+</div>
+<sc-if value="{{a.canReq}}" hint-placeholder-val="{{false}}">
+<button type="button" onClick="{{a.request}}" style="min-height: 44px; border-radius: 5px; border: 1px solid {{accent}}; background: transparent; color: {{accent}}; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer">+ request</button>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{showTracks}}" hint-placeholder-val="{{true}}">
+<section aria-labelledby="h-trk" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="h-trk" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: #E9EEF4">Tracks</h2>
+<div style="overflow-x: auto; border: 1px solid #1E2636; border-radius: 6px">
+<div style="min-width: 760px">
+<div style="display: grid; grid-template-columns: 48px minmax(200px, 2fr) minmax(180px, 1.6fr) 72px 140px 132px; gap: 12px; align-items: center; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #7F8A9A; border-bottom: 1px solid #1E2636">
+<span>#</span><span>TITLE</span><span>ALBUM</span><span>TIME</span><span>STATUS</span><span></span>
+</div>
+<sc-for list="{{tracks}}" as="t" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: 48px minmax(200px, 2fr) minmax(180px, 1.6fr) 72px 140px 132px; gap: 12px; align-items: center; min-height: 56px; padding: 0 16px; border-bottom: 1px solid #171D2A; font-size: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; color: #7F8A9A">{{t.n}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600">{{t.title}}</span><span style="font-size: 13px; color: #9CA8B0">{{t.artist}}</span></span>
+<a href="Album.dc.html" style="color: #C5CED8">{{t.album}}</a>
+<span style="font-family: 'JetBrains Mono', monospace; color: #9CA8B0">{{t.dur}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: {{t.st.c}}">{{t.st.l}}</span>
+<sc-if value="{{t.canReq}}" hint-placeholder-val="{{false}}"><button type="button" onClick="{{t.request}}" style="min-height: 44px; padding: 0 12px; border-radius: 5px; border: 1px solid #283143; background: transparent; color: #E9EEF4; font-family: 'JetBrains Mono', monospace; font-size: 12px; cursor: pointer">+ track</button></sc-if>
+<sc-if value="{{t.canPlay}}" hint-placeholder-val="{{false}}"><a href="#" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5FD3C6">▶ play</a></sc-if>
+<sc-if value="{{t.waiting}}" hint-placeholder-val="{{false}}"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7F8A9A">queued</span></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+</sc-if>
+
+</div>
+</main>
+<div class="player" style="flex: 1 1 100%; position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; min-height: 76px; padding: 12px 24px; box-sizing: border-box; background: #090C14; border-top: 1px solid #1E2636">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.24em; color: {{accent}}">SHUFFLERR</span>
+<div style="display: flex; align-items: center; gap: 4px"><button type="button" aria-label="Previous track" style="width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: #9CA8B0; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 9 12l10-8z"></path><path d="M5 19V5"></path></svg></button><button type="button" aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 48px; height: 48px; display: grid; place-items: center; border: 2px solid {{accent}}; border-radius: 50%; background: transparent; color: {{accent}}; font-size: 16px; cursor: pointer">{{playGlyph}}</button><button type="button" aria-label="Next track" style="width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: #9CA8B0; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 10 8-10 8z"></path><path d="M19 5v14"></path></svg></button></div>
+<div style="flex: 0 1 260px; min-width: 0; display: flex; align-items: center; gap: 12px"><span aria-hidden="true" style="width: 44px; height: 44px; flex: none; border-radius: 6px; background: #232A3A; display: grid; place-items: center; color: #9DB4FF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg></span><span style="min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600; font-size: 14px; color: #E9EEF4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">SHADES OF BLUE</span><span style="font-size: 12px; color: #9CA8B0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">John Summit, Devault, Julia Church</span></span></div>
+<div aria-hidden="true" style="flex: 1 1 280px; min-width: 0; height: 40px; display: flex; align-items: center; gap: 2px; overflow: hidden"><sc-for list="{{wave}}" as="w" hint-placeholder-count="96"><span style="flex: 1 0 2px; height: {{w.h}}; border-radius: 2px; background: {{w.c}}"></span></sc-for></div>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9CA8B0">1:12 / 3:23</span>
+<span style="padding: 3px 8px; border: 1px solid #283143; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #9CA8B0">VIA NAVIDROME</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FF1744","options":["#FF1744","#F5B83D","#5FD3C6","#9DB4FF"]},"$preview":{"width":1440,"height":1740}}'>
+var ST={available:{l:'AVAILABLE',c:'#5FD3C6'},partial:{l:'PARTIAL',c:'#7FD08A'},processing:{l:'PROCESSING',c:'#9DB4FF'},pending:{l:'PENDING',c:'#F5B83D'},declined:{l:'DECLINED',c:'#F08C7A'},none:{l:'NOT REQUESTED',c:'#7F8A9A'},lib:{l:'IN LIBRARY',c:'#5FD3C6'},nolib:{l:'NOT IN LIBRARY',c:'#7F8A9A'}};
+var PAL=[['#2B3A35','#7FE0D2'],['#3A2E22','#F5B83D'],['#232A3A','#9DB4FF'],['#382328','#F08C7A'],['#2E3322','#C8E07A'],['#30263A','#D2A6F5'],['#1F2E2E','#E9EEF4'],['#3A3520','#F2E3A0']];
+var NAV=[['Discover','Main.dc.html','g d'],['Search','Search.dc.html','/'],['Artists','Artist.dc.html','g a'],['Albums','Album.dc.html','g l'],['Requests','Requests.dc.html','g r','4'],['Settings','Settings.dc.html','g s']];
+function navFor(active,accent){return NAV.map(function(n){var on=n[0]===active;return {label:n[0],href:n[1],key:n[2],count:n[3]||'',hasCount:!!n[3],bg:on?'#1A2131':'transparent',fg:on?'#E9EEF4':'#9CA8B0',mark:on?'▸':'',markC:accent};});}
+
+function railFor(active,accent){var keys={Discover:'discover',Search:'search',Artists:'artists',Albums:'albums',Requests:'requests',Settings:'settings'};var r={};Object.keys(keys).forEach(function(k){var on=k===active;r[keys[k]]={bg:on?'#1A2131':'transparent',fg:on?accent:'#7F8A9A'};});return r;}
+function waveFor(accent){var out=[];for(var i=0;i<96;i++){var v=0.25+0.75*Math.abs(Math.sin(i*0.37)*0.6+Math.sin(i*1.13)*0.3+Math.sin(i*0.07)*0.25);out.push({h:Math.round(Math.min(1,v)*100)+'%',c:i<34?accent:'#2E3850'});}return out;}
+function glyph(t){return t.replace(/[^A-Za-z0-9 ]/g,'').split(' ').filter(Boolean).map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();}
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var accent = this.props.accent ?? '#FF1744';
+    var st = this.state || {};
+    var tab = st.tab || 'all';
+    var q = st.q !== undefined ? st.q : 'john summit';
+    var asked = st.asked || {};
+    function ask(id){ return function(){ var n = Object.assign({}, asked); n[id] = true; self.setState({ asked: n }); }; }
+    var tabs = [['all','All','57'],['artists','Artists','3'],['albums','Albums','12'],['tracks','Tracks','42']].map(function(t){
+      var on = t[0] === tab;
+      return { label: t[1], n: t[2], pressed: on ? 'true' : 'false', bg: on ? '#1A2131' : 'transparent', fg: on ? '#E9EEF4' : '#9CA8B0', bd: on ? accent : '#283143', pick: function(){ self.setState({ tab: t[0] }); } };
+    });
+    var albums = [['a1','CTRL ESCAPE','John Summit',2026,'Album','partial',0],['a2','Comfort in Chaos','John Summit',2024,'Album','available',2],['a3','LIGHTS GO OUT','John Summit',2026,'Single','available',4],['a4','ALL THE TIME','John Summit, The Chainsmokers',2026,'Single','available',6],['a5','light years','John Summit, Inéz',2025,'Single','none',3],['a6','Human','John Summit, Echoes',2021,'Single','none',7]].map(function(a){
+      var c = PAL[a[6]]; var s = asked[a[0]] ? 'pending' : a[5];
+      return { title: a[1], artist: a[2], year: a[3], kind: a[4], st: ST[s], bg: c[0], ink: c[1], glyph: glyph(a[1]), canReq: s === 'none', request: ask(a[0]) };
+    });
+    var tracks = [['k1','02','SHADES OF BLUE','John Summit, Devault, Julia Church','CTRL ESCAPE',' 3:23','available'],['k2','06','LIGHTS GO OUT','John Summit','CTRL ESCAPE',' 2:38','available'],['k3','07','MESS W/ ME','John Summit, Nija','CTRL ESCAPE',' 4:09','none'],['k4','08','CHICA 305','John Summit, Feid','CTRL ESCAPE',' 3:08','none'],['k5','09','ALL THE TIME','John Summit, The Chainsmokers, Ilsey','CTRL ESCAPE',' 3:00','available'],['k6','13','CYANIDE','John Summit, Absolutely','CTRL ESCAPE',' 3:18','none']].map(function(t){
+      var s = asked[t[0]] ? 'pending' : t[6];
+      return { n: t[1], title: t[2], artist: t[3], album: t[4], dur: t[5].trim(), st: ST[s], canReq: s === 'none', canPlay: s === 'available', waiting: s === 'pending' || s === 'processing', request: ask(t[0]) };
+    });
+    var artists = [['Julia Wolf','Featured on WITH ME','nolib',5],['LAVINIA','Featured on SHADOWS','nolib',2],['Absolutely','Featured on DON’T BELIEVE IT, CYANIDE','nolib',1]].map(function(r){ var c = PAL[r[3]]; return { name: r[0], meta: r[1], st: ST[r[2]], bg: c[0], ink: c[1], glyph: glyph(r[0]) }; });
+    return {
+      accent: accent, nav: navFor('Search', accent), rail: railFor('Search', accent), wave: waveFor(accent), playLabel: (this.state && this.state.playing) ? 'Pause' : 'Play', playGlyph: (this.state && this.state.playing) ? '❚❚' : '▶', togglePlay: (function(c){ return function(){ c.setState({ playing: !(c.state && c.state.playing) }); }; })(this), q: q,
+      onQ: function(e){ self.setState({ q: e.target.value }); },
+      tabs: tabs, albums: albums, tracks: tracks, artists: artists,
+      showArtists: tab === 'all' || tab === 'artists',
+      showAlbums: tab === 'all' || tab === 'albums',
+      showTracks: tab === 'all' || tab === 'tracks'
+    };
+  }
+}
+</script>
+</body>
+</html>

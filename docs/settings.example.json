@@ -1,0 +1,172 @@
+{
+  "clientId": "generated-uuid-on-first-boot",
+  "serverSecret": "generated-on-first-boot-used-to-encrypt-linked-account-secrets",
+  "main": {
+    "apiKey": "b3f1c9e2a7d64f0e9c51a8d2e6f73b04",
+    "applicationTitle": "Shufflerr",
+    "applicationUrl": "https://music.example.com",
+    "locale": "en",
+    "discoverRegion": "US",
+    "hideAvailable": false,
+    "allowTrackRequests": true,
+    "cacheImages": true,
+    "versionCheck": true,
+    "localLogin": true,
+    "newPlexLogin": true,
+    "defaultPermissions": 544,
+    "defaultQuotas": {
+      "album": { "quotaLimit": 10, "quotaDays": 7 },
+      "track": { "quotaLimit": 50, "quotaDays": 7 }
+    },
+    "discographyAlwaysReview": true
+  },
+  "plex": {
+    "enabled": true,
+    "loginEnabled": true,
+    "name": "Home server",
+    "machineId": "",
+    "ip": "10.0.20.20",
+    "port": 32400,
+    "useSsl": false,
+    "libraries": [
+      { "id": "3", "name": "Music", "enabled": true },
+      { "id": "7", "name": "Music (Hi-Res)", "enabled": true },
+      { "id": "9", "name": "Audiobooks", "enabled": false }
+    ]
+  },
+  "jellyfin": {
+    "enabled": true,
+    "loginEnabled": true,
+    "newLogin": false,
+    "url": "http://10.0.20.21:8096",
+    "apiKey": "",
+    "libraries": [
+      { "id": "a1", "name": "Music", "enabled": true },
+      { "id": "b2", "name": "Live Sets", "enabled": false }
+    ]
+  },
+  "navidrome": {
+    "enabled": true,
+    "url": "http://10.0.20.22:4533",
+    "username": "shufflerr",
+    "password": ""
+  },
+  "localFiles": {
+    "enabled": true,
+    "folders": ["/mnt/music", "/mnt/music-hires"],
+    "watch": true,
+    "rescanMinutes": 15
+  },
+  "youtube": {
+    "enabled": false,
+    "apiKey": "",
+    "region": "US",
+    "fillMissingWhileDownloading": true
+  },
+  "clients": {
+    "openSubsonic": true,
+    "jellyfinApi": true,
+    "allowDownloads": true,
+    "mobileTranscode": "opus-160"
+  },
+  "lidarr": [
+    {
+      "id": 0,
+      "name": "lidarr-main",
+      "hostname": "10.0.20.15",
+      "port": 8686,
+      "useSsl": false,
+      "baseUrl": "",
+      "apiKey": "",
+      "isDefault": true,
+      "isHiRes": false,
+      "activeQualityProfileId": 1,
+      "activeQualityProfileName": "Lossless (FLAC)",
+      "activeMetadataProfileId": 1,
+      "activeMetadataProfileName": "Standard",
+      "activeDirectory": "/mnt/music",
+      "tags": [],
+      "syncEnabled": true,
+      "preventSearch": false
+    },
+    {
+      "id": 1,
+      "name": "lidarr-hires",
+      "hostname": "10.0.20.15",
+      "port": 8687,
+      "useSsl": false,
+      "baseUrl": "",
+      "apiKey": "",
+      "isDefault": false,
+      "isHiRes": true,
+      "activeQualityProfileId": 3,
+      "activeQualityProfileName": "Hi-Res 24-bit",
+      "activeMetadataProfileId": 1,
+      "activeMetadataProfileName": "Standard",
+      "activeDirectory": "/mnt/music-hires",
+      "tags": [],
+      "syncEnabled": true,
+      "preventSearch": false
+    }
+  ],
+  "metadata": {
+    "musicbrainz": { "url": "https://musicbrainz.org", "requestsPerSecond": 1, "contact": "admin@example.com" },
+    "coverArtArchive": { "enabled": true },
+    "fanart": { "enabled": true, "apiKey": "" },
+    "lastfm": { "enabled": true, "apiKey": "", "sharedSecret": "" },
+    "priority": "musicbrainz-first"
+  },
+  "discover": {
+    "spotify": { "enabled": true, "clientId": "", "clientSecret": "", "savedAlbumsSync": "daily" },
+    "deezer": { "enabled": true },
+    "itunes": { "enabled": true, "country": "US" },
+    "ticketmaster": { "enabled": true, "apiKey": "", "country": "US", "radiusMiles": 50 },
+    "skiddle": { "enabled": false, "apiKey": "" },
+    "listenbrainzTrending": { "enabled": true }
+  },
+  "scrobble": {
+    "listenbrainz": { "enabled": true, "url": "https://api.listenbrainz.org" },
+    "lastfm": { "enabled": true },
+    "rule": "half-or-4min",
+    "sources": { "plex": true, "jellyfin": true, "navidrome": true, "apps": true, "web": true }
+  },
+  "network": {
+    "csrfProtection": false,
+    "trustProxy": true,
+    "forceIpv4First": false,
+    "dnsCache": { "enabled": true, "forceMinTtl": 300, "forceMaxTtl": 3600 },
+    "apiRequestTimeout": 10000,
+    "proxy": { "enabled": false, "hostname": "", "port": 8080, "useSsl": false, "user": "", "password": "", "bypassFilter": "", "bypassLocalAddresses": true }
+  },
+  "notifications": {
+    "agents": {
+      "email": { "enabled": true, "types": ["pending", "approved", "declined", "available", "failed"], "options": { "senderName": "Shufflerr", "emailFrom": "shufflerr@example.com", "smtpHost": "smtp.example.com", "smtpPort": 587, "secure": false, "requireTls": true, "authUser": "", "authPass": "", "allowSelfSigned": false, "pgpKey": "", "pgpPassword": "", "userEmailRequired": false } },
+      "webpush": { "enabled": true, "types": ["pending", "available"], "options": {} },
+      "discord": { "enabled": true, "types": ["pending", "autoApproved", "available"], "options": { "webhookUrl": "", "botUsername": "Shufflerr", "botAvatarUrl": "", "enableMentions": true } },
+      "slack": { "enabled": false, "types": ["pending"], "options": { "webhookUrl": "" } },
+      "telegram": { "enabled": false, "types": ["available"], "options": { "botAPI": "", "chatId": "", "sendSilently": false } },
+      "pushbullet": { "enabled": false, "types": ["available"], "options": { "accessToken": "", "channelTag": "" } },
+      "pushover": { "enabled": false, "types": ["available"], "options": { "accessToken": "", "userToken": "", "sound": "" } },
+      "webhook": { "enabled": false, "types": ["pending", "approved", "available"], "options": { "webhookUrl": "", "authHeader": "", "jsonPayload": "base64-encoded-template" } },
+      "gotify": { "enabled": false, "types": ["pending"], "options": { "url": "", "token": "", "priority": 5 } },
+      "ntfy": { "enabled": true, "types": ["available"], "options": { "url": "https://ntfy.sh", "topic": "shufflerr", "username": "", "password": "" } }
+    }
+  },
+  "jobs": {
+    "plex-recently-added-scan": { "schedule": "0 */5 * * * *" },
+    "plex-full-scan": { "schedule": "0 0 3 * * *" },
+    "plex-refresh-token": { "schedule": "0 0 5 * * *" },
+    "jellyfin-recently-added-scan": { "schedule": "0 */5 * * * *" },
+    "jellyfin-full-scan": { "schedule": "0 30 3 * * *" },
+    "navidrome-scan": { "schedule": "0 */15 * * * *" },
+    "local-files-scan": { "schedule": "0 */15 * * * *" },
+    "lidarr-scan": { "schedule": "0 0 4 * * *" },
+    "download-sync": { "schedule": "0 * * * * *" },
+    "download-sync-reset": { "schedule": "0 0 1 * * *" },
+    "availability-sync": { "schedule": "0 0 0 * * *" },
+    "spotify-saved-albums-sync": { "schedule": "0 0 6 * * *" },
+    "scrobble-queue": { "schedule": "*/30 * * * * *" },
+    "concerts-refresh": { "schedule": "0 0 7 * * *" },
+    "image-cache-cleanup": { "schedule": "0 0 2 * * *" }
+  }
+}
