@@ -30,3 +30,6 @@ service is used under its own terms.
 
 Shufflerr is an independent project and is not affiliated with or endorsed by the Seerr team,
 Plex, Jellyfin, Spotify, Deezer, Apple, Ticketmaster, Skiddle, Last.fm, MetaBrainz or YouTube.
+
+The album placeholder image (`public/no-cover.webp`) was supplied by the project owner, cropped
+from `https://mutationmedia.net/OUMAILA/img/vinyl.png`.

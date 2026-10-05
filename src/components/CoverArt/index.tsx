@@ -63,14 +63,20 @@ const CoverArt = ({
       }`}
       style={{ '--tint': bg, '--ink': ink, ...style } as CSSProperties}
     >
-      {!(showImage && loaded) &&
+      {!showImage && !round && !showInitials ? (
+        // Albums with no art: the vinyl placeholder instead of an empty slot.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/no-cover.webp" alt="" loading={loading} decoding="async" />
+      ) : (
+        !(showImage && loaded) &&
         (showInitials && title ? (
           <span className="initials" aria-hidden="true">
             {initials(title)}
           </span>
         ) : (
           <Icon aria-hidden="true" strokeWidth={1.5} />
-        ))}
+        ))
+      )}
       {showImage && (
         // eslint-disable-next-line @next/next/no-img-element
         <img

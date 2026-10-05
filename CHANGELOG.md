@@ -6,6 +6,8 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-05
+
 ### Added
 
 - Container image published at `ghcr.io/sbjerome/shufflerr` (`latest`, `0.1.1`); README has the
@@ -13,6 +15,8 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ### Changed
 
+- Albums with no cover art show a vinyl placeholder (`public/no-cover.webp`) instead of an empty
+  tinted slot. Artist and user slots keep their initials.
 - **License:** Shufflerr is now licensed under AGPL-3.0 (was MIT). Seerr-derived code keeps its
   MIT notice in `NOTICE.md` and `LICENSES/seerr-MIT.txt`.
 - `k8s/shufflerr.yaml` is now a generic example manifest.
