@@ -6,6 +6,14 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-05
+
+### Fixed
+
+- Artist photos were blank unless a fanart.tv API key was set. They now fall back to the
+  default Lidarr server's metadata lookup (`server/api/lidarrImages.ts`, new `lidarr` image
+  proxy source), which needs no key; fanart.tv is still used first when it is switched on.
+
 ## [0.1.0] - 2026-10-05
 
 First version. Shufflerr is a fork of Seerr

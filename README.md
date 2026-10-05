@@ -11,7 +11,8 @@ folders — marks it available.
 
 - **Requests** for missing tracks, whole albums or full discographies, with per-user limits and
   auto-approval rules. Lidarr does the downloading.
-- **Metadata** from MusicBrainz, the Cover Art Archive, fanart.tv and Last.fm.
+- **Metadata** from MusicBrainz, the Cover Art Archive, fanart.tv and Last.fm. Artist photos
+  come through Lidarr when no fanart.tv key is set.
 - **Sign-in** with Plex, Jellyfin/Emby or a local account.
 - **Library** scanning for Plex, Jellyfin/Emby, Navidrome and local folders, with a built-in
   player (waveform, range streaming, optional transcoding).

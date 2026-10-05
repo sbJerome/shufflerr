@@ -1,4 +1,5 @@
 import ExternalAPI from '@server/api/externalapi';
+import { getLidarrArtistImages } from '@server/api/lidarrImages';
 import cacheManager from '@server/lib/cache';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -107,23 +108,35 @@ class FanartAPI extends ExternalAPI {
 const missCache = new Map<string, number>();
 const MISS_TTL = 6 * 3600 * 1000;
 
-/** Artist images, or all-null when fanart.tv is off or has nothing. Never throws. */
+/**
+ * Artist images: fanart.tv when it is switched on with a key, otherwise (or for
+ * anything fanart.tv lacks) the default Lidarr server's metadata lookup, which
+ * needs no key. All-null when neither has anything. Never throws.
+ */
 export const getArtistImages = async (mbid: string): Promise<ArtistImages> => {
-  if (!FanartAPI.enabled() || !mbid) {
+  if (!mbid) {
     return NONE;
   }
+  let images = NONE;
   const missedAt = missCache.get(mbid);
-  if (missedAt && Date.now() - missedAt < MISS_TTL) {
-    return NONE;
-  }
-  const images = await new FanartAPI().getArtistImages(mbid);
-  if (!images.thumb && !images.background && !images.logo) {
-    if (missCache.size > 5000) {
-      missCache.clear();
+  if (FanartAPI.enabled() && !(missedAt && Date.now() - missedAt < MISS_TTL)) {
+    images = await new FanartAPI().getArtistImages(mbid);
+    if (!images.thumb && !images.background && !images.logo) {
+      if (missCache.size > 5000) {
+        missCache.clear();
+      }
+      missCache.set(mbid, Date.now());
     }
-    missCache.set(mbid, Date.now());
   }
-  return images;
+  if (images.thumb && images.background) {
+    return images;
+  }
+  const fallback = await getLidarrArtistImages(mbid);
+  return {
+    thumb: images.thumb ?? fallback.thumb,
+    background: images.background ?? fallback.background,
+    logo: images.logo ?? fallback.logo,
+  };
 };
 
 export default FanartAPI;

@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.1 — 2026-10-05
+
+- **Artist photos show up without a fanart.tv key.** Shufflerr now gets them through your
+  Lidarr server when fanart.tv isn't set up.
+
 ## v0.1.0 — 2026-10-05
 
 First version. Shufflerr starts life as a fork of Seerr with the movie and TV parts replaced by
