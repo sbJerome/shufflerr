@@ -19,6 +19,7 @@ All notable changes to Shufflerr are documented here. The format follows
   (`src/components/DiscoverClassic`).
 - The album placeholder is now an original drawing (`public/no-cover.svg`: star-trail sleeve and
   record in Shufflerr's colours). The third-party `no-cover.webp` is removed.
+- README states the current version and uses it in the image tag example.
 
 ## [0.1.2] - 2026-10-05
 
@@ -120,3 +121,9 @@ replaced by music.
   TV / person / collection routes and pages, Seerr's database and settings migrations, the
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
+
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/sbJerome/shufflerr/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/sbJerome/shufflerr/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/sbJerome/shufflerr/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/sbJerome/shufflerr/releases/tag/v0.1.0
