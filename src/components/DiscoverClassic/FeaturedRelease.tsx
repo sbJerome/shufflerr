@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
-const messages = defineMessages('components.Discover.FeaturedRelease', {
+const messages = defineMessages('components.DiscoverClassic.FeaturedRelease', {
   featured: 'Featured release',
   alltracks:
     '{total, plural, one {The one track is} other {All # tracks are}} in your library.',
@@ -33,7 +33,9 @@ const messages = defineMessages('components.Discover.FeaturedRelease', {
 const FeaturedRelease = () => {
   const intl = useIntl();
   const { playAlbum } = usePlayback();
-  const { data } = useSWR<DiscoverFeaturedResponse>('/api/v1/discover/featured');
+  const { data } = useSWR<DiscoverFeaturedResponse>(
+    '/api/v1/discover/featured'
+  );
   const [photoFailed, setPhotoFailed] = useState(false);
 
   const album = data?.album;

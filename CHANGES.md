@@ -1383,3 +1383,11 @@ migrations and the OpenAPI document. Server only; the UI wiring for the new rout
 The spine stream's full notes (the stub list it handed to the other streams, deleted client
 components, test changes) are in `changes/spine.md`; Phases 0 and 1 above are its summary.
 Notes written after this merge (for example the UI integration pass) are in `changes/`.
+
+## After v0.1.0 (owner-directed changes)
+
+- **v0.1.3, Discover:** rebuilt to follow the layout of the Rekord home page (hero, carousels,
+  popular list beside dated cards). This is a deliberate deviation from `design/shufflerr-mockup.html`;
+  the mockup's version of the page remains at `/discover/classic`. No Rekord code, CSS, fonts,
+  icons or images are used.
+- **v0.1.3, album placeholder:** original SVG drawing instead of an empty tinted slot.

@@ -66,7 +66,7 @@ const CoverArt = ({
       {!showImage && !round && !showInitials ? (
         // Albums with no art: the vinyl placeholder instead of an empty slot.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src="/no-cover.webp" alt="" loading={loading} decoding="async" />
+        <img src="/no-cover.svg" alt="" loading={loading} decoding="async" />
       ) : (
         !(showImage && loaded) &&
         (showInitials && title ? (

@@ -1,63 +1,64 @@
-// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import AlbumCard from '@app/components/AlbumCard';
 import ArtistCard from '@app/components/ArtistCard';
 import PageTitle from '@app/components/Common/PageTitle';
 import CoverArt from '@app/components/CoverArt';
-import FeaturedRelease from '@app/components/Discover/FeaturedRelease';
-import HorizontalRow from '@app/components/HorizontalRow';
+import Carousel from '@app/components/Discover/Carousel';
+import Hero from '@app/components/Discover/Hero';
+import usePlayback from '@app/components/Playback';
 import RequestButton from '@app/components/RequestButton';
 import useRequestText from '@app/components/RequestList/requestText';
-import { isRequestable, toModalAlbum } from '@app/components/RequestModal/subject';
+import {
+  isRequestable,
+  toModalAlbum,
+} from '@app/components/RequestModal/subject';
 import StatusBadge from '@app/components/StatusBadge';
 import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import { MediaType } from '@server/constants/media';
+import { PlayIcon } from '@heroicons/react/24/outline';
+import { MediaStatus } from '@server/constants/media';
 import type {
   DiscoverAlbumsResponse,
   DiscoverArtistsResponse,
   DiscoverConcertsResponse,
   DiscoverRecentRequestsResponse,
-  DiscoverStatsResponse,
 } from '@server/interfaces/api/discoverInterfaces';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.Discover', {
   discover: 'Discover',
-  heroline1: 'Find it. Request it.',
-  heroline2: 'Hear it tonight.',
-  blurb:
-    'Search MusicBrainz, request an album or a whole discography, and Shufflerr hands it to Lidarr. You get a ping when it lands in the library.',
-  searchmusic: 'Search music',
-  seerequests: 'See requests',
-  statalbums: 'Albums in library',
-  statartists: 'Artists',
-  stattracks: 'Tracks',
-  statdownloading: 'Downloading now',
-  recentlyadded: 'Recently added',
-  recentlyaddedsub: 'The newest albums in your library',
-  seeall: 'See all',
-  trending: 'Trending new releases',
-  trendingsub: 'New releases people are listening to this week',
+  recentlyadded: 'New in your library',
+  recentlyaddedsub: 'The newest albums on this server',
+  viewalbums: 'View albums',
   popularartists: 'Popular artists',
   popularartistssub: 'Most played and requested on this server',
   popularartistslb: 'Most listened to on ListenBrainz right now',
+  viewartists: 'View artists',
   artistalbums:
     '{count, plural, one {# album in library} other {# albums in library}}',
+  trending: 'Most popular this week',
+  trendingsub: 'New releases people are listening to',
+  taball: 'All',
+  tabmissing: 'Not in library',
+  tabhave: 'In library',
+  tablabel: 'Filter the list',
+  play: 'Play {title}',
+  open: 'Open',
+  nonehere: 'Nothing in this list right now.',
   concerts: 'Concerts for artists you have',
-  concertsfrom: 'From {providers}',
   tickets: 'Tickets',
   ticketsfor: 'Tickets for {artist} on {provider}',
   recentrequests: 'Recent requests',
   yourrecentrequests: 'Your recent requests',
-  everyone: 'Everyone on this server',
-  onlyyou: 'Only you can see these',
   allrequests: 'All requests',
+  requestedby: 'Requested by {name}',
   norequests:
     'You haven’t requested anything yet. Search for an album to start.',
   norequestsall: 'Nobody has requested anything yet.',
+  searchmusic: 'Search music',
 });
 
 const PROVIDER_NAME: Record<string, string> = {
@@ -65,20 +66,21 @@ const PROVIDER_NAME: Record<string, string> = {
   skiddle: 'Skiddle',
 };
 
+type TrendTab = 'all' | 'missing' | 'have';
+
 const Discover = () => {
   const intl = useIntl();
   const { hasPermission } = useUser();
   const { currentSettings } = useSettings();
   const text = useRequestText();
+  const { playAlbum } = usePlayback();
+  const [tab, setTab] = useState<TrendTab>('all');
 
   const canRequestAlbums = hasPermission(
     [Permission.REQUEST, Permission.REQUEST_ALBUM],
     { type: 'or' }
   );
 
-  const { data: stats } = useSWR<DiscoverStatsResponse>(
-    '/api/v1/discover/stats'
-  );
   const { data: recent } = useSWR<DiscoverAlbumsResponse>(
     '/api/v1/discover/recently-added?take=20'
   );
@@ -89,14 +91,11 @@ const Discover = () => {
     '/api/v1/discover/popular-artists?take=20'
   );
   const { data: concerts } = useSWR<DiscoverConcertsResponse>(
-    currentSettings.concertsEnabled ? '/api/v1/discover/concerts?take=20' : null
+    currentSettings.concertsEnabled ? '/api/v1/discover/concerts?take=6' : null
   );
   const { data: requests } = useSWR<DiscoverRecentRequestsResponse>(
     '/api/v1/discover/recent-requests?take=5'
   );
-
-  const stat = (value?: number) =>
-    value == null ? '–' : intl.formatNumber(value);
 
   const ownOnly = requests
     ? requests.ownOnly
@@ -104,56 +103,43 @@ const Discover = () => {
         type: 'or',
       });
 
+  const inLibrary = (status: MediaStatus) =>
+    status === MediaStatus.AVAILABLE ||
+    status === MediaStatus.PARTIALLY_AVAILABLE;
+
+  const trendingAll = trending?.enabled ? trending.results : [];
+  const trendingShown = trendingAll
+    .filter((album) =>
+      tab === 'all'
+        ? true
+        : tab === 'have'
+          ? inLibrary(album.status)
+          : !inLibrary(album.status)
+    )
+    .slice(0, 8);
+
+  const tabs: { key: TrendTab; label: string }[] = [
+    { key: 'all', label: intl.formatMessage(messages.taball) },
+    { key: 'missing', label: intl.formatMessage(messages.tabmissing) },
+    { key: 'have', label: intl.formatMessage(messages.tabhave) },
+  ];
+
+  const showRequests = !!requests && requests.enabled !== false;
+  const showConcerts = !!concerts?.enabled && concerts.results.length > 0;
+  const hasSide = showRequests || showConcerts;
+
   return (
     <>
       <PageTitle title={intl.formatMessage(messages.discover)} />
 
-      <section className="sh-base-hero" aria-labelledby="discover-hero">
-        <div className="sh-bh-copy">
-          <p className="cmd">$ shufflerr discover --since 7d</p>
-          <h1 id="discover-hero">
-            {intl.formatMessage(messages.heroline1)}
-            <br />
-            <span>{intl.formatMessage(messages.heroline2)}</span>
-          </h1>
-          <p className="blurb">{intl.formatMessage(messages.blurb)}</p>
-          <div className="sh-bh-cta">
-            <Link href="/search" className="sh-btn primary">
-              {intl.formatMessage(messages.searchmusic)}
-            </Link>
-            <Link href="/requests" className="sh-btn">
-              {intl.formatMessage(messages.seerequests)}
-            </Link>
-          </div>
-        </div>
-        <dl className="sh-bh-stats">
-          <div>
-            <dt>{intl.formatMessage(messages.statalbums)}</dt>
-            <dd>{stat(stats?.albums)}</dd>
-          </div>
-          <div>
-            <dt>{intl.formatMessage(messages.statartists)}</dt>
-            <dd>{stat(stats?.artists)}</dd>
-          </div>
-          <div>
-            <dt>{intl.formatMessage(messages.stattracks)}</dt>
-            <dd>{stat(stats?.tracks)}</dd>
-          </div>
-          <div>
-            <dt>{intl.formatMessage(messages.statdownloading)}</dt>
-            <dd className="text-st-processing">{stat(stats?.downloading)}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <FeaturedRelease />
+      <Hero />
 
       {recent?.enabled && recent.results.length > 0 && (
-        <HorizontalRow
+        <Carousel
           title={intl.formatMessage(messages.recentlyadded)}
           sub={intl.formatMessage(messages.recentlyaddedsub)}
           linkHref="/albums"
-          linkText={intl.formatMessage(messages.seeall)}
+          linkText={intl.formatMessage(messages.viewalbums)}
         >
           {recent.results.map((album) => (
             <AlbumCard
@@ -166,35 +152,224 @@ const Discover = () => {
               imageSrc={album.coverUrl}
             />
           ))}
-        </HorizontalRow>
+        </Carousel>
       )}
 
-      {trending?.enabled && trending.results.length > 0 && (
-        <HorizontalRow
-          title={intl.formatMessage(messages.trending)}
-          sub={intl.formatMessage(messages.trendingsub)}
+      {(trendingAll.length > 0 || hasSide) && (
+        <div
+          className={`sh-dx-split ${
+            hasSide && trendingAll.length > 0 ? '' : 'solo'
+          }`}
         >
-          {trending.results.map((album) => (
-            <AlbumCard
-              key={album.mbid}
-              mbid={album.mbid}
-              title={album.title}
-              artistName={album.artistName}
-              year={album.firstReleaseDate}
-              status={album.status}
-              imageSrc={album.coverUrl}
-              action={
-                canRequestAlbums && isRequestable(album) ? (
-                  <RequestButton album={toModalAlbum(album)} />
-                ) : undefined
-              }
-            />
-          ))}
-        </HorizontalRow>
+          {trendingAll.length > 0 && (
+            <section
+              className="sh-dx-panel"
+              aria-labelledby="discover-trending"
+            >
+              <div className="sh-dx-head">
+                <div>
+                  <h2 id="discover-trending">
+                    {intl.formatMessage(messages.trending)}
+                  </h2>
+                  <p>{intl.formatMessage(messages.trendingsub)}</p>
+                </div>
+              </div>
+              <div
+                className="sh-dx-tabs"
+                role="group"
+                aria-label={intl.formatMessage(messages.tablabel)}
+              >
+                {tabs.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    aria-pressed={tab === t.key}
+                    className={tab === t.key ? 'on' : ''}
+                    onClick={() => setTab(t.key)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {trendingShown.length ? (
+                <ol className="sh-dx-tracks">
+                  {trendingShown.map((album) => {
+                    const playable = inLibrary(album.status);
+                    return (
+                      <li key={album.mbid}>
+                        {playable ? (
+                          <button
+                            type="button"
+                            className="go"
+                            onClick={() => playAlbum(album.mbid)}
+                            aria-label={intl.formatMessage(messages.play, {
+                              title: album.title,
+                            })}
+                          >
+                            <PlayIcon aria-hidden="true" />
+                          </button>
+                        ) : (
+                          <span className="go off" aria-hidden="true">
+                            <PlayIcon />
+                          </span>
+                        )}
+                        <CoverArt
+                          thumb
+                          decorative
+                          src={album.coverUrl}
+                          mbid={album.mbid}
+                          title={album.title}
+                        />
+                        <div className="what">
+                          <Link href={`/album/${album.mbid}`}>
+                            {album.title}
+                          </Link>
+                          <span>{album.artistName}</span>
+                        </div>
+                        <span className="year">
+                          {album.year ?? album.firstReleaseDate?.slice(0, 4)}
+                        </span>
+                        <span className="act">
+                          {canRequestAlbums && isRequestable(album) ? (
+                            <RequestButton album={toModalAlbum(album)} />
+                          ) : (
+                            <StatusBadge status={album.status} />
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p className="sh-dx-empty">
+                  {intl.formatMessage(messages.nonehere)}
+                </p>
+              )}
+            </section>
+          )}
+
+          {hasSide && (
+            <div className="sh-dx-side">
+              {showConcerts &&
+                concerts.results.slice(0, 3).map((event) => {
+                  const date = new Date(event.startsAt);
+                  const provider =
+                    PROVIDER_NAME[event.provider] ?? event.provider;
+                  return (
+                    <article
+                      className="sh-dx-event"
+                      key={`${event.provider}-${event.id}`}
+                    >
+                      <div className="date">
+                        <b>{intl.formatDate(date, { day: '2-digit' })}</b>
+                        <span>{intl.formatDate(date, { month: 'long' })}</span>
+                      </div>
+                      <div className="body">
+                        <h3>
+                          {event.artistMbid ? (
+                            <Link href={`/artist/${event.artistMbid}`}>
+                              {event.artistName}
+                            </Link>
+                          ) : (
+                            event.artistName
+                          )}
+                        </h3>
+                        <p>
+                          {[event.name, event.venue, event.city]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </p>
+                        <div className="foot">
+                          <span>{provider}</span>
+                          <a
+                            href={event.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={intl.formatMessage(
+                              messages.ticketsfor,
+                              {
+                                artist: event.artistName,
+                                provider,
+                              }
+                            )}
+                          >
+                            {intl.formatMessage(messages.tickets)}
+                          </a>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+
+              {showRequests && (
+                <section aria-labelledby="discover-requests">
+                  <div className="sh-dx-head small">
+                    <h2 id="discover-requests">
+                      {intl.formatMessage(
+                        ownOnly
+                          ? messages.yourrecentrequests
+                          : messages.recentrequests
+                      )}
+                    </h2>
+                    <Link href="/requests" className="sh-dx-more">
+                      {intl.formatMessage(messages.allrequests)}
+                    </Link>
+                  </div>
+                  {requests.results.length ? (
+                    requests.results.slice(0, 4).map((request) => {
+                      const date = new Date(request.createdAt);
+                      const artistLine = text.artistLine(request);
+                      return (
+                        <article className="sh-dx-event" key={request.id}>
+                          <div className="date">
+                            <b>{intl.formatDate(date, { day: '2-digit' })}</b>
+                            <span>
+                              {intl.formatDate(date, { month: 'long' })}
+                            </span>
+                          </div>
+                          <div className="body">
+                            <h3>
+                              <Link href={text.href(request)}>
+                                {text.title(request)}
+                              </Link>
+                            </h3>
+                            {artistLine && <p>{artistLine}</p>}
+                            <div className="foot">
+                              <span>
+                                {request.requestedBy?.displayName
+                                  ? intl.formatMessage(messages.requestedby, {
+                                      name: request.requestedBy.displayName,
+                                    })
+                                  : text.ago(request.createdAt)}
+                              </span>
+                              <StatusBadge requestStatus={request.status} />
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })
+                  ) : (
+                    <div className="sh-dx-event empty">
+                      <p>
+                        {intl.formatMessage(
+                          ownOnly ? messages.norequests : messages.norequestsall
+                        )}
+                      </p>
+                      <Link href="/search" className="sh-btn small">
+                        {intl.formatMessage(messages.searchmusic)}
+                      </Link>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {artists?.enabled && artists.results.length > 0 && (
-        <HorizontalRow
+        <Carousel
+          className="artists"
           title={intl.formatMessage(messages.popularartists)}
           sub={intl.formatMessage(
             artists.results.some((artist) => !artist.albumsInLibrary)
@@ -202,7 +377,7 @@ const Discover = () => {
               : messages.popularartistssub
           )}
           linkHref="/artists"
-          linkText={intl.formatMessage(messages.seeall)}
+          linkText={intl.formatMessage(messages.viewartists)}
         >
           {artists.results.map((artist) => (
             <ArtistCard
@@ -219,150 +394,7 @@ const Discover = () => {
               }
             />
           ))}
-        </HorizontalRow>
-      )}
-
-      {concerts?.enabled && concerts.results.length > 0 && (
-        <section aria-labelledby="discover-concerts">
-          <div className="sh-sec-head">
-            <div>
-              <h2 className="sh-h-section" id="discover-concerts">
-                {intl.formatMessage(messages.concerts)}
-              </h2>
-              {concerts.attribution.length > 0 && (
-                <p className="sh-sub">
-                  {intl.formatMessage(messages.concertsfrom, {
-                    providers: intl.formatList(
-                      concerts.attribution.map((p) => PROVIDER_NAME[p] ?? p),
-                      { type: 'conjunction' }
-                    ),
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="sh-box">
-            <ul className="sh-list sh-events">
-              {concerts.results.map((event) => {
-                const date = new Date(event.startsAt);
-                const provider =
-                  PROVIDER_NAME[event.provider] ?? event.provider;
-                return (
-                  <li key={`${event.provider}-${event.id}`}>
-                    <span className="sh-date">
-                      <b>{intl.formatDate(date, { day: '2-digit' })}</b>
-                      <span>{intl.formatDate(date, { month: 'short' })}</span>
-                    </span>
-                    <div className="grow">
-                      {event.artistMbid ? (
-                        <Link
-                          href={`/artist/${event.artistMbid}`}
-                          className="font-bold text-ink"
-                        >
-                          {event.artistName}
-                        </Link>
-                      ) : (
-                        <b>{event.artistName}</b>
-                      )}
-                      <span className="sh-feat">
-                        {[event.name, event.venue, event.city]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                    </div>
-                    <span className="who">{provider}</span>
-                    <a
-                      className="sh-btn small"
-                      href={event.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={intl.formatMessage(messages.ticketsfor, {
-                        artist: event.artistName,
-                        provider,
-                      })}
-                    >
-                      {intl.formatMessage(messages.tickets)}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </section>
-      )}
-
-      {requests && requests.enabled !== false && (
-        <section aria-labelledby="discover-requests">
-          <div className="sh-sec-head">
-            <div>
-              <h2 className="sh-h-section" id="discover-requests">
-                {intl.formatMessage(
-                  ownOnly ? messages.yourrecentrequests : messages.recentrequests
-                )}
-              </h2>
-              <p className="sh-sub">
-                {intl.formatMessage(
-                  ownOnly ? messages.onlyyou : messages.everyone
-                )}
-              </p>
-            </div>
-            <Link href="/requests">
-              {intl.formatMessage(messages.allrequests)}
-            </Link>
-          </div>
-          {requests.results.length ? (
-            <div className="sh-box">
-              <ul className="sh-list">
-                {requests.results.map((request) => {
-                  const artistLine = text.artistLine(request);
-                  return (
-                    <li key={request.id}>
-                      <CoverArt
-                        thumb
-                        decorative
-                        round={request.media?.mediaType === MediaType.ARTIST}
-                        src={request.coverUrl}
-                        mbid={request.media?.mbid}
-                        title={request.media?.title}
-                      />
-                      <div className="grow">
-                        <Link
-                          href={text.href(request)}
-                          className="font-bold text-ink"
-                        >
-                          {text.title(request)}
-                        </Link>
-                        {artistLine && (
-                          <span className="sh-feat">{artistLine}</span>
-                        )}
-                      </div>
-                      <span className="who">
-                        {[
-                          request.requestedBy?.displayName,
-                          text.ago(request.createdAt),
-                        ]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                      <StatusBadge requestStatus={request.status} />
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : (
-            <div className="sh-box flex flex-col items-center gap-3 p-7 text-center text-muted">
-              <span>
-                {intl.formatMessage(
-                  ownOnly ? messages.norequests : messages.norequestsall
-                )}
-              </span>
-              <Link href="/search" className="sh-btn small">
-                {intl.formatMessage(messages.searchmusic)}
-              </Link>
-            </div>
-          )}
-        </section>
+        </Carousel>
       )}
     </>
   );

@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.3 — 2026-10-05
+
+- **New Discover page.** A big featured-release hero, album carousels you can page through, and
+  a "Most popular this week" list next to your recent requests. The old page is still at
+  `/discover/classic`.
+- **New album placeholder.** Albums without cover art show Shufflerr's own record drawing.
+
 ## v0.1.2 — 2026-10-05
 
 - Albums without cover art now show a vinyl record instead of a blank tile.

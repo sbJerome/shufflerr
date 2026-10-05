@@ -6,6 +6,20 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-05
+
+### Changed
+
+- **Discover page redesigned** (owner request, deviates from the handoff mockup): full-bleed hero
+  with the featured release over its own blurred artwork and the library numbers along its lower
+  edge; paged carousels with arrow buttons and dark-footer cards; a "Most popular this week" list
+  with All / Not in library / In library tabs beside dated cards for recent requests and
+  concerts; lighter headings. Written with Shufflerr's own markup and CSS (`sh-dx-*`).
+- The previous Discover page is kept as a backup at `/discover/classic`
+  (`src/components/DiscoverClassic`).
+- The album placeholder is now an original drawing (`public/no-cover.svg`: star-trail sleeve and
+  record in Shufflerr's colours). The third-party `no-cover.webp` is removed.
+
 ## [0.1.2] - 2026-10-05
 
 ### Added
