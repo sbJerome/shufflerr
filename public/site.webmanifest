@@ -1,6 +1,6 @@
 {
-  "name": "Seerr",
-  "short_name": "Seerr",
+  "name": "Shufflerr",
+  "short_name": "Shufflerr",
   "start_url": "./",
   "icons": [
     {
@@ -28,8 +28,8 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#1f2937",
-  "background_color": "#1f2937",
+  "theme_color": "#0C101B",
+  "background_color": "#0C101B",
   "display": "standalone",
   "shortcuts": [
     {
@@ -76,5 +76,6 @@
         }
       ]
     }
-  ]
+  ],
+  "description": "Request and discover music for your library."
 }

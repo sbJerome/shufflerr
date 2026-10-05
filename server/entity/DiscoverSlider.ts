@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { DiscoverSliderType } from '@server/constants/discover';
 import { defaultSliders } from '@server/constants/discover';
 import { getRepository } from '@server/datasource';

@@ -74,29 +74,27 @@ async function loginAs(email: string, password: string) {
 
 describe('GET /user/:id/watchlist', () => {
   it('omits notification settings from every requestedBy in the page', async () => {
-    const owner = await seedUserSettings('demo@seerr.dev');
+    const owner = await seedUserSettings('demo@shufflerr.test');
 
     const media = await getRepository(Media).save(
       new Media({
-        mediaType: MediaType.MOVIE,
-        tmdbId: 12345,
+        mediaType: MediaType.RELEASE_GROUP,
+        mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69',
         status: MediaStatus.UNKNOWN,
-        status4k: MediaStatus.UNKNOWN,
       })
     );
 
     await getRepository(Watchlist).save(
       new Watchlist({
-        mediaType: MediaType.MOVIE,
-        tmdbId: 12345,
-        title: 'Watchlisted Movie',
-        ratingKey: 'rk-12345',
+        mediaType: MediaType.RELEASE_GROUP,
+        mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69',
+        title: 'Wanted Album',
         requestedBy: owner,
         media,
       })
     );
 
-    const admin = await loginAs('admin@seerr.dev', 'test1234');
+    const admin = await loginAs('admin@shufflerr.test', 'test1234');
     const res = await admin.get(`/user/${owner.id}/watchlist`);
 
     assert.strictEqual(res.status, 200);
@@ -108,9 +106,9 @@ describe('GET /user/:id/watchlist', () => {
 
 describe('GET /user/:id', () => {
   it('still returns full settings to the user themselves', async () => {
-    const owner = await seedUserSettings('demo@seerr.dev');
+    const owner = await seedUserSettings('demo@shufflerr.test');
 
-    const agent = await loginAs('demo@seerr.dev', 'test1234');
+    const agent = await loginAs('demo@shufflerr.test', 'test1234');
     const res = await agent.get(`/user/${owner.id}`);
 
     assert.strictEqual(res.status, 200);
@@ -122,9 +120,9 @@ describe('GET /user/:id', () => {
   });
 
   it('still returns full settings to a manage-users admin', async () => {
-    const owner = await seedUserSettings('demo@seerr.dev');
+    const owner = await seedUserSettings('demo@shufflerr.test');
 
-    const admin = await loginAs('admin@seerr.dev', 'test1234');
+    const admin = await loginAs('admin@shufflerr.test', 'test1234');
     const res = await admin.get(`/user/${owner.id}`);
 
     assert.strictEqual(res.status, 200);
@@ -133,11 +131,11 @@ describe('GET /user/:id', () => {
 
   it('strips settings for an unrelated user', async () => {
     const admin = await getRepository(User).findOneOrFail({
-      where: { email: 'admin@seerr.dev' },
+      where: { email: 'admin@shufflerr.test' },
     });
-    await seedUserSettings('admin@seerr.dev');
+    await seedUserSettings('admin@shufflerr.test');
 
-    const agent = await loginAs('demo@seerr.dev', 'test1234');
+    const agent = await loginAs('demo@shufflerr.test', 'test1234');
     const res = await agent.get(`/user/${admin.id}`);
 
     assert.strictEqual(res.status, 200);

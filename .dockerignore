@@ -1,9 +1,7 @@
-**/*.md
 **/.gitkeep
 **/.vscode
 .dockerignore
 .editorconfig
-.eslintrc.js
 .git
 .gitconfig
 .github
@@ -14,17 +12,23 @@
 .prettierignore
 .vscode
 charts
+k8s
+changes
 config/db/*
 config/logs/*
+config/cache
 config/*.json
 cypress
+cypress.config.ts
 dist
 Dockerfile*
-compose.yaml
-gen-docs
-docs
-LICENSE
+compose*.yaml
 node_modules
-public/os_logo_filled.png
-public/preview.jpg
+tsconfig.tsbuildinfo
 stylelint.config.js
+# Handoff material that is not needed at runtime
+design/screens
+design/legacy-canvas
+starter
+handoff-docs
+# NOTE: LICENSE, NOTICE.md and LICENSES/ must stay in the image (MIT attribution).

@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { UserType } from '@server/constants/user';
 import type { PermissionCheckOptions } from '@server/lib/permissions';
 import { hasPermission, Permission } from '@server/lib/permissions';
@@ -57,7 +58,7 @@ export const useUser = ({
   initialData,
 }: { id?: number; initialData?: User } = {}): UserHookResponse => {
   const router = useRouter();
-  const isAuthPage = /^\/(login|setup|resetpassword(?:\/|$))/.test(
+  const isAuthPage = /^\/(login|logout|setup|resetpassword(?:\/|$))/.test(
     router.pathname
   );
 

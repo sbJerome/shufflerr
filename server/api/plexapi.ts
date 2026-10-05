@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import ExternalAPI from '@server/api/externalapi';
 import { ApiErrorCode } from '@server/constants/error';
 import type { Library, PlexSettings } from '@server/lib/settings';
@@ -37,7 +38,7 @@ interface PlexLibraryResponse {
 }
 
 export interface PlexLibrary {
-  type: 'show' | 'movie';
+  type: 'show' | 'movie' | 'artist' | 'photo';
   key: string;
   title: string;
   agent: string;
@@ -117,9 +118,9 @@ class PlexAPI extends ExternalAPI {
         headers: {
           'X-Plex-Token': plexToken ?? '',
           'X-Plex-Client-Identifier': settings.clientId,
-          'X-Plex-Product': 'Seerr',
-          'X-Plex-Device-Name': 'Seerr',
-          'X-Plex-Platform': 'Seerr',
+          'X-Plex-Product': 'Shufflerr',
+          'X-Plex-Device-Name': 'Shufflerr',
+          'X-Plex-Platform': 'Shufflerr',
         },
       }
     );
@@ -142,12 +143,8 @@ class PlexAPI extends ExternalAPI {
       const libraries = await this.getLibraries();
 
       const newLibraries: Library[] = libraries
-        // Remove libraries that are not movie or show
-        .filter(
-          (library) => library.type === 'movie' || library.type === 'show'
-        )
-        // Remove libraries that do not have a metadata agent set (usually personal video libraries)
-        .filter((library) => library.agent !== 'com.plexapp.agents.none')
+        // Shufflerr only cares about music libraries (Plex section type `artist`)
+        .filter((library) => library.type === 'artist')
         .map((library) => {
           const existing = settings.plex.libraries.find(
             (l) => l.id === library.key
@@ -157,7 +154,7 @@ class PlexAPI extends ExternalAPI {
             id: library.key,
             name: library.title,
             enabled: existing?.enabled ?? false,
-            type: library.type,
+            type: 'music' as const,
             lastScan: existing?.lastScan,
           };
         });

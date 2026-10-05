@@ -1,43 +1,42 @@
-import RadarrAPI from '@server/api/servarr/radarr';
-import SonarrAPI from '@server/api/servarr/sonarr';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import {
   MediaRequestStatus,
   MediaStatus,
   MediaType,
 } from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
 import { getRepository } from '@server/datasource';
-import { Blocklist } from '@server/entity/Blocklist';
 import type { User } from '@server/entity/User';
-import { Watchlist } from '@server/entity/Watchlist';
-import type { DownloadingItem } from '@server/lib/downloadtracker';
-import downloadTracker from '@server/lib/downloadtracker';
-import { Permission } from '@server/lib/permissions';
-import { getSettings } from '@server/lib/settings';
+import type { DownloadingItem } from '@server/interfaces/api/mediaInterfaces';
 import logger from '@server/logger';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
-import { getHostname } from '@server/utils/getHostname';
 import {
-  AfterLoad,
   Column,
   Entity,
+  In,
   Index,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { Blocklist } from './Blocklist';
 import Issue from './Issue';
 import { MediaRequest } from './MediaRequest';
-import Season from './Season';
+import Track from './Track';
+import { Watchlist } from './Watchlist';
 
+/**
+ * One row per MusicBrainz entity Shufflerr tracks: an artist or a release
+ * group ("album" in the UI). Recordings live in Track.
+ */
 @Entity()
-@Index(['tmdbId', 'mediaType'])
+@Unique('UQ_media_type_mbid', ['mediaType', 'mbid'])
 class Media {
+  /** Media rows for a list of MBIDs (used to merge library status into search/browse results). */
   public static async getRelatedMedia(
-    user: User | undefined,
-    items: { tmdbId: number; mediaType: string }[],
-    { includeActiveRequest = false }: { includeActiveRequest?: boolean } = {}
+    _user: User | undefined,
+    items: { mbid: string; mediaType: MediaType }[]
   ): Promise<Media[]> {
     const mediaRepository = getRepository(Media);
 
@@ -45,50 +44,12 @@ class Media {
       if (items.length === 0) {
         return [];
       }
+      const mbids = [...new Set(items.map((i) => i.mbid))];
+      const media = await mediaRepository.find({ where: { mbid: In(mbids) } });
 
-      const finalIds = [...new Set(items.map((i) => i.tmdbId))];
-
-      const media = await mediaRepository
-        .createQueryBuilder('media')
-        .leftJoinAndSelect(
-          'media.watchlists',
-          'watchlist',
-          'media.id= watchlist.media and watchlist.requestedBy = :userId',
-          { userId: user?.id }
-        )
-        .where(' media.tmdbId in (:...finalIds)', { finalIds })
-        .getMany();
-
-      const relatedMedia = media.filter((m) =>
-        items.some((i) => i.tmdbId === m.tmdbId && i.mediaType === m.mediaType)
+      return media.filter((m) =>
+        items.some((i) => i.mbid === m.mbid && i.mediaType === m.mediaType)
       );
-
-      if (
-        includeActiveRequest &&
-        getSettings().main.hideRequested &&
-        relatedMedia.length > 0
-      ) {
-        const activeRequestMediaIds = await mediaRepository
-          .createQueryBuilder('media')
-          .select('media.id', 'id')
-          .distinct(true)
-          .innerJoin('media.requests', 'request')
-          .where('media.id IN (:...mediaIds)', {
-            mediaIds: relatedMedia.map((m) => m.id),
-          })
-          .andWhere('request.status IN (:...statuses)', {
-            statuses: [MediaRequestStatus.PENDING, MediaRequestStatus.APPROVED],
-          })
-          .getRawMany<{ id: number }>();
-
-        const activeIds = new Set(activeRequestMediaIds.map((row) => row.id));
-
-        relatedMedia.forEach((m) => {
-          m.hasActiveRequest = activeIds.has(m.id);
-        });
-      }
-
-      return relatedMedia;
     } catch (e) {
       logger.error(e.message);
       return [];
@@ -96,14 +57,14 @@ class Media {
   }
 
   public static async getMedia(
-    id: number,
+    mbid: string,
     mediaType: MediaType
   ): Promise<Media | undefined> {
     const mediaRepository = getRepository(Media);
 
     try {
       const media = await mediaRepository.findOne({
-        where: { tmdbId: id, mediaType: mediaType },
+        where: { mbid, mediaType },
         relations: { requests: true, issues: true },
       });
 
@@ -120,39 +81,88 @@ class Media {
   @Column({ type: 'varchar' })
   public mediaType: MediaType;
 
-  @Column()
+  /** MusicBrainz ID (artist MBID or release-group MBID). */
+  @Column({ type: 'varchar' })
   @Index()
-  public tmdbId: number;
+  public mbid: string;
 
-  @Column({ unique: true, nullable: true })
+  /** For release groups: the primary artist's MBID. */
+  @Column({ type: 'varchar', nullable: true })
   @Index()
-  public tvdbId?: number;
+  public artistMbid?: string | null;
 
-  @Column({ nullable: true })
-  @Index()
-  public imdbId?: string;
+  @Column({ type: 'varchar', default: '' })
+  public title: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  public artistName?: string | null;
+
+  /** Album / Single / EP / Broadcast / Other */
+  @Column({ type: 'varchar', nullable: true })
+  public primaryType?: string | null;
+
+  @Column({ type: 'simple-array', nullable: true })
+  public secondaryTypes?: string[] | null;
+
+  /** YYYY or YYYY-MM-DD */
+  @Column({ type: 'varchar', nullable: true })
+  public firstReleaseDate?: string | null;
 
   @Column({ type: 'int', default: MediaStatus.UNKNOWN })
   @Index()
   public status: MediaStatus;
 
-  @Column({ type: 'int', default: MediaStatus.UNKNOWN })
-  @Index()
-  public status4k: MediaStatus;
+  @Column({ type: 'int', nullable: true })
+  public trackCount?: number | null;
 
-  @OneToMany(() => MediaRequest, (request) => request.media, {
-    cascade: ['insert', 'remove'],
-  })
+  @Column({ type: 'int', default: 0 })
+  public tracksAvailable: number;
+
+  /** The MusicBrainz release (edition) whose tracklist is stored in Track. */
+  @Column({ type: 'varchar', nullable: true })
+  public releaseMbid?: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  public lidarrServerId?: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  public lidarrArtistId?: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  public lidarrAlbumId?: number | null;
+
+  /** True when Shufflerr (not the user) added the artist/album to Lidarr. */
+  @Column({ type: 'boolean', default: false })
+  public lidarrAddedByShufflerr: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  public plexRatingKey?: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  public jellyfinItemId?: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  public navidromeId?: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  public localPath?: string | null;
+
+  @DbAwareColumn({ type: 'datetime', nullable: true })
+  public lastScanAt?: Date | null;
+
+  /** First time it became (partly) available. */
+  @DbAwareColumn({ type: 'datetime', nullable: true })
+  @Index()
+  public mediaAddedAt?: Date | null;
+
+  @OneToMany(() => MediaRequest, (request) => request.media, { cascade: true })
   public requests: MediaRequest[];
 
-  @OneToMany(() => Watchlist, (watchlist) => watchlist.media)
-  public watchlists: null | Watchlist[];
+  @OneToMany(() => Track, (track) => track.media, { cascade: true })
+  public tracks: Track[];
 
-  @OneToMany(() => Season, (season) => season.media, {
-    cascade: true,
-    eager: true,
-  })
-  public seasons: Season[];
+  @OneToMany(() => Watchlist, (watchlist) => watchlist.media)
+  public watchlists: Watchlist[];
 
   @OneToMany(() => Issue, (issue) => issue.media, { cascade: true })
   public issues: Issue[];
@@ -169,295 +179,32 @@ class Media {
   })
   public updatedAt: Date;
 
-  /**
-   * The `lastSeasonChange` column stores the date and time when the media was added to the library.
-   * It needs to be database-aware because SQLite supports `datetime` while PostgreSQL supports `timestamp with timezone (timestampz)`.
-   */
-  @DbAwareColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
-  public lastSeasonChange: Date;
-
-  /**
-   * The `mediaAddedAt` column stores the date and time when the media was added to the library.
-   * It needs to be database-aware because SQLite supports `datetime` while PostgreSQL supports `timestamp with timezone (timestampz)`.
-   * This column is nullable because it can be null when the media is not yet synced to the library.
-   */
-  @DbAwareColumn({
-    type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP',
-    nullable: true,
-  })
-  public mediaAddedAt: Date;
-
-  @Column({ nullable: true, type: 'int' })
-  public serviceId?: number | null;
-
-  @Column({ nullable: true, type: 'int' })
-  public serviceId4k?: number | null;
-
-  @Column({ nullable: true, type: 'int' })
-  public externalServiceId?: number | null;
-
-  @Column({ nullable: true, type: 'int' })
-  public externalServiceId4k?: number | null;
-
-  @Column({ nullable: true, type: 'varchar' })
-  public externalServiceSlug?: string | null;
-
-  @Column({ nullable: true, type: 'varchar' })
-  public externalServiceSlug4k?: string | null;
-
-  @Column({ nullable: true, type: 'varchar' })
-  public ratingKey?: string | null;
-
-  @Column({ nullable: true, type: 'varchar' })
-  public ratingKey4k?: string | null;
-
-  @Column({ nullable: true, type: 'varchar' })
-  public jellyfinMediaId?: string | null;
-
-  @Column({ nullable: true, type: 'varchar' })
-  public jellyfinMediaId4k?: string | null;
-
-  public serviceUrl?: string;
-  public serviceUrl4k?: string;
-  public hasActiveRequest?: boolean;
+  /** Filled by the download tracker (not a column). */
   public downloadStatus?: DownloadingItem[] = [];
-  public downloadStatus4k?: DownloadingItem[] = [];
-
-  public mediaUrl?: string;
-  public mediaUrl4k?: string;
-
-  public iOSPlexUrl?: string;
-  public iOSPlexUrl4k?: string;
-
-  public tautulliUrl?: string;
-  public tautulliUrl4k?: string;
 
   constructor(init?: Partial<Media>) {
     Object.assign(this, init);
   }
 
-  public resetServiceData(is4k?: boolean): void {
-    if (is4k === undefined || !is4k) {
-      this.serviceId = null;
-      this.externalServiceId = null;
-      this.externalServiceSlug = null;
-      this.ratingKey = null;
-      this.jellyfinMediaId = null;
+  /** Status to fall back to when no request is active any more. */
+  public libraryStatus(): MediaStatus {
+    if (this.mediaType !== MediaType.RELEASE_GROUP) {
+      return this.tracksAvailable > 0
+        ? MediaStatus.AVAILABLE
+        : MediaStatus.UNKNOWN;
     }
-    if (is4k === undefined || is4k) {
-      this.serviceId4k = null;
-      this.externalServiceId4k = null;
-      this.externalServiceSlug4k = null;
-      this.ratingKey4k = null;
-      this.jellyfinMediaId4k = null;
+    if (this.trackCount && this.tracksAvailable >= this.trackCount) {
+      return MediaStatus.AVAILABLE;
     }
-  }
-
-  @AfterLoad()
-  public setPlexUrls(): void {
-    const { machineId, webAppUrl } = getSettings().plex;
-    const { externalUrl: tautulliUrl } = getSettings().tautulli;
-
-    if (getSettings().main.mediaServerType == MediaServerType.PLEX) {
-      if (this.ratingKey) {
-        this.mediaUrl = `${
-          webAppUrl ? webAppUrl : 'https://app.plex.tv/desktop'
-        }#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${
-          this.ratingKey
-        }`;
-
-        this.iOSPlexUrl = `plex://preplay/?metadataKey=%2Flibrary%2Fmetadata%2F${this.ratingKey}&server=${machineId}`;
-
-        if (tautulliUrl) {
-          this.tautulliUrl = `${tautulliUrl}/info?rating_key=${this.ratingKey}`;
-        }
-      }
-
-      if (this.ratingKey4k) {
-        this.mediaUrl4k = `${
-          webAppUrl ? webAppUrl : 'https://app.plex.tv/desktop'
-        }#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${
-          this.ratingKey4k
-        }`;
-
-        this.iOSPlexUrl4k = `plex://preplay/?metadataKey=%2Flibrary%2Fmetadata%2F${this.ratingKey4k}&server=${machineId}`;
-
-        if (tautulliUrl) {
-          this.tautulliUrl4k = `${tautulliUrl}/info?rating_key=${this.ratingKey4k}`;
-        }
-      }
-    } else {
-      const pageName =
-        getSettings().main.mediaServerType == MediaServerType.EMBY
-          ? 'item'
-          : 'details';
-      const { serverId, externalHostname } = getSettings().jellyfin;
-      const jellyfinHost =
-        externalHostname && externalHostname.length > 0
-          ? externalHostname
-          : getHostname();
-
-      if (this.jellyfinMediaId) {
-        this.mediaUrl = `${jellyfinHost}/web/index.html#!/${pageName}?id=${this.jellyfinMediaId}&context=home&serverId=${serverId}`;
-      }
-      if (this.jellyfinMediaId4k) {
-        this.mediaUrl4k = `${jellyfinHost}/web/index.html#!/${pageName}?id=${this.jellyfinMediaId4k}&context=home&serverId=${serverId}`;
-      }
-    }
-  }
-
-  @AfterLoad()
-  public setServiceUrl(): void {
-    if (this.mediaType === MediaType.MOVIE) {
-      if (this.serviceId !== null && this.externalServiceSlug !== null) {
-        const settings = getSettings();
-        const server = settings.radarr.find(
-          (radarr) => radarr.id === this.serviceId
-        );
-
-        if (server) {
-          this.serviceUrl = server.externalUrl
-            ? `${server.externalUrl}/movie/${this.externalServiceSlug}`
-            : RadarrAPI.buildUrl(server, `/movie/${this.externalServiceSlug}`);
-        }
-      }
-
-      if (this.serviceId4k !== null && this.externalServiceSlug4k !== null) {
-        const settings = getSettings();
-        const server = settings.radarr.find(
-          (radarr) => radarr.id === this.serviceId4k
-        );
-
-        if (server) {
-          this.serviceUrl4k = server.externalUrl
-            ? `${server.externalUrl}/movie/${this.externalServiceSlug4k}`
-            : RadarrAPI.buildUrl(
-                server,
-                `/movie/${this.externalServiceSlug4k}`
-              );
-        }
-      }
-    }
-
-    if (this.mediaType === MediaType.TV) {
-      if (this.serviceId !== null && this.externalServiceSlug !== null) {
-        const settings = getSettings();
-        const server = settings.sonarr.find(
-          (sonarr) => sonarr.id === this.serviceId
-        );
-
-        if (server) {
-          this.serviceUrl = server.externalUrl
-            ? `${server.externalUrl}/series/${this.externalServiceSlug}`
-            : SonarrAPI.buildUrl(server, `/series/${this.externalServiceSlug}`);
-        }
-      }
-
-      if (this.serviceId4k !== null && this.externalServiceSlug4k !== null) {
-        const settings = getSettings();
-        const server = settings.sonarr.find(
-          (sonarr) => sonarr.id === this.serviceId4k
-        );
-
-        if (server) {
-          this.serviceUrl4k = server.externalUrl
-            ? `${server.externalUrl}/series/${this.externalServiceSlug4k}`
-            : SonarrAPI.buildUrl(
-                server,
-                `/series/${this.externalServiceSlug4k}`
-              );
-        }
-      }
-    }
-  }
-
-  @AfterLoad()
-  public getDownloadingItem(): void {
-    if (this.mediaType === MediaType.MOVIE) {
-      if (
-        this.externalServiceId !== undefined &&
-        this.externalServiceId !== null &&
-        this.serviceId !== undefined &&
-        this.serviceId !== null
-      ) {
-        this.downloadStatus = downloadTracker.getMovieProgress(
-          this.serviceId,
-          this.externalServiceId
-        );
-      }
-
-      if (
-        this.externalServiceId4k !== undefined &&
-        this.externalServiceId4k !== null &&
-        this.serviceId4k !== undefined &&
-        this.serviceId4k !== null
-      ) {
-        this.downloadStatus4k = downloadTracker.getMovieProgress(
-          this.serviceId4k,
-          this.externalServiceId4k
-        );
-      }
-    }
-
-    if (this.mediaType === MediaType.TV) {
-      if (
-        this.externalServiceId !== undefined &&
-        this.externalServiceId !== null &&
-        this.serviceId !== undefined &&
-        this.serviceId !== null
-      ) {
-        this.downloadStatus = downloadTracker.getSeriesProgress(
-          this.serviceId,
-          this.externalServiceId
-        );
-      }
-
-      if (
-        this.externalServiceId4k !== undefined &&
-        this.externalServiceId4k !== null &&
-        this.serviceId4k !== undefined &&
-        this.serviceId4k !== null
-      ) {
-        this.downloadStatus4k = downloadTracker.getSeriesProgress(
-          this.serviceId4k,
-          this.externalServiceId4k
-        );
-      }
-    }
-  }
-
-  public filter(user?: User): Media {
-    const canViewIssues =
-      user?.hasPermission(
-        [
-          Permission.MANAGE_ISSUES,
-          Permission.VIEW_ISSUES,
-          Permission.CREATE_ISSUES,
-        ],
-        { type: 'or' }
-      ) ?? false;
-
-    return {
-      ...this,
-      requests: (this.requests ?? []).map((request) => ({
-        ...request,
-        requestedBy: request.requestedBy?.filter(),
-        modifiedBy: request.modifiedBy?.filter(),
-      })),
-      // the detail pages call issues.filter() without a null check
-      issues: canViewIssues
-        ? (this.issues ?? []).map(
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            ({ comments, problemSeason, problemEpisode, ...issue }) => ({
-              ...issue,
-              createdBy: issue.createdBy?.filter(),
-              modifiedBy: issue.modifiedBy?.filter(),
-            })
-          )
-        : [],
-    } as Media;
+    return this.tracksAvailable > 0
+      ? MediaStatus.PARTIALLY_AVAILABLE
+      : MediaStatus.UNKNOWN;
   }
 }
+
+export const ACTIVE_REQUEST_STATUSES = [
+  MediaRequestStatus.PENDING,
+  MediaRequestStatus.APPROVED,
+];
 
 export default Media;

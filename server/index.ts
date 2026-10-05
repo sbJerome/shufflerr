@@ -1,5 +1,7 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import csurf from '@dr.pogodin/csurf';
-import PlexAPI from '@server/api/plexapi';
+import jellyfinClientApi from '@server/clientapi/jellyfin';
+import subsonicClientApi from '@server/clientapi/subsonic';
 import dataSource, { getRepository } from '@server/datasource';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
 import { Session } from '@server/entity/Session';
@@ -17,7 +19,7 @@ import SlackAgent from '@server/lib/notifications/agents/slack';
 import TelegramAgent from '@server/lib/notifications/agents/telegram';
 import WebhookAgent from '@server/lib/notifications/agents/webhook';
 import WebPushAgent from '@server/lib/notifications/agents/webpush';
-import checkOverseerrMerge from '@server/lib/overseerrMerge';
+import { syncLocalFilesWatcher } from '@server/lib/scanners/local';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import clearCookies from '@server/middleware/clearcookies';
@@ -30,7 +32,6 @@ import createCustomProxyAgent, {
   setForceIpv4First,
 } from '@server/utils/customProxyAgent';
 import { isPgsql } from '@server/utils/dbType';
-import { initDemoData } from '@server/utils/demoMode';
 import { initializeDnsCache } from '@server/utils/dnsCache';
 import restartFlag from '@server/utils/restartFlag';
 import '@server/utils/userAgent';
@@ -48,25 +49,22 @@ import next from 'next';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 
-const API_SPEC_PATH = path.join(__dirname, '../seerr-api.yml');
+const API_SPEC_PATH = path.join(__dirname, '../shufflerr-api.yml');
 
-logger.info(`Starting Seerr version ${getAppVersion()}`);
+logger.info(`Starting Shufflerr version ${getAppVersion()}`);
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
 if (!appDataPermissions()) {
   logger.error(
-    'Something went wrong while checking config folder! Please ensure the config folder is set up properly.\nhttps://docs.seerr.dev/getting-started'
+    'Something went wrong while checking config folder! Please ensure the config folder is set up properly.\nSee README.md → Quick start.'
   );
 }
 
 app
   .prepare()
   .then(async () => {
-    // Run Overseerr to Seerr migration
-    await checkOverseerrMerge();
-
     const dbConnection = dataSource.isInitialized
       ? dataSource
       : await dataSource.initialize();
@@ -106,37 +104,6 @@ app
       );
     }
 
-    // Migrate library types
-    if (
-      settings.plex.libraries.length > 1 &&
-      !settings.plex.libraries[0].type
-    ) {
-      const userRepository = getRepository(User);
-      const admin = await userRepository.findOne({
-        select: { id: true, plexToken: true },
-        where: { id: 1 },
-      });
-
-      if (admin) {
-        logger.info('Migrating Plex libraries to include media type', {
-          label: 'Settings',
-        });
-
-        const plexapi = new PlexAPI({ plexToken: admin.plexToken });
-
-        try {
-          await plexapi.syncLibraries();
-        } catch {
-          // Leave the existing libraries untouched so the migration retries on
-          // the next startup instead of discarding the user's configuration
-          logger.warn(
-            'Failed to migrate Plex libraries; will retry on next startup',
-            { label: 'Settings' }
-          );
-        }
-      }
-    }
-
     // Register Notification Agents
     notificationManager.registerAgents([
       new DiscordAgent(),
@@ -157,7 +124,7 @@ app
       startJobs();
     } else {
       logger.info(
-        `Skipping starting the scheduled jobs as we have no Plex/Jellyfin/Emby servers setup yet`,
+        `Skipping starting the scheduled jobs until the owner account exists (setup not finished)`,
         {
           label: 'Server',
         }
@@ -166,6 +133,14 @@ app
 
     // Bootstrap Discovery Sliders
     await DiscoverSlider.bootstrapSliders();
+
+    // Start (or not) the local-files watcher according to settings
+    syncLocalFilesWatcher().catch((e) =>
+      logger.error('Failed to start the local files watcher', {
+        label: 'Local Files',
+        errorMessage: e.message,
+      })
+    );
 
     const server = express();
     if (settings.network.trustProxy) {
@@ -233,6 +208,12 @@ app
         }).connect(sessionRespository) as Store,
       })
     );
+    // Client APIs for music apps (OpenSubsonic, Jellyfin-compatible). Mounted
+    // before the session/OpenAPI middleware: they authenticate with app
+    // passwords and have their own response formats.
+    server.use('/rest', subsonicClientApi);
+    server.use('/jellyfin', jellyfinClientApi);
+
     const apiSpecContent = await fs.readFile(API_SPEC_PATH, 'utf-8');
     const apiDocs = yaml.load(apiSpecContent) as Record<string, unknown>;
     server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocs));
@@ -240,6 +221,9 @@ app
       OpenApiValidator.middleware({
         apiSpec: API_SPEC_PATH,
         validateRequests: true,
+        // The spec only documents part of the API for now; undocumented routes
+        // pass through unvalidated. (The full spec is written in a later pass.)
+        ignoreUndocumented: true,
       })
     );
     /**
@@ -254,12 +238,6 @@ app
       };
       next();
     });
-
-    // Init demo mode and catch some API routes
-    if (process.env.UNSAFE_DO_NOT_USE_DEMO === 'true') {
-      logger.info('Demo mode enabled, seeding database with demo data');
-      await initDemoData(server);
-    }
 
     server.use('/api/v1', routes);
 

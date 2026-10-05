@@ -1,4 +1,4 @@
-import Button from '@app/components/Common/Button';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import PlexLoginButton from '@app/components/Login/PlexLoginButton';
 import JellyfinSetup from '@app/components/Setup/JellyfinSetup';
 import { useUser } from '@app/hooks/useUser';
@@ -6,16 +6,19 @@ import defineMessages from '@app/utils/defineMessages';
 import { MediaServerType } from '@server/constants/server';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { useIntl } from 'react-intl';
 
-const messages = defineMessages('components.Setup', {
-  welcome: 'Welcome to Seerr',
-  signinMessage: 'Get started by signing in',
-  signin: 'Sign in to your account',
-  signinWithJellyfin: 'Enter your Jellyfin details',
-  signinWithEmby: 'Enter your Emby details',
-  signinWithPlex: 'Enter your Plex details',
-  back: 'Go back',
+const messages = defineMessages('components.Setup.SetupLogin', {
+  signin: 'Sign in as the owner',
+  signinWithJellyfin:
+    'Enter your Jellyfin server address and an admin account. This account becomes the Shufflerr owner.',
+  signinWithEmby:
+    'Enter your Emby server address and an admin account. This account becomes the Shufflerr owner.',
+  signinWithPlex:
+    'Sign in with the Plex account that owns your server. This account becomes the Shufflerr owner.',
+  plexerror:
+    'Plex sign-in didn’t finish. Try again, and allow the pop-up window if your browser blocked it.',
+  back: 'Back',
 });
 
 interface LoginWithMediaServerProps {
@@ -29,82 +32,77 @@ const SetupLogin: React.FC<LoginWithMediaServerProps> = ({
   onCancel,
   onComplete,
 }) => {
+  const intl = useIntl();
   const [authToken, setAuthToken] = useState<string | undefined>(undefined);
-  const [mediaServerType, setMediaServerType] = useState<MediaServerType>(
-    MediaServerType.NOT_CONFIGURED
-  );
+  const [error, setError] = useState('');
   const { user, revalidate } = useUser();
 
-  // Effect that is triggered when the `authToken` comes back from the Plex OAuth
-  // We take the token and attempt to login. If we get a success message, we will
-  // ask swr to revalidate the user which _shouid_ come back with a valid user.
-
+  // The Plex PIN flow hands back a token; the first account becomes the owner.
   useEffect(() => {
     const login = async () => {
       try {
-        const response = await axios.post('/api/v1/auth/plex', {
-          authToken: authToken,
-        });
-
+        const response = await axios.post('/api/v1/auth/plex', { authToken });
         if (response.data?.id) {
-          const { data: user } = await axios.get('/api/v1/auth/me');
-          revalidate(user, false);
+          const { data: me } = await axios.get('/api/v1/auth/me');
+          revalidate(me, false);
         }
-      } catch {
-        // auth failed silently and user can attempt again
+      } catch (e) {
+        const message: unknown = axios.isAxiosError(e)
+          ? e.response?.data?.message
+          : undefined;
+        setError(
+          typeof message === 'string' && /\s/.test(message)
+            ? message
+            : intl.formatMessage(messages.plexerror)
+        );
+        setAuthToken(undefined);
       }
     };
-    if (authToken && mediaServerType == MediaServerType.PLEX) {
+    if (authToken && serverType === MediaServerType.PLEX) {
       login();
     }
-  }, [authToken, mediaServerType, revalidate]);
+  }, [authToken, serverType, revalidate, intl]);
 
   useEffect(() => {
     if (user) {
       onComplete();
     }
-  }, [user, mediaServerType, onComplete]);
+  }, [user, onComplete]);
 
   return (
-    <div className="p-4">
-      <div className="mb-2 flex justify-center text-xl font-bold">
-        <FormattedMessage {...messages.signin} />
-      </div>
-      <div className="mb-2 flex justify-center pb-6 text-sm">
-        {serverType === MediaServerType.JELLYFIN ? (
-          <FormattedMessage {...messages.signinWithJellyfin} />
-        ) : serverType === MediaServerType.EMBY ? (
-          <FormattedMessage {...messages.signinWithEmby} />
-        ) : (
-          <FormattedMessage {...messages.signinWithPlex} />
+    <div className="flex flex-col gap-[18px]">
+      <h2 className="text-[22px] font-semibold text-white">
+        {intl.formatMessage(messages.signin)}
+      </h2>
+      <p className="lede">
+        {intl.formatMessage(
+          serverType === MediaServerType.JELLYFIN
+            ? messages.signinWithJellyfin
+            : serverType === MediaServerType.EMBY
+              ? messages.signinWithEmby
+              : messages.signinWithPlex
         )}
-      </div>
-      {serverType === MediaServerType.PLEX && (
-        <>
-          <div className="flex justify-center bg-black/30 px-10 py-8">
-            <PlexLoginButton
-              large
-              onAuthToken={(authToken) => {
-                setMediaServerType(MediaServerType.PLEX);
-                setAuthToken(authToken);
-              }}
-            />
-          </div>
-          <div className="mt-4">
-            <Button buttonType="default" onClick={() => onCancel()}>
-              <FormattedMessage {...messages.back} />
-            </Button>
-          </div>
-        </>
+      </p>
+      {error && (
+        <p className="sh-err" role="alert">
+          {error}
+        </p>
       )}
-      {serverType === MediaServerType.JELLYFIN && (
-        <JellyfinSetup
-          revalidate={revalidate}
-          serverType={serverType}
-          onCancel={onCancel}
-        />
-      )}
-      {serverType === MediaServerType.EMBY && (
+      {serverType === MediaServerType.PLEX ? (
+        <div className="flex flex-wrap gap-3">
+          <PlexLoginButton
+            isProcessing={!!authToken}
+            onAuthToken={(token) => {
+              setError('');
+              setAuthToken(token);
+            }}
+            onError={() => setError(intl.formatMessage(messages.plexerror))}
+          />
+          <button className="sh-btn" type="button" onClick={onCancel}>
+            {intl.formatMessage(messages.back)}
+          </button>
+        </div>
+      ) : (
         <JellyfinSetup
           revalidate={revalidate}
           serverType={serverType}

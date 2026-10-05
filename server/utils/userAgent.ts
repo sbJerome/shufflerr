@@ -1,8 +1,9 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { getAppVersion } from '@server/utils/appVersion';
 import type { InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 
-const USER_AGENT = `Seerr/${getAppVersion()}`;
+const USER_AGENT = `Shufflerr/${getAppVersion()}`;
 
 export const getUserAgent = (): string => {
   return USER_AGENT;

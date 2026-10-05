@@ -1,4 +1,5 @@
-import useSettings from '@app/hooks/useSettings';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import { avatarUrl, proxied } from '@app/utils/images';
 import type { ImageLoader, ImageProps } from 'next/image';
 import Image from 'next/image';
 
@@ -6,40 +7,34 @@ const imageLoader: ImageLoader = ({ src }) => src;
 
 export type CachedImageProps = ImageProps & {
   src: string;
-  type: 'tmdb' | 'avatar' | 'tvdb';
+  /**
+   * `cover` / `artist`: any image URL the API returned (rewritten to the image
+   * proxy when it is an absolute third-party URL). `avatar`: a user avatar.
+   */
+  type: 'cover' | 'artist' | 'avatar';
 };
 
 /**
- * The CachedImage component should be used wherever
- * we want to offer the option to locally cache images.
+ * next/image wrapper that only ever loads same-origin (proxied) images.
+ * For album and artist art prefer `CoverArt`, which adds the tinted
+ * placeholder and status badge.
  **/
-const CachedImage = ({ src, type, ...props }: CachedImageProps) => {
-  const { currentSettings } = useSettings();
+const CachedImage = ({ src, type, alt, ...props }: CachedImageProps) => {
+  const imageUrl = type === 'avatar' ? avatarUrl(src) : proxied(src);
 
-  let imageUrl: string;
-
-  if (type === 'tmdb') {
-    // tmdb stuff
-    imageUrl =
-      currentSettings.cacheImages && !src.startsWith('/')
-        ? src.replace(/^https:\/\/image\.tmdb\.org\//, '/imageproxy/tmdb/')
-        : src;
-  } else if (type === 'tvdb') {
-    imageUrl =
-      currentSettings.cacheImages && !src.startsWith('/')
-        ? src.replace(
-            /^https:\/\/artworks\.thetvdb\.com\//,
-            '/imageproxy/tvdb/'
-          )
-        : src;
-  } else if (type === 'avatar') {
-    // jellyfin avatar (if any)
-    imageUrl = src;
-  } else {
+  if (!imageUrl) {
     return null;
   }
 
-  return <Image unoptimized loader={imageLoader} src={imageUrl} {...props} />;
+  return (
+    <Image
+      unoptimized
+      loader={imageLoader}
+      src={imageUrl}
+      alt={alt}
+      {...props}
+    />
+  );
 };
 
 export default CachedImage;

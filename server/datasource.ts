@@ -1,13 +1,21 @@
+import AppPassword from '@server/entity/AppPassword';
 import { Blocklist } from '@server/entity/Blocklist';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
+import Event from '@server/entity/Event';
+import ImportJob from '@server/entity/ImportJob';
 import Issue from '@server/entity/Issue';
 import IssueComment from '@server/entity/IssueComment';
+import LinkedAccount from '@server/entity/LinkedAccount';
 import Media from '@server/entity/Media';
 import { MediaRequest } from '@server/entity/MediaRequest';
 import OverrideRule from '@server/entity/OverrideRule';
-import Season from '@server/entity/Season';
-import SeasonRequest from '@server/entity/SeasonRequest';
+import Playlist from '@server/entity/Playlist';
+import PlaylistItem from '@server/entity/PlaylistItem';
+import ScrobbleQueue from '@server/entity/ScrobbleQueue';
 import { Session } from '@server/entity/Session';
+import Star from '@server/entity/Star';
+import Track from '@server/entity/Track';
+import TrackRequest from '@server/entity/TrackRequest';
 import { User } from '@server/entity/User';
 import { UserPushSubscription } from '@server/entity/UserPushSubscription';
 import { UserSettings } from '@server/entity/UserSettings';
@@ -18,11 +26,27 @@ import { MediaRequestSubscriber } from '@server/subscriber/MediaRequestSubscribe
 import { MediaSubscriber } from '@server/subscriber/MediaSubscriber';
 import { isPgsql } from '@server/utils/dbType';
 import fs from 'fs';
+import path from 'path';
 import type { TlsOptions } from 'tls';
 import type { DataSourceOptions, EntityTarget, Repository } from 'typeorm';
 import { DataSource } from 'typeorm';
 
 const DB_SSL_PREFIX = 'DB_SSL_';
+
+/**
+ * Until the initial migrations are generated (final build pass), a database
+ * with no migration files is brought up with schema synchronisation so
+ * production boots on an empty DB. Once migration files exist they win.
+ */
+function hasMigrations(kind: 'sqlite' | 'postgres'): boolean {
+  try {
+    return fs
+      .readdirSync(path.join(__dirname, 'migration', kind))
+      .some((f) => /\.(js|ts)$/.test(f) && !f.endsWith('.d.ts'));
+  } catch {
+    return false;
+  }
+}
 
 const entities = [
   Blocklist,
@@ -32,8 +56,16 @@ const entities = [
   Media,
   MediaRequest,
   OverrideRule,
-  Season,
-  SeasonRequest,
+  AppPassword,
+  Event,
+  ImportJob,
+  LinkedAccount,
+  Playlist,
+  PlaylistItem,
+  ScrobbleQueue,
+  Star,
+  Track,
+  TrackRequest,
   Session,
   User,
   UserPushSubscription,
@@ -120,7 +152,7 @@ const prodConfig: DataSourceOptions = {
   database: process.env.CONFIG_DIRECTORY
     ? `${process.env.CONFIG_DIRECTORY}/db/db.sqlite3`
     : 'config/db/db.sqlite3',
-  synchronize: false,
+  synchronize: !hasMigrations('sqlite'),
   migrationsRun: false,
   logging: boolFromEnv('DB_LOG_QUERIES'),
   enableWAL: true,
@@ -137,13 +169,13 @@ const postgresDevConfig: DataSourceOptions = {
     : parseInt(process.env.DB_PORT ?? '5432'),
   username: process.env.DB_USER,
   password: process.env.DB_PASS,
-  database: process.env.DB_NAME ?? 'seerr',
+  database: process.env.DB_NAME ?? 'shufflerr',
   ssl: buildSslConfig(),
   poolSize: intFromEnv('DB_POOL_SIZE'),
   // Bounds pool acquisition waits so exhaustion surfaces as errors instead of a silent hang
   connectTimeoutMS: intFromEnv('DB_CONNECT_TIMEOUT_MS', 30000),
-  synchronize: false,
-  migrationsRun: true,
+  synchronize: !hasMigrations('postgres'),
+  migrationsRun: hasMigrations('postgres'),
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities,
   migrations: ['server/migration/postgres/**/*.ts'],
@@ -158,12 +190,12 @@ const postgresProdConfig: DataSourceOptions = {
     : parseInt(process.env.DB_PORT ?? '5432'),
   username: process.env.DB_USER,
   password: process.env.DB_PASS,
-  database: process.env.DB_NAME ?? 'seerr',
+  database: process.env.DB_NAME ?? 'shufflerr',
   ssl: buildSslConfig(),
   poolSize: intFromEnv('DB_POOL_SIZE'),
   // Bounds pool acquisition waits so exhaustion surfaces as errors instead of a silent hang
   connectTimeoutMS: intFromEnv('DB_CONNECT_TIMEOUT_MS', 30000),
-  synchronize: false,
+  synchronize: !hasMigrations('postgres'),
   migrationsRun: false,
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities,

@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { withProperties } from '@app/utils/typeHelpers';
 
 type TBodyProps = {
@@ -5,9 +6,7 @@ type TBodyProps = {
 };
 
 const TBody = ({ children }: TBodyProps) => {
-  return (
-    <tbody className="divide-y divide-gray-700 bg-gray-800">{children}</tbody>
-  );
+  return <tbody className="divide-y divide-line bg-surface">{children}</tbody>;
 };
 
 const TH = ({
@@ -16,7 +15,7 @@ const TH = ({
   ...props
 }: React.ComponentPropsWithoutRef<'th'>) => {
   const style = [
-    'px-4 py-3 bg-gray-500 text-left text-xs leading-4 font-medium text-gray-200 uppercase tracking-wider truncate',
+    'px-4 py-3 bg-surface border-b border-line text-left text-xs leading-4 font-semibold text-faint truncate',
   ];
 
   if (className) {
@@ -42,7 +41,7 @@ const TD = ({
   className,
   ...props
 }: TDProps & React.ComponentPropsWithoutRef<'td'>) => {
-  const style = ['text-sm leading-5 text-white'];
+  const style = ['text-sm leading-5 text-ink'];
 
   switch (alignText) {
     case 'left':
@@ -80,7 +79,7 @@ const Table = ({ children }: TableProps) => {
     <div className="flex flex-col">
       <div className="-mx-4 my-2 overflow-x-auto md:mx-0 lg:mx-0">
         <div className="inline-block min-w-full py-2 align-middle">
-          <div className="overflow-hidden rounded-lg shadow md:mx-0 lg:mx-0">
+          <div className="overflow-hidden rounded-pill border border-line md:mx-0 lg:mx-0">
             <table className="min-w-full">{children}</table>
           </div>
         </div>

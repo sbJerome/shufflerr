@@ -1,0 +1,90 @@
+openapi: '3.0.2'
+info:
+  title: 'Shufflerr API'
+  version: '1.0.0'
+  description: |
+    API for Shufflerr, a self-hosted request and discovery manager for music.
+
+    This document currently covers only the core status routes. Every route is
+    described in `docs/API_CONTRACT.md`; undocumented routes are served without
+    OpenAPI validation until the full specification is written.
+
+    Authentication: a session cookie (`connect.sid`) from one of the
+    `/auth/*` sign-in routes, or the `X-Api-Key` header with the key from
+    Settings → General.
+
+    Derived from Seerr (https://github.com/seerr-team/seerr), MIT License.
+servers:
+  - url: '{server}/api/v1'
+    variables:
+      server:
+        default: http://localhost:5055
+tags:
+  - name: public
+    description: Routes that need no authentication.
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      name: connect.sid
+      in: cookie
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  schemas:
+    Status:
+      type: object
+      properties:
+        version:
+          type: string
+          example: 0.1.0
+        commitTag:
+          type: string
+        updateAvailable:
+          type: boolean
+        commitsBehind:
+          type: number
+        restartRequired:
+          type: boolean
+    AppData:
+      type: object
+      properties:
+        appData:
+          type: boolean
+        appDataPath:
+          type: string
+        appDataPermissions:
+          type: boolean
+paths:
+  /status:
+    get:
+      summary: Get Shufflerr status
+      description: Returns the current version and whether a restart is needed.
+      security: []
+      tags:
+        - public
+      responses:
+        '200':
+          description: Returned status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+  /status/appdata:
+    get:
+      summary: Get application data volume status
+      description: Whether the config folder is mounted and writable.
+      security: []
+      tags:
+        - public
+      responses:
+        '200':
+          description: Application data volume status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppData'
+security:
+  - cookieAuth: []
+  - apiKey: []

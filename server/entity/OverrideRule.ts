@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
 import {
   Column,
@@ -11,11 +12,9 @@ class OverrideRule {
   @PrimaryGeneratedColumn()
   public id: number;
 
+  /** Lidarr instance the rule routes to. */
   @Column({ type: 'int', nullable: true })
-  public radarrServiceId?: number;
-
-  @Column({ type: 'int', nullable: true })
-  public sonarrServiceId?: number;
+  public lidarrServiceId?: number;
 
   @Column({ nullable: true })
   public users?: string;
@@ -23,14 +22,19 @@ class OverrideRule {
   @Column({ nullable: true })
   public genre?: string;
 
+  /** Record label names/MBIDs, comma-separated. */
   @Column({ nullable: true })
-  public language?: string;
+  public label?: string;
 
+  /** Release primary types (Album, EP, Single…), comma-separated. */
   @Column({ nullable: true })
-  public keywords?: string;
+  public primaryType?: string;
 
   @Column({ type: 'int', nullable: true })
   public profileId?: number;
+
+  @Column({ type: 'int', nullable: true })
+  public metadataProfileId?: number;
 
   @Column({ nullable: true })
   public rootFolder?: string;

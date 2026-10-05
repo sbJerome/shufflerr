@@ -1,25 +1,45 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { QualityProfile, RootFolder, Tag } from '@server/api/servarr/base';
-import type { LanguageProfile } from '@server/api/servarr/sonarr';
 
+export interface MetadataProfile {
+  id: number;
+  name: string;
+}
+
+/** A Lidarr server as the request modal sees it (no secrets). */
 export interface ServiceCommonServer {
   id: number;
   name: string;
-  is4k: boolean;
+  isHiRes: boolean;
   isDefault: boolean;
-  activeProfileId: number;
+  activeQualityProfileId: number;
+  activeMetadataProfileId: number;
   activeDirectory: string;
-  activeLanguageProfileId?: number;
-  activeAnimeProfileId?: number;
-  activeAnimeDirectory?: string;
-  activeAnimeLanguageProfileId?: number;
   activeTags: number[];
-  activeAnimeTags?: number[];
 }
 
 export interface ServiceCommonServerWithDetails {
   server: ServiceCommonServer;
   profiles: QualityProfile[];
+  metadataProfiles: MetadataProfile[];
   rootFolders: Partial<RootFolder>[];
-  languageProfiles?: LanguageProfile[];
   tags: Tag[];
+}
+
+/** POST /settings/lidarr/test response */
+export interface LidarrTestResponse {
+  profiles: QualityProfile[];
+  metadataProfiles: MetadataProfile[];
+  rootFolders: Partial<RootFolder>[];
+  tags: Tag[];
+  urlBase?: string;
+  version?: string;
+}
+
+/** GET /settings/lidarr item: LidarrSettings (apiKey masked) plus live status. */
+export interface LidarrServerStatus {
+  id: number;
+  connected: boolean;
+  version?: string;
+  error?: string;
 }

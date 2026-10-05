@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Layout from '@app/components/Layout';
 import LoadingBar from '@app/components/LoadingBar';
 import PWAHeader from '@app/components/PWAHeader';
@@ -5,15 +6,24 @@ import ServiceWorkerSetup from '@app/components/ServiceWorkerSetup';
 import StatusChecker from '@app/components/StatusChecker';
 import { InteractionProvider } from '@app/context/InteractionContext';
 import { LanguageContext } from '@app/context/LanguageContext';
-import { SettingsProvider } from '@app/context/SettingsContext';
+import {
+  defaultPublicSettings,
+  SettingsProvider,
+} from '@app/context/SettingsContext';
 import { UserContext } from '@app/context/UserContext';
 import type { User } from '@app/hooks/useUser';
 import { Permission, useUser } from '@app/hooks/useUser';
 import '@app/styles/globals.css';
 import { polyfillIntl } from '@app/utils/polyfillIntl';
 import { getHostAndPort } from '@app/utils/urlHelper';
-import '@fontsource-variable/inter';
-import { MediaServerType } from '@server/constants/server';
+import '@fontsource/ibm-plex-sans/300.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+import '@fontsource/jetbrains-mono/700.css';
 import type { PublicSettingsResponse } from '@server/interfaces/api/settingsInterfaces';
 import type { AvailableLocale } from '@server/types/languages';
 import axios from 'axios';
@@ -153,8 +163,8 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
     const handleBadgeUpdate = () => {
       if ('setAppBadge' in newNavigator) {
         if (
-          !router.pathname.match(/(login|setup|resetpassword)/) &&
-          hasPermission(Permission.ADMIN)
+          !router.pathname.match(/(login|logout|setup|resetpassword)/) &&
+          hasPermission(Permission.MANAGE_REQUESTS)
         ) {
           requestsCount().then((data) => {
             if (data.pending > 0) {
@@ -178,7 +188,7 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
     };
   }, [hasPermission, router.pathname]);
 
-  if (router.pathname.match(/(login|setup|resetpassword)/)) {
+  if (router.pathname.match(/(login|logout|setup|resetpassword)/)) {
     component = <Component {...pageProps} />;
   } else {
     component = (
@@ -219,12 +229,17 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
               <StatusChecker />
               <ServiceWorkerSetup />
               <UserContext initialUser={user}>{component}</UserContext>
+              {/* bottom-center, above the docked player */}
               <Toaster
-                position="top-right"
-                toastOptions={{ duration: 4000 }}
+                position="bottom-center"
+                toastOptions={{
+                  duration: 4000,
+                  ariaProps: { role: 'status', 'aria-live': 'polite' },
+                }}
                 containerStyle={{
                   zIndex: 10000,
-                  paddingTop: 'env(safe-area-inset-top)',
+                  bottom:
+                    'calc(var(--player-h) + 24px + env(safe-area-inset-bottom, 0px))',
                 }}
               />
             </InteractionProvider>
@@ -238,33 +253,7 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
 CoreApp.getInitialProps = async (initialProps) => {
   const { ctx, router } = initialProps;
   let user: User | undefined = undefined;
-  let currentSettings: PublicSettingsResponse = {
-    initialized: false,
-    applicationTitle: '',
-    applicationUrl: '',
-    hideAvailable: false,
-    hideBlocklisted: false,
-    hideRequested: false,
-    movie4kEnabled: false,
-    series4kEnabled: false,
-    localLogin: true,
-    mediaServerLogin: true,
-    discoverRegion: '',
-    streamingRegion: '',
-    originalLanguage: '',
-    mediaServerType: MediaServerType.NOT_CONFIGURED,
-    partialRequestsEnabled: true,
-    enableSpecialEpisodes: false,
-    cacheImages: false,
-    vapidPublic: '',
-    enablePushRegistration: false,
-    locale: 'en',
-    emailEnabled: false,
-    newPlexLogin: true,
-    youtubeUrl: '',
-    versionCheck: true,
-    plexClientIdentifier: '',
-  };
+  let currentSettings: PublicSettingsResponse = defaultPublicSettings;
 
   if (ctx.res) {
     // Check if app is initialized and redirect if necessary
@@ -307,7 +296,7 @@ CoreApp.getInitialProps = async (initialProps) => {
         // If there is no user, and ctx.res is set (to check if we are on the server side)
         // _AND_ we are not already on the login or setup route, redirect to /login with a 307
         // before anything actually renders
-        if (!router.pathname.match(/(login|setup|resetpassword)/)) {
+        if (!router.pathname.match(/(login|logout|setup|resetpassword)/)) {
           ctx.res.writeHead(307, {
             Location: '/login',
           });

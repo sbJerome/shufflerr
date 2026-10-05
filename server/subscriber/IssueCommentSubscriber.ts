@@ -1,4 +1,4 @@
-import TheMovieDb from '@server/api/themoviedb';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { IssueType, IssueTypeName } from '@server/constants/issue';
 import { MediaType } from '@server/constants/media';
 import IssueComment from '@server/entity/IssueComment';
@@ -15,6 +15,13 @@ import type {
 } from 'typeorm';
 import { EventSubscriber } from 'typeorm';
 
+const mediaTitle = (media: { title: string; artistName?: string | null }) =>
+  media.artistName ? `${media.title} — ${media.artistName}` : media.title;
+const mediaImage = (media: { mbid: string; mediaType: string }) =>
+  media.mediaType === MediaType.RELEASE_GROUP
+    ? `/imageproxy/caa/release-group/${media.mbid}/front-500`
+    : '';
+
 @EventSubscriber()
 export class IssueCommentSubscriber implements EntitySubscriberInterface<IssueComment> {
   public listenTo(): typeof IssueComment {
@@ -25,10 +32,6 @@ export class IssueCommentSubscriber implements EntitySubscriberInterface<IssueCo
     manager: EntityManager,
     entity: IssueComment
   ) {
-    let title: string;
-    let image: string;
-    const tmdb = new TheMovieDb();
-
     try {
       const issue = (
         await manager.getRepository(IssueComment).findOneOrFail({
@@ -45,21 +48,8 @@ export class IssueCommentSubscriber implements EntitySubscriberInterface<IssueCo
         where: { id: issue.media.id },
       });
 
-      if (media.mediaType === MediaType.MOVIE) {
-        const movie = await tmdb.getMovie({ movieId: media.tmdbId });
-
-        title = `${movie.title}${
-          movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : ''
-        }`;
-        image = `https://image.tmdb.org/t/p/w600_and_h900_bestv2${movie.poster_path}`;
-      } else {
-        const tvshow = await tmdb.getTvShow({ tvId: media.tmdbId });
-
-        title = `${tvshow.name}${
-          tvshow.first_air_date ? ` (${tvshow.first_air_date.slice(0, 4)})` : ''
-        }`;
-        image = `https://image.tmdb.org/t/p/w600_and_h900_bestv2${tvshow.poster_path}`;
-      }
+      const title = mediaTitle(media);
+      const image = mediaImage(media);
 
       const [firstComment] = sortBy(issue.comments, 'id');
 

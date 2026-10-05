@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { User } from '@app/hooks/useUser';
 import { useUser } from '@app/hooks/useUser';
 import { useRouter } from 'next/dist/client/router';
@@ -24,7 +25,7 @@ export const UserContext = ({ initialUser, children }: UserContextProps) => {
 
   useEffect(() => {
     if (
-      !router.pathname.match(/(setup|login|resetpassword)/) &&
+      !router.pathname.match(/(setup|login|logout|resetpassword)/) &&
       (!user || error) &&
       !routing.current
     ) {

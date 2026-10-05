@@ -1,249 +1,230 @@
-import Button from '@app/components/Common/Button';
-import SensitiveInput from '@app/components/Common/SensitiveInput';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import JellyfinQuickConnectModal from '@app/components/Login/JellyfinQuickConnectModal';
+import { useLockBodyScroll } from '@app/hooks/useLockBodyScroll';
 import useSettings from '@app/hooks/useSettings';
-import useToasts from '@app/hooks/useToasts';
 import defineMessages from '@app/utils/defineMessages';
-import {
-  ArrowLeftOnRectangleIcon,
-  QrCodeIcon,
-} from '@heroicons/react/24/outline';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { ApiErrorCode } from '@server/constants/error';
-import { MediaServerType, ServerType } from '@server/constants/server';
 import axios from 'axios';
-import { Field, Form, Formik } from 'formik';
-import { useCallback, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useIntl } from 'react-intl';
-import * as Yup from 'yup';
 
-const messages = defineMessages('components.Login', {
-  loginwithapp: 'Login with {appName}',
+const messages = defineMessages('components.Login.JellyfinLogin', {
+  title: 'Sign in with {mediaServerName}',
+  lede: 'Use your {mediaServerName} username and password.',
   username: 'Username',
   password: 'Password',
-  validationusernamerequired: 'Username required',
-  validationpasswordrequired: 'Password required',
-  loginerror: 'Something went wrong while trying to sign in.',
-  adminerror: 'You must use an admin account to sign in.',
-  noadminerror: 'No admin user found on the server.',
-  credentialerror: 'The username or password is incorrect.',
-  invalidurlerror: 'Unable to connect to {mediaServerName} server.',
-  tipUsernameHasTrailingWhitespace: 'The username ends with whitespace',
-  signingin: 'Signing In…',
-  signin: 'Sign In',
-  forgotpassword: 'Forgot Password?',
-  quickconnect: 'Quick Connect',
-  quickconnecterror: 'Quick Connect failed. Please try again.',
+  cancel: 'Cancel',
+  signin: 'Sign in',
+  signingin: 'Signing in…',
+  quickconnect: 'Use Quick Connect',
+  forgotpassword: 'Forgot password?',
+  usernamerequired: 'Enter your {mediaServerName} username.',
+  credentialerror:
+    '{mediaServerName} didn’t accept that username and password.',
+  connectionerror:
+    'Shufflerr couldn’t reach the {mediaServerName} server. Ask an admin to check the connection in Settings.',
+  noaccount:
+    'Your {mediaServerName} account doesn’t have a Shufflerr account yet. Ask an admin to import you.',
+  loginerror: 'Signing in didn’t work. Try again in a moment.',
+  quickconnecterror: 'Quick Connect didn’t finish. Try again.',
 });
 
 interface JellyfinLoginProps {
+  /** 'Jellyfin' or 'Emby'. */
+  mediaServerName: string;
   revalidate: () => void;
-  serverType?: MediaServerType;
+  onClose: () => void;
 }
 
-const JellyfinLogin = ({ revalidate, serverType }: JellyfinLoginProps) => {
-  const toasts = useToasts();
+/** Username/password dialog for Jellyfin (and Emby) sign-in. */
+const JellyfinLogin = ({
+  mediaServerName,
+  revalidate,
+  onClose,
+}: JellyfinLoginProps) => {
   const intl = useIntl();
-  const settings = useSettings();
-  const [showQuickConnect, setShowQuickConnect] = useState(false);
+  const { currentSettings } = useSettings();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [quickConnect, setQuickConnect] = useState(false);
+  const firstField = useRef<HTMLInputElement>(null);
+  const values = { mediaServerName };
+  useLockBodyScroll(true);
 
-  const mediaServerFormatValues = {
-    mediaServerName:
-      serverType === MediaServerType.JELLYFIN
-        ? ServerType.JELLYFIN
-        : serverType === MediaServerType.EMBY
-          ? ServerType.EMBY
-          : 'Media Server',
+  useEffect(() => {
+    firstField.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const baseUrl = currentSettings.jellyfinExternalHost;
+  const forgotUrl =
+    currentSettings.jellyfinForgotPasswordUrl ||
+    (baseUrl ? `${baseUrl}/web/index.html#!/forgotpassword.html` : undefined);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setError(intl.formatMessage(messages.usernamerequired, values));
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    try {
+      await axios.post('/api/v1/auth/jellyfin', {
+        username: username.trim(),
+        password,
+        email: username.trim(),
+      });
+      revalidate();
+      onClose();
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      const code: unknown = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : undefined;
+      let message = messages.loginerror;
+      if (
+        code === ApiErrorCode.InvalidCredentials ||
+        (status === 401 && typeof code !== 'string')
+      ) {
+        message = messages.credentialerror;
+      } else if (
+        code === ApiErrorCode.InvalidUrl ||
+        code === ApiErrorCode.ConnectionError
+      ) {
+        message = messages.connectionerror;
+      } else if (code === ApiErrorCode.Unauthorized || status === 403) {
+        message = messages.noaccount;
+      }
+      if (
+        typeof code === 'string' &&
+        /\s/.test(code) &&
+        message === messages.loginerror
+      ) {
+        setError(code);
+      } else {
+        setError(intl.formatMessage(message, values));
+      }
+      setSubmitting(false);
+    }
   };
 
-  const handleQuickConnectError = useCallback(
-    (error: string) => {
-      toasts.addToast(error, {
-        autoDismiss: true,
-        appearance: 'error',
-      });
-    },
-    [toasts]
-  );
-
-  const LoginSchema = Yup.object().shape({
-    username: Yup.string().required(
-      intl.formatMessage(messages.validationusernamerequired)
-    ),
-    password: Yup.string(),
-  });
-  const baseUrl = settings.currentSettings.jellyfinExternalHost
-    ? settings.currentSettings.jellyfinExternalHost
-    : settings.currentSettings.jellyfinHost;
-  const jellyfinForgotPasswordUrl =
-    settings.currentSettings.jellyfinForgotPasswordUrl;
-
-  return (
-    <div>
-      <Formik
-        initialValues={{
-          username: '',
-          password: '',
+  if (quickConnect) {
+    return (
+      <JellyfinQuickConnectModal
+        mediaServerName={mediaServerName}
+        onClose={() => setQuickConnect(false)}
+        onAuthenticated={() => {
+          revalidate();
+          onClose();
         }}
-        validationSchema={LoginSchema}
-        validateOnBlur={false}
-        onSubmit={async (values) => {
-          try {
-            await axios.post('/api/v1/auth/jellyfin', {
-              username: values.username,
-              password: values.password,
-              email: values.username,
-            });
-          } catch (e) {
-            let errorMessage = messages.loginerror;
-            switch (e?.response?.data?.message) {
-              case ApiErrorCode.InvalidUrl:
-              case ApiErrorCode.ConnectionError:
-                errorMessage = messages.invalidurlerror;
-                break;
-              case ApiErrorCode.InvalidCredentials:
-                errorMessage = messages.credentialerror;
-                break;
-              case ApiErrorCode.NotAdmin:
-                errorMessage = messages.adminerror;
-                break;
-              case ApiErrorCode.NoAdminUser:
-                errorMessage = messages.noadminerror;
-                break;
-            }
-            toasts.addToast(
-              intl.formatMessage(errorMessage, mediaServerFormatValues),
-              {
-                autoDismiss: true,
-                appearance: 'error',
-              }
-            );
-          } finally {
-            revalidate();
-          }
+        onError={() => {
+          setQuickConnect(false);
+          setError(intl.formatMessage(messages.quickconnecterror));
         }}
-      >
-        {({ errors, touched, values, isSubmitting, isValid }) => {
-          return (
-            <>
-              <Form data-form-type="login">
-                <div>
-                  <h2 className="-mt-1 mb-6 text-center text-lg font-bold text-neutral-200">
-                    {intl.formatMessage(messages.loginwithapp, {
-                      appName: mediaServerFormatValues.mediaServerName,
-                    })}
-                  </h2>
+      />
+    );
+  }
 
-                  <div className="mb-4 mt-1">
-                    <div className="form-input-field">
-                      <Field
-                        id="username"
-                        name="username"
-                        type="text"
-                        placeholder={intl.formatMessage(messages.username)}
-                        className="!bg-gray-700/80 placeholder:text-gray-400"
-                        data-form-type="username"
-                      />
-                    </div>
-                    {touched.username && values.username.match(/\s$/) && (
-                      <div className="warning label-tip flex items-center">
-                        <ExclamationTriangleIcon className="mr-1 h-4 w-4" />
-                        {intl.formatMessage(
-                          messages.tipUsernameHasTrailingWhitespace
-                        )}
-                      </div>
-                    )}
-                    {errors.username && touched.username && (
-                      <div className="error">{errors.username}</div>
-                    )}
-                  </div>
-
-                  <div className="mb-2 mt-1">
-                    <div className="form-input-field">
-                      <SensitiveInput
-                        as="field"
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        placeholder={intl.formatMessage(messages.password)}
-                        className="!bg-gray-700/80 placeholder:text-gray-400"
-                        data-form-type="password"
-                        data-1pignore="false"
-                        data-lpignore="false"
-                      />
-                    </div>
-                    <div className="flex">
-                      {errors.password && touched.password && (
-                        <div className="error">{errors.password}</div>
-                      )}
-                      <div className="flex-grow" />
-                      {baseUrl && (
-                        <a
-                          href={
-                            jellyfinForgotPasswordUrl
-                              ? `${jellyfinForgotPasswordUrl}`
-                              : `${baseUrl}/web/index.html#!/${
-                                  settings.currentSettings.mediaServerType ===
-                                  MediaServerType.EMBY
-                                    ? 'startup/'
-                                    : ''
-                                }forgotpassword.html`
-                          }
-                          className="pt-2 text-sm text-indigo-500 hover:text-indigo-400"
-                        >
-                          {intl.formatMessage(messages.forgotpassword)}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  buttonType="primary"
-                  type="submit"
-                  disabled={isSubmitting || !isValid}
-                  className="mt-2 w-full shadow-sm"
-                >
-                  <ArrowLeftOnRectangleIcon />
-                  <span>
-                    {isSubmitting
-                      ? intl.formatMessage(messages.signingin)
-                      : intl.formatMessage(messages.signin)}
-                  </span>
-                </Button>
-              </Form>
-            </>
-          );
-        }}
-      </Formik>
-
-      {serverType === MediaServerType.JELLYFIN && (
-        <div className="mt-4">
-          <Button
-            buttonType="ghost"
-            type="button"
-            onClick={() => setShowQuickConnect(true)}
-            className="w-full"
+  return ReactDOM.createPortal(
+    // Backdrop click closes; Esc and Cancel are the keyboard paths.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+    <div
+      className="sh-pop sh-force-dark"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="jf-title"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="win">
+        <div className="bar">{mediaServerName}</div>
+        <div className="in">
+          <h2 id="jf-title">{intl.formatMessage(messages.title, values)}</h2>
+          <p>{intl.formatMessage(messages.lede, values)}</p>
+          <form
+            onSubmit={submit}
+            noValidate
+            className="flex flex-col gap-[14px]"
+            data-form-type="login"
           >
-            <QrCodeIcon />
-            <span>{intl.formatMessage(messages.quickconnect)}</span>
-          </Button>
+            <div className="sh-fl">
+              <input
+                id="username"
+                ref={firstField}
+                placeholder=" "
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <label htmlFor="username">
+                {intl.formatMessage(messages.username)}
+              </label>
+            </div>
+            <div className="sh-fl">
+              <input
+                id="jf-password"
+                type="password"
+                placeholder=" "
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <label htmlFor="jf-password">
+                {intl.formatMessage(messages.password)}
+              </label>
+            </div>
+            {error && (
+              <p className="sh-err" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-[10px]">
+              <button
+                type="button"
+                className="border-0 bg-transparent p-0 text-[13px] text-[#B9A7F0] hover:underline"
+                onClick={() => setQuickConnect(true)}
+              >
+                {intl.formatMessage(messages.quickconnect)}
+              </button>
+              <div className="flex gap-[10px]">
+                <button className="sh-btn" type="button" onClick={onClose}>
+                  {intl.formatMessage(messages.cancel)}
+                </button>
+                <button
+                  className="sh-btn jellyfin !min-h-[46px] !text-sm"
+                  type="submit"
+                  disabled={submitting}
+                >
+                  {intl.formatMessage(
+                    submitting ? messages.signingin : messages.signin
+                  )}
+                </button>
+              </div>
+            </div>
+            {forgotUrl && (
+              <a
+                href={forgotUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[13px] !text-[#B9A7F0]"
+              >
+                {intl.formatMessage(messages.forgotpassword)}
+              </a>
+            )}
+          </form>
         </div>
-      )}
-
-      {showQuickConnect && (
-        <JellyfinQuickConnectModal
-          onClose={() => setShowQuickConnect(false)}
-          onAuthenticated={() => {
-            setShowQuickConnect(false);
-            revalidate();
-          }}
-          onError={handleQuickConnectError}
-          mediaServerName={mediaServerFormatValues.mediaServerName}
-        />
-      )}
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 };
 

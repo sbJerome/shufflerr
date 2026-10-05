@@ -1,11 +1,28 @@
+# Shufflerr with SQLite (default). `docker compose up -d`, then open http://localhost:5055
 services:
-  seerr:
+  shufflerr:
     build:
       context: .
-      dockerfile: Dockerfile.local
+    image: shufflerr:local
+    container_name: shufflerr
     ports:
-      - 5055:5055
+      - '5055:5055'
+    environment:
+      TZ: 'UTC'
+      LOG_LEVEL: 'info'
     volumes:
-      - .:/app:rw,cached
-      - /app/node_modules
-      - /app/.next
+      - ./config:/app/config
+      # Optional: mount your music read-only and add /music under
+      # Settings → Local files so Shufflerr can index and play it.
+      # - /path/to/music:/music:ro
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:5055/api/v1/status >/dev/null || exit 1',
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped

@@ -1,3 +1,5 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV5): reword for music (types, copy, payload variables).
 import {
   DISCORD_SNOWFLAKE_REGEX,
   EmbedColors,
@@ -18,7 +20,7 @@ import {
   shouldSendAdminNotification,
 } from '..';
 import type { NotificationAgent, NotificationPayload } from './agent';
-import { BaseAgent } from './agent';
+import { BaseAgent, mediaPath } from './agent';
 
 const isValidSnowflake = (id: string): boolean =>
   DISCORD_SNOWFLAKE_REGEX.test(id);
@@ -199,7 +201,7 @@ class DiscordAgent
       ? payload.issue
         ? `${applicationUrl}/issues/${payload.issue.id}`
         : payload.media
-          ? `${applicationUrl}/${payload.media.mediaType}/${payload.media.tmdbId}`
+          ? `${applicationUrl}/${mediaPath(payload.media)}`
           : undefined
       : undefined;
 

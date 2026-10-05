@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Toast from '@app/components/Toast';
 import { useCallback } from 'react';
 import { toast } from 'react-hot-toast';

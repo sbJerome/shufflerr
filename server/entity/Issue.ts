@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { IssueType } from '@server/constants/issue';
 import { IssueStatus } from '@server/constants/issue';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
@@ -27,11 +28,9 @@ class Issue {
   @Column({ type: 'int', default: IssueStatus.OPEN })
   public status: IssueStatus;
 
-  @Column({ type: 'int', default: 0 })
-  public problemSeason: number;
-
-  @Column({ type: 'int', default: 0 })
-  public problemEpisode: number;
+  /** Track ids the problem applies to (missing/bad tracks); empty = whole album. */
+  @Column({ type: 'simple-json', nullable: true })
+  public problemTracks?: number[] | null;
 
   @ManyToOne(() => Media, (media) => media.issues, {
     eager: true,

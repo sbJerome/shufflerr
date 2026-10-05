@@ -1,8 +1,9 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 interface PWAHeaderProps {
   applicationTitle?: string;
 }
 
-const PWAHeader = ({ applicationTitle = 'Seerr' }: PWAHeaderProps) => {
+const PWAHeader = ({ applicationTitle = 'Shufflerr' }: PWAHeaderProps) => {
   return (
     <>
       <link
@@ -164,11 +165,11 @@ const PWAHeader = ({ applicationTitle = 'Seerr' }: PWAHeaderProps) => {
       <meta name="apple-mobile-web-app-title" content={applicationTitle} />
       <meta
         name="description"
-        content="Request and Media Discovery Application"
+        content="Music request and discovery manager"
       />
       <meta name="format-detection" content="telephone=no" />
       <meta name="mobile-web-app-capable" content="yes" />
-      <meta name="theme-color" content="#1f2937" />
+      <meta name="theme-color" content="#090C14" />
       <meta name="application-name" content={applicationTitle} />
     </>
   );

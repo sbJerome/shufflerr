@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { useUser } from '@app/hooks/useUser';
 import type { Permission } from '@server/lib/permissions';
 import { hasPermission } from '@server/lib/permissions';
@@ -26,7 +27,6 @@ type SettingsLinkProps = {
 
 const SettingsLink = ({
   children,
-  tabType,
   currentPath,
   route,
   regex,
@@ -41,27 +41,10 @@ const SettingsLink = ({
     return <option value={route}>{children}</option>;
   }
 
-  let linkClasses =
-    'px-1 py-4 ml-8 text-sm font-medium leading-5 transition duration-300 border-b-2 border-transparent whitespace-nowrap first:ml-0';
-  let activeLinkColor = 'text-indigo-500 border-indigo-600';
-  let inactiveLinkColor =
-    'text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-400 focus:text-gray-300 focus:border-gray-400';
-
-  if (tabType === 'button') {
-    linkClasses =
-      'px-3 py-2 text-sm font-medium transition duration-300 rounded-md whitespace-nowrap mx-2 my-1';
-    activeLinkColor = 'bg-indigo-700';
-    inactiveLinkColor = 'bg-gray-800 hover:bg-gray-700 focus:bg-gray-700';
-  }
+  const active = !!currentPath.match(regex);
 
   return (
-    <Link
-      href={route}
-      className={`${linkClasses} ${
-        currentPath.match(regex) ? activeLinkColor : inactiveLinkColor
-      }`}
-      aria-current="page"
-    >
+    <Link href={route} aria-current={active ? 'page' : undefined}>
       {children}
     </Link>
   );
@@ -85,6 +68,7 @@ const SettingsTabs = ({
         </label>
         <select
           id="tabs"
+          className="sh-select-plain w-full"
           onChange={(e) => {
             router.push(e.target.value);
           }}
@@ -126,7 +110,7 @@ const SettingsTabs = ({
       </div>
       {tabType === 'button' ? (
         <div className="hidden sm:block">
-          <nav className="-mx-2 -my-1 flex flex-wrap" aria-label="Tabs">
+          <nav className="sh-subnav-pills" aria-label="Tabs">
             {settingsRoutes.map((route, index) => (
               <SettingsLink
                 tabType={tabType}
@@ -142,8 +126,8 @@ const SettingsTabs = ({
           </nav>
         </div>
       ) : (
-        <div className="hide-scrollbar hidden overflow-x-scroll border-b border-gray-600 sm:block">
-          <nav className="flex" data-testid="settings-nav-desktop">
+        <div className="hidden sm:block">
+          <nav className="sh-tabs-h" data-testid="settings-nav-desktop">
             {settingsRoutes
               .filter(
                 (route) =>

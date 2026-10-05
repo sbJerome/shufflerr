@@ -1,66 +1,50 @@
-import PlexIcon from '@app/assets/services/plex.svg';
-import Button from '@app/components/Common/Button';
-import { SmallLoadingSpinner } from '@app/components/Common/LoadingSpinner';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import usePlexLogin from '@app/hooks/usePlexLogin';
 import defineMessages from '@app/utils/defineMessages';
-import { Fragment } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { useIntl } from 'react-intl';
 
-const messages = defineMessages('components.Login', {
-  loginwithapp: 'Login with {appName}',
+const messages = defineMessages('components.Login.PlexLoginButton', {
+  signinwithplex: 'Sign in with Plex',
+  waitingforplex: 'Waiting for Plex…',
 });
 
 interface PlexLoginButtonProps {
   onAuthToken: (authToken: string) => void;
   isProcessing?: boolean;
   onError?: (message: string) => void;
+  /** `solid` = Plex-orange primary button; `outline` = accent outline (side panel). */
+  variant?: 'solid' | 'outline';
+  /** Kept for compatibility with Seerr callers. */
   large?: boolean;
+  children?: React.ReactNode;
 }
 
 const PlexLoginButton = ({
   onAuthToken,
   onError,
   isProcessing,
-  large,
+  variant = 'solid',
+  children,
 }: PlexLoginButtonProps) => {
+  const intl = useIntl();
   const { loading, login } = usePlexLogin({ onAuthToken, onError });
+  const busy = loading || !!isProcessing;
 
   return (
-    <Button
-      className="relative flex-1 border-[#cc7b19] bg-[rgba(204,123,25,0.3)] hover:border-[#cc7b19] hover:bg-[rgba(204,123,25,0.7)] disabled:opacity-50"
+    <button
+      type="button"
+      className={`sh-btn ${variant === 'solid' ? 'plex' : 'outline-accent'}`}
       onClick={login}
-      disabled={loading || isProcessing}
+      disabled={busy}
       data-testid="plex-login-button"
     >
-      {loading && (
-        <div className="absolute right-0 mr-4 h-4 w-4">
-          <SmallLoadingSpinner />
-        </div>
+      {busy && variant === 'solid' && (
+        <span className="spin" aria-hidden="true" />
       )}
-
-      {large ? (
-        <FormattedMessage
-          {...messages.loginwithapp}
-          values={{
-            appName: <PlexIcon className="ml-[0.35em] mt-[2px] w-8" />,
-          }}
-        >
-          {(chunks) => (
-            <>
-              {chunks.map((c, index) =>
-                typeof c === 'string' ? (
-                  <span key={index}>{c}</span>
-                ) : (
-                  <Fragment key={index}>{c}</Fragment>
-                )
-              )}
-            </>
-          )}
-        </FormattedMessage>
-      ) : (
-        <PlexIcon className="w-8" />
-      )}
-    </Button>
+      {busy
+        ? intl.formatMessage(messages.waitingforplex)
+        : (children ?? intl.formatMessage(messages.signinwithplex))}
+    </button>
   );
 };
 

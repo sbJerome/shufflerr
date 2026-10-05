@@ -1,203 +1,146 @@
-import Alert from '@app/components/Common/Alert';
-import Button from '@app/components/Common/Button';
-import SensitiveInput from '@app/components/Common/SensitiveInput';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import useSettings from '@app/hooks/useSettings';
+import useToasts from '@app/hooks/useToasts';
 import defineMessages from '@app/utils/defineMessages';
-import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
-import { MediaServerType } from '@server/constants/server';
 import axios from 'axios';
-import { Field, Form, Formik } from 'formik';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import * as Yup from 'yup';
 
-const messages = defineMessages('components.Login', {
-  loginwithapp: 'Login with {appName}',
-  username: 'Username',
-  email: 'Email Address',
+const messages = defineMessages('components.Login.LocalLogin', {
+  email: 'Email',
   password: 'Password',
-  validationemailrequired: 'You must provide a valid email address',
-  validationpasswordrequired: 'You must provide a password',
-  jellyfinLocalLoginHint:
-    "If you haven't set an email address in your profile, use your {mediaServerName} username instead.",
-  loginerror: 'Something went wrong while trying to sign in.',
-  credentialerror: 'The email address or password is incorrect.',
-  tipEmailHasTrailingWhitespace: 'The email ends with whitespace',
-  signingin: 'Signing In…',
-  signin: 'Sign In',
-  forgotpassword: 'Forgot Password?',
-  demoModeInfo: 'Demo mode is enabled. Use the demo credentials to sign in.',
+  signin: 'Sign in',
+  signingin: 'Signing in…',
+  forgotpassword: 'Forgot password?',
+  emptyerror: 'Enter your email and password.',
+  unknownaccount:
+    'No Shufflerr account uses that email. Try signing in with Plex or Jellyfin.',
+  wrongpassword:
+    'That password isn’t right. Try again, or use “Forgot password?”.',
+  loginerror:
+    'Signing in didn’t work. Check that Shufflerr is reachable and try again.',
+  resetunavailable:
+    'If email notifications are set up, a reset link is sent to your address.',
 });
 
 interface LocalLoginProps {
   revalidate: () => void;
+  onError: (message: string) => void;
 }
 
-const LocalLogin = ({ revalidate }: LocalLoginProps) => {
+/** Email + password form with underline inputs and floating labels. */
+const LocalLogin = ({ revalidate, onError }: LocalLoginProps) => {
   const intl = useIntl();
-  const settings = useSettings();
-  const [loginError, setLoginError] = useState<string | null>(null);
-
-  const LoginSchema = Yup.object().shape({
-    email: Yup.string().required(
-      intl.formatMessage(messages.validationemailrequired)
-    ),
-    password: Yup.string().required(
-      intl.formatMessage(messages.validationpasswordrequired)
-    ),
-  });
+  const { currentSettings } = useSettings();
+  const { addToast } = useToasts();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const passwordResetEnabled =
-    settings.currentSettings.applicationUrl &&
-    settings.currentSettings.emailEnabled;
+    !!currentSettings.applicationUrl && currentSettings.emailEnabled;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      onError(intl.formatMessage(messages.emptyerror));
+      return;
+    }
+    setSubmitting(true);
+    onError('');
+    try {
+      await axios.post('/api/v1/auth/local', {
+        email: email.trim(),
+        password,
+      });
+      revalidate();
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      const serverMessage: unknown = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : undefined;
+      // The API answers with ready-to-show sentences (docs/AUTH.md); anything
+      // else falls back to copy by status.
+      if (typeof serverMessage === 'string' && /\s/.test(serverMessage)) {
+        onError(serverMessage);
+      } else if (status === 403 || status === 401) {
+        onError(intl.formatMessage(messages.wrongpassword));
+      } else if (status === 404) {
+        onError(intl.formatMessage(messages.unknownaccount));
+      } else {
+        onError(intl.formatMessage(messages.loginerror));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <Formik
-      initialValues={{
-        email:
-          process.env.unsafeDoNotUseDemo === 'true' ? 'demo@seerr.dev' : '',
-        password: process.env.unsafeDoNotUseDemo === 'true' ? 'test1234' : '',
-      }}
-      validationSchema={LoginSchema}
-      validateOnBlur={false}
-      onSubmit={async (values) => {
-        try {
-          await axios.post('/api/v1/auth/local', {
-            email: values.email,
-            password: values.password,
-          });
-        } catch (e) {
-          setLoginError(
-            intl.formatMessage(
-              axios.isAxiosError(e) && e.response?.status === 403
-                ? messages.credentialerror
-                : messages.loginerror
-            )
-          );
-        } finally {
-          revalidate();
-        }
-      }}
+    <form
+      noValidate
+      onSubmit={submit}
+      className="flex flex-col gap-[18px]"
+      data-form-type="login"
     >
-      {({ errors, touched, values, isSubmitting, isValid }) => {
-        return (
-          <>
-            <Form data-form-type="login">
-              <div>
-                <h2 className="-mt-1 mb-6 text-center text-lg font-bold text-neutral-200">
-                  {intl.formatMessage(messages.loginwithapp, {
-                    appName: settings.currentSettings.applicationTitle,
-                  })}
-                </h2>
-
-                {process.env.unsafeDoNotUseDemo === 'true' && (
-                  <Alert type="info">
-                    {intl.formatMessage(messages.demoModeInfo)}
-                  </Alert>
-                )}
-
-                <div className="mb-4 mt-1">
-                  <div className="form-input-field">
-                    <Field
-                      id="email"
-                      name="email"
-                      placeholder={intl.formatMessage(messages.email)}
-                      type="text"
-                      inputMode="email"
-                      data-testid="email"
-                      data-form-type="username,email"
-                      className="!bg-gray-700/80 placeholder:text-gray-400"
-                    />
-                  </div>
-                  {touched.email && values.email.match(/\s$/) && (
-                    <div className="warning label-tip flex items-center">
-                      <ExclamationTriangleIcon className="mr-1 h-4 w-4" />
-                      {intl.formatMessage(
-                        messages.tipEmailHasTrailingWhitespace
-                      )}
-                    </div>
-                  )}
-                  {errors.email &&
-                    touched.email &&
-                    typeof errors.email === 'string' && (
-                      <div className="error">{errors.email}</div>
-                    )}
-                  {(settings.currentSettings.mediaServerType ===
-                    MediaServerType.JELLYFIN ||
-                    settings.currentSettings.mediaServerType ===
-                      MediaServerType.EMBY) && (
-                    <div className="mt-1 text-xs text-gray-400">
-                      {intl.formatMessage(messages.jellyfinLocalLoginHint, {
-                        mediaServerName:
-                          settings.currentSettings.mediaServerType ===
-                          MediaServerType.JELLYFIN
-                            ? 'Jellyfin'
-                            : 'Emby',
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div className="mb-2 mt-1">
-                  <div className="form-input-field">
-                    <SensitiveInput
-                      as="field"
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder={intl.formatMessage(messages.password)}
-                      autoComplete="current-password"
-                      data-testid="password"
-                      data-form-type="password"
-                      className="!bg-gray-700/80 placeholder:text-gray-400"
-                      data-1pignore="false"
-                      data-lpignore="false"
-                    />
-                  </div>
-                  <div className="flex">
-                    {errors.password &&
-                      touched.password &&
-                      typeof errors.password === 'string' && (
-                        <div className="error">{errors.password}</div>
-                      )}
-                    <div className="flex-grow" />
-                    {passwordResetEnabled && (
-                      <Link
-                        href="/resetpassword"
-                        className="pt-2 text-sm text-indigo-500 hover:text-indigo-400"
-                      >
-                        {intl.formatMessage(messages.forgotpassword)}
-                      </Link>
-                    )}
-                  </div>
-                </div>
-                {loginError && (
-                  <div className="mb-2 mt-1 sm:col-span-2 sm:mt-0">
-                    <div className="error">{loginError}</div>
-                  </div>
-                )}
-              </div>
-
-              <Button
-                buttonType="primary"
-                type="submit"
-                disabled={isSubmitting || !isValid}
-                data-testid="local-signin-button"
-                className="mt-2 w-full shadow-sm"
-              >
-                <ArrowLeftOnRectangleIcon />
-                <span>
-                  {isSubmitting
-                    ? intl.formatMessage(messages.signingin)
-                    : intl.formatMessage(messages.signin)}
-                </span>
-              </Button>
-            </Form>
-          </>
-        );
-      }}
-    </Formik>
+      <div className="sh-fl">
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder=" "
+          autoComplete="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          data-testid="email"
+        />
+        <label htmlFor="email">{intl.formatMessage(messages.email)}</label>
+      </div>
+      <div className="sh-fl">
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder=" "
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          data-testid="password"
+        />
+        <label htmlFor="password">
+          {intl.formatMessage(messages.password)}
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          className="sh-btn outline-accent"
+          type="submit"
+          disabled={submitting}
+          data-testid="local-signin-button"
+        >
+          {intl.formatMessage(
+            submitting ? messages.signingin : messages.signin
+          )}
+        </button>
+        {passwordResetEnabled ? (
+          <Link href="/resetpassword">
+            {intl.formatMessage(messages.forgotpassword)}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="border-0 bg-transparent p-0 text-[#FF5C7A] hover:underline"
+            onClick={() =>
+              addToast(intl.formatMessage(messages.resetunavailable), {
+                appearance: 'info',
+              })
+            }
+          >
+            {intl.formatMessage(messages.forgotpassword)}
+          </button>
+        )}
+      </div>
+    </form>
   );
 };
 

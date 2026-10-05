@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { IssueStatus, IssueType } from '@server/constants/issue';
 import { getRepository } from '@server/datasource';
 import Issue from '@server/entity/Issue';
@@ -147,8 +148,7 @@ issueRoutes.post<Record<string, string>, Issue, IssueRequestBody>(
     const issue = new Issue({
       createdBy,
       issueType: req.body.issueType,
-      problemSeason: req.body.problemSeason,
-      problemEpisode: req.body.problemEpisode,
+      problemTracks: req.body.problemTracks,
       media,
       comments: [
         new IssueComment({
@@ -172,23 +172,12 @@ issueRoutes.get('/count', async (req, res, next) => {
 
     const totalCount = await query.getCount();
 
-    const videoCount = await query
-      .where('issue.issueType = :issueType', {
-        issueType: IssueType.VIDEO,
-      })
-      .getCount();
-
-    const audioCount = await query
-      .where('issue.issueType = :issueType', {
-        issueType: IssueType.AUDIO,
-      })
-      .getCount();
-
-    const subtitlesCount = await query
-      .where('issue.issueType = :issueType', {
-        issueType: IssueType.SUBTITLES,
-      })
-      .getCount();
+    const countType = (issueType: IssueType) =>
+      query.where('issue.issueType = :issueType', { issueType }).getCount();
+    const wrongReleaseCount = await countType(IssueType.WRONG_RELEASE);
+    const badTagsCount = await countType(IssueType.BAD_TAGS);
+    const missingTracksCount = await countType(IssueType.MISSING_TRACKS);
+    const lowQualityCount = await countType(IssueType.LOW_QUALITY);
 
     const othersCount = await query
       .where('issue.issueType = :issueType', {
@@ -210,9 +199,10 @@ issueRoutes.get('/count', async (req, res, next) => {
 
     return res.status(200).json({
       total: totalCount,
-      video: videoCount,
-      audio: audioCount,
-      subtitles: subtitlesCount,
+      wrongRelease: wrongReleaseCount,
+      badTags: badTagsCount,
+      missingTracks: missingTracksCount,
+      lowQuality: lowQualityCount,
       others: othersCount,
       open: openCount,
       closed: closedCount,

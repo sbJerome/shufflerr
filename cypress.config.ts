@@ -7,9 +7,9 @@ export default defineConfig({
     video: true,
   },
   env: {
-    ADMIN_EMAIL: 'admin@seerr.dev',
+    ADMIN_EMAIL: 'admin@shufflerr.test',
     ADMIN_PASSWORD: 'test1234',
-    USER_EMAIL: 'demo@seerr.dev',
+    USER_EMAIL: 'demo@shufflerr.test',
     USER_PASSWORD: 'test1234',
   },
   retries: {

@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { PlexSettings } from '@server/lib/settings';
 
 export interface PlexStatus {

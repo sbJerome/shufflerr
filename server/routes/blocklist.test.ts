@@ -74,32 +74,33 @@ async function loginAs(email: string, password: string) {
 describe('GET /blocklist/:id', () => {
   // this route replies with res.send() rather than res.json()
   it('omits notification settings from the blocklisting user', async () => {
-    const blocklistUser = await seedUserSettings('demo@seerr.dev');
+    const blocklistUser = await seedUserSettings('demo@shufflerr.test');
 
     const media = await getRepository(Media).save(
       new Media({
-        mediaType: MediaType.MOVIE,
-        tmdbId: 12345,
+        mediaType: MediaType.RELEASE_GROUP,
+        mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69',
         status: MediaStatus.BLOCKLISTED,
-        status4k: MediaStatus.UNKNOWN,
       })
     );
 
     await getRepository(Blocklist).save(
       new Blocklist({
-        mediaType: MediaType.MOVIE,
-        tmdbId: 12345,
-        title: 'Blocked Movie',
+        mediaType: MediaType.RELEASE_GROUP,
+        mbid: 'b1a9c0e9-d987-4042-ae91-78d6a3267d69',
+        title: 'Blocked Album',
         user: blocklistUser,
         media,
       })
     );
 
-    const admin = await loginAs('admin@seerr.dev', 'test1234');
-    const res = await admin.get('/blocklist/12345?mediaType=movie');
+    const admin = await loginAs('admin@shufflerr.test', 'test1234');
+    const res = await admin.get(
+      '/blocklist/b1a9c0e9-d987-4042-ae91-78d6a3267d69?mediaType=release-group'
+    );
 
     assert.strictEqual(res.status, 200);
-    assert.strictEqual(res.body.user.email, 'demo@seerr.dev');
+    assert.strictEqual(res.body.user.email, 'demo@shufflerr.test');
     assert.ok(!('settings' in res.body.user));
     assertNoCredentials(res.body);
   });

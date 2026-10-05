@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { NotificationAgentTypes } from '@server/interfaces/api/userSettingsInterfaces';
 import { hasNotificationType, Notification } from '@server/lib/notifications';
 import { NotificationAgentKey } from '@server/lib/settings';
@@ -47,12 +48,6 @@ export class UserSettings {
   public discoverRegion?: string;
 
   @Column({ nullable: true })
-  public streamingRegion?: string;
-
-  @Column({ nullable: true })
-  public originalLanguage?: string;
-
-  @Column({ nullable: true })
   public pgpKey?: string;
 
   @Column({ type: 'text', nullable: true, transformer: jsonArrayTransformer })
@@ -79,11 +74,12 @@ export class UserSettings {
   @Column({ nullable: true })
   public telegramSendSilently?: boolean;
 
-  @Column({ nullable: true })
-  public watchlistSyncMovies?: boolean;
+  /** Request albums the user saves on Spotify (needs AUTO_REQUEST / AUTO_REQUEST_ALBUM). */
+  @Column({ type: 'boolean', default: false })
+  public autoRequestSpotifySaved: boolean;
 
-  @Column({ nullable: true })
-  public watchlistSyncTv?: boolean;
+  @Column({ type: 'boolean', default: true })
+  public scrobbleEnabled: boolean;
 
   @Column({
     type: 'text',

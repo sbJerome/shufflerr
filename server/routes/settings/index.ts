@@ -1,62 +1,209 @@
-import type { JellyfinLibrary } from '@server/api/jellyfin';
-import JellyfinAPI from '@server/api/jellyfin';
-import PlexAPI from '@server/api/plexapi';
-import PlexTvAPI from '@server/api/plextv';
-import TautulliAPI from '@server/api/tautulli';
-import { ApiErrorCode } from '@server/constants/error';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV5): owns this file. Sub-routers of other streams are mounted here
+// already — do not move them:
+//   SV2  ./lidarr                      /settings/lidarr…
+//   SV3  ./plex ./jellyfin ./navidrome ./local   /settings/{plex,jellyfin,navidrome,local}…
+//   SV5  ./notifications ./sliders
+import { MediaStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
+import AppPassword from '@server/entity/AppPassword';
 import Media from '@server/entity/Media';
 import { MediaRequest } from '@server/entity/MediaRequest';
+import Track from '@server/entity/Track';
 import { User } from '@server/entity/User';
-import type { PlexConnection } from '@server/interfaces/api/plexInterfaces';
 import type {
+  ClientDevice,
+  ClientsSettingsResponse,
   LogMessage,
   LogsResultsResponse,
   SettingsAboutResponse,
+  UsersSettingsResponse,
 } from '@server/interfaces/api/settingsInterfaces';
-import { scheduledJobs } from '@server/job/schedule';
+import { runJobNow, scheduledJobs } from '@server/job/schedule';
 import type { AvailableCacheIds } from '@server/lib/cache';
 import cacheManager from '@server/lib/cache';
+import { imageSourceTypes } from '@server/lib/imageSources';
 import ImageProxy from '@server/lib/imageproxy';
 import { Permission } from '@server/lib/permissions';
-import { jellyfinFullScanner } from '@server/lib/scanners/jellyfin';
-import { plexFullScanner } from '@server/lib/scanners/plex';
-import type { JobId, Library, MainSettings } from '@server/lib/settings';
-import { getSettings } from '@server/lib/settings';
+import type { JobId, MainSettings } from '@server/lib/settings';
+import {
+  getSettings,
+  maskSecrets,
+  mergeWithSecrets,
+} from '@server/lib/settings';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
-import discoverSettingRoutes from '@server/routes/settings/discover';
-import { ApiError } from '@server/types/error';
+import sliderSettingRoutes from '@server/routes/settings/sliders';
 import { appDataPath } from '@server/utils/appDataVolume';
-import { getAppVersion } from '@server/utils/appVersion';
+import { getAppVersion, getCommitTag } from '@server/utils/appVersion';
 import { dnsCache } from '@server/utils/dnsCache';
-import { getHostname } from '@server/utils/getHostname';
 import type { DnsEntries, DnsStats } from 'dns-caching';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import fs from 'fs';
-import { escapeRegExp, merge, omit, set, sortBy } from 'lodash';
+import { escapeRegExp, merge, omit, set } from 'lodash';
 import { rescheduleJob } from 'node-schedule';
 import path from 'path';
-import semver from 'semver';
-import { URL } from 'url';
-import { z } from 'zod';
-import metadataRoutes from './metadata';
+import { Not } from 'typeorm';
+import jellyfinSettingsRoutes from './jellyfin';
+import lidarrSettingsRoutes from './lidarr';
+import localSettingsRoutes from './local';
+import navidromeSettingsRoutes from './navidrome';
 import notificationRoutes from './notifications';
-import radarrRoutes from './radarr';
-import sonarrRoutes from './sonarr';
+import plexSettingsRoutes from './plex';
 
 const settingsRoutes = Router();
 
 settingsRoutes.use('/notifications', notificationRoutes);
-settingsRoutes.use('/radarr', radarrRoutes);
-settingsRoutes.use('/sonarr', sonarrRoutes);
-settingsRoutes.use('/discover', discoverSettingRoutes);
-settingsRoutes.use('/metadatas', metadataRoutes);
+settingsRoutes.use('/sliders', sliderSettingRoutes);
+settingsRoutes.use('/lidarr', lidarrSettingsRoutes);
+// These four define their full paths (/plex…, /jellyfin…, /navidrome…, /local…)
+settingsRoutes.use(plexSettingsRoutes);
+settingsRoutes.use(jellyfinSettingsRoutes);
+settingsRoutes.use(navidromeSettingsRoutes);
+settingsRoutes.use(localSettingsRoutes);
 
-const libraryUpdateSchema = z.object({
-  enabled: z.boolean(),
+/* ---- Simple sections: GET returns the section (secrets masked), POST merges
+ * a partial section, keeping stored secrets when the masked value comes back.
+ * STREAM(SV5): add validation + specific copy per docs/ADMIN_PAGES.md. ---- */
+type SectionKey = 'youtube' | 'metadata' | 'discover' | 'scrobble';
+const SECTION_SECRETS: Record<SectionKey, string[]> = {
+  youtube: ['apiKey'],
+  metadata: ['fanart.apiKey', 'lastfm.apiKey', 'lastfm.sharedSecret'],
+  discover: ['spotify.clientSecret', 'ticketmaster.apiKey', 'skiddle.apiKey'],
+  scrobble: [],
+};
+
+(Object.keys(SECTION_SECRETS) as SectionKey[]).forEach((key) => {
+  settingsRoutes.get(`/${key}`, (_req, res) => {
+    const settings = getSettings();
+    return res
+      .status(200)
+      .json(maskSecrets(settings[key] as object, SECTION_SECRETS[key]));
+  });
+
+  settingsRoutes.post(`/${key}`, async (req, res) => {
+    const settings = getSettings();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (settings as any)[key] = mergeWithSecrets(
+      settings[key] as object,
+      req.body ?? {},
+      SECTION_SECRETS[key]
+    );
+    await settings.save();
+    return res
+      .status(200)
+      .json(maskSecrets(settings[key] as object, SECTION_SECRETS[key]));
+  });
 });
+
+const usersSettings = (): UsersSettingsResponse => {
+  const settings = getSettings();
+  return {
+    localLogin: settings.main.localLogin,
+    plexLogin: settings.plex.loginEnabled,
+    newPlexLogin: settings.main.newPlexLogin,
+    jellyfinLogin: settings.jellyfin.loginEnabled,
+    newJellyfinLogin: settings.jellyfin.newLogin,
+    defaultPermissions: settings.main.defaultPermissions,
+    defaultQuotas: settings.main.defaultQuotas,
+    discographyAlwaysReview: settings.main.discographyAlwaysReview,
+  };
+};
+
+settingsRoutes.get('/users', (_req, res) => {
+  return res.status(200).json(usersSettings());
+});
+
+settingsRoutes.post('/users', async (req, res, next) => {
+  const settings = getSettings();
+  const body = {
+    ...usersSettings(),
+    ...(req.body ?? {}),
+  } as UsersSettingsResponse;
+
+  if (!body.localLogin && !body.plexLogin && !body.jellyfinLogin) {
+    return next({
+      status: 400,
+      message: 'At least one sign-in method has to stay on.',
+    });
+  }
+
+  settings.main.localLogin = !!body.localLogin;
+  settings.main.newPlexLogin = !!body.newPlexLogin;
+  settings.main.mediaServerLogin = !!(body.plexLogin || body.jellyfinLogin);
+  settings.plex.loginEnabled = !!body.plexLogin;
+  settings.jellyfin.loginEnabled = !!body.jellyfinLogin;
+  settings.jellyfin.newLogin = !!body.newJellyfinLogin;
+  settings.main.defaultPermissions = Number(body.defaultPermissions) || 0;
+  settings.main.defaultQuotas = body.defaultQuotas;
+  settings.main.discographyAlwaysReview = !!body.discographyAlwaysReview;
+  await settings.save();
+
+  return res.status(200).json(usersSettings());
+});
+
+const clientsSettings = (origin: string): ClientsSettingsResponse => {
+  const settings = getSettings();
+  const base = settings.main.applicationUrl || origin;
+  return {
+    ...settings.clients,
+    endpoints: { openSubsonic: `${base}/rest`, jellyfin: `${base}/jellyfin` },
+  };
+};
+
+settingsRoutes.get('/clients', (req, res) => {
+  return res
+    .status(200)
+    .json(clientsSettings(`${req.protocol}://${req.get('host')}`));
+});
+
+settingsRoutes.post('/clients', async (req, res) => {
+  const settings = getSettings();
+  settings.clients = merge(settings.clients, omit(req.body ?? {}, 'endpoints'));
+  await settings.save();
+  return res
+    .status(200)
+    .json(clientsSettings(`${req.protocol}://${req.get('host')}`));
+});
+
+settingsRoutes.get('/clients/devices', async (_req, res) => {
+  const devices = await getRepository(AppPassword).find({
+    order: { lastUsedAt: 'DESC', createdAt: 'DESC' },
+  });
+  return res.status(200).json(
+    devices.map(
+      (d): ClientDevice => ({
+        id: d.id,
+        name: d.name,
+        user: {
+          id: d.user.id,
+          displayName: d.user.displayName,
+          avatar: d.user.avatar,
+        },
+        createdAt: new Date(d.createdAt).toISOString(),
+        lastUsedAt: d.lastUsedAt ? new Date(d.lastUsedAt).toISOString() : null,
+        lastUsedClient: d.lastUsedClient,
+      })
+    )
+  );
+});
+
+settingsRoutes.delete<{ id: string }>(
+  '/clients/devices/:id',
+  async (req, res, next) => {
+    const repo = getRepository(AppPassword);
+    const device = await repo.findOne({ where: { id: Number(req.params.id) } });
+    if (!device) {
+      return next({
+        status: 404,
+        message: 'That app password no longer exists.',
+      });
+    }
+    await repo.remove(device);
+    return res.status(204).send();
+  }
+);
 
 const filteredMainSettings = (
   user: User,
@@ -114,488 +261,6 @@ settingsRoutes.post('/main/regenerate', async (req, res, next) => {
 
   return res.status(200).json(filteredMainSettings(req.user, main));
 });
-
-settingsRoutes.get('/plex', (_req, res) => {
-  const settings = getSettings();
-
-  res.status(200).json(settings.plex);
-});
-
-settingsRoutes.post('/plex', async (req, res, next) => {
-  const userRepository = getRepository(User);
-  const settings = getSettings();
-  try {
-    const admin = await userRepository.findOneOrFail({
-      select: { id: true, plexToken: true },
-      where: { id: 1 },
-    });
-
-    Object.assign(settings.plex, req.body);
-
-    const plexClient = new PlexAPI({ plexToken: admin.plexToken });
-
-    const result = await plexClient.getStatus();
-
-    if (!result?.MediaContainer?.machineIdentifier) {
-      throw new Error('Server not found');
-    }
-
-    settings.plex.machineId = result.MediaContainer.machineIdentifier;
-    settings.plex.name = result.MediaContainer.friendlyName;
-
-    await settings.save();
-  } catch (e) {
-    logger.error('Something went wrong testing Plex connection', {
-      label: 'API',
-      errorMessage: e.message,
-    });
-    return next({
-      status: 500,
-      message: 'Unable to connect to Plex.',
-    });
-  }
-
-  return res.status(200).json(settings.plex);
-});
-
-settingsRoutes.get('/plex/devices/servers', async (req, res, next) => {
-  const userRepository = getRepository(User);
-  try {
-    const admin = await userRepository.findOneOrFail({
-      select: { id: true, plexToken: true },
-      where: { id: 1 },
-    });
-    const plexTvClient = admin.plexToken
-      ? new PlexTvAPI(admin.plexToken)
-      : null;
-    const devices = (await plexTvClient?.getDevices())?.filter((device) => {
-      return device.provides.includes('server') && device.owned;
-    });
-    const settings = getSettings();
-
-    if (devices) {
-      await Promise.all(
-        devices.map(async (device) => {
-          const plexDirectConnections: PlexConnection[] = [];
-
-          device.connection.forEach((connection) => {
-            const url = new URL(connection.uri);
-
-            if (url.hostname !== connection.address) {
-              const plexDirectConnection = { ...connection };
-              plexDirectConnection.address = url.hostname;
-              plexDirectConnections.push(plexDirectConnection);
-
-              // Connect to IP addresses over HTTP
-              connection.protocol = 'http';
-            }
-          });
-
-          plexDirectConnections.forEach((plexDirectConnection) => {
-            device.connection.push(plexDirectConnection);
-          });
-
-          await Promise.all(
-            device.connection.map(async (connection) => {
-              const plexDeviceSettings = {
-                ...settings.plex,
-                ip: connection.address,
-                port: connection.port,
-                useSsl: connection.protocol === 'https',
-              };
-              const plexClient = new PlexAPI({
-                plexToken: admin.plexToken,
-                plexSettings: plexDeviceSettings,
-                timeout: 5000,
-              });
-
-              try {
-                await plexClient.getStatus();
-                connection.status = 200;
-                connection.message = 'OK';
-              } catch (e) {
-                connection.status = 500;
-                connection.message = e.message.split(':')[0];
-              }
-            })
-          );
-        })
-      );
-    }
-    return res.status(200).json(devices);
-  } catch (e) {
-    logger.error('Something went wrong retrieving Plex server list', {
-      label: 'API',
-      errorMessage: e.message,
-    });
-    return next({
-      status: 500,
-      message: 'Unable to retrieve Plex server list.',
-    });
-  }
-});
-
-settingsRoutes.get('/plex/library', (_req, res) => {
-  const settings = getSettings();
-
-  return res.status(200).json(settings.plex.libraries);
-});
-
-settingsRoutes.put('/plex/library/:libraryId', async (req, res, next) => {
-  const settings = getSettings();
-
-  const bodyResult = libraryUpdateSchema.safeParse(req.body);
-
-  if (!bodyResult.success) {
-    return next({ status: 400, message: 'Invalid request body.' });
-  }
-
-  const library = settings.plex.libraries.find(
-    (l) => l.id === req.params.libraryId
-  );
-
-  if (!library) {
-    return next({ status: 404, message: 'Library does not exist.' });
-  }
-
-  library.enabled = bodyResult.data.enabled;
-  await settings.save();
-
-  return res.status(200).json(library);
-});
-
-settingsRoutes.post('/plex/library/sync', async (_req, res, next) => {
-  const settings = getSettings();
-
-  const userRepository = getRepository(User);
-  const admin = await userRepository.findOneOrFail({
-    select: { id: true, plexToken: true },
-    where: { id: 1 },
-  });
-  const plexapi = new PlexAPI({ plexToken: admin.plexToken });
-
-  try {
-    await plexapi.syncLibraries();
-  } catch (e) {
-    return next({
-      status: e.statusCode ?? 500,
-      message: e.errorCode ?? ApiErrorCode.Unknown,
-    });
-  }
-
-  return res.status(200).json(settings.plex.libraries);
-});
-
-settingsRoutes.get('/plex/sync', (_req, res) => {
-  return res.status(200).json(plexFullScanner.status());
-});
-
-settingsRoutes.post('/plex/sync', (req, res) => {
-  if (req.body.cancel) {
-    plexFullScanner.cancel();
-  } else if (req.body.start) {
-    plexFullScanner.run();
-  }
-  return res.status(200).json(plexFullScanner.status());
-});
-
-settingsRoutes.get('/jellyfin', (_req, res) => {
-  const settings = getSettings();
-
-  res.status(200).json(settings.jellyfin);
-});
-
-settingsRoutes.post('/jellyfin', async (req, res, next) => {
-  const userRepository = getRepository(User);
-  const settings = getSettings();
-
-  try {
-    const admin = await userRepository.findOneOrFail({
-      where: { id: 1 },
-      select: ['id', 'jellyfinUserId', 'jellyfinDeviceId'],
-      order: { id: 'ASC' },
-    });
-
-    const tempJellyfinSettings = { ...settings.jellyfin, ...req.body };
-
-    const jellyfinClient = new JellyfinAPI(
-      getHostname(tempJellyfinSettings),
-      tempJellyfinSettings.apiKey,
-      admin.jellyfinDeviceId ?? ''
-    );
-
-    const result = await jellyfinClient.getSystemInfo();
-
-    if (!result?.Id) {
-      throw new ApiError(result?.status, ApiErrorCode.InvalidUrl);
-    }
-
-    Object.assign(settings.jellyfin, req.body);
-    settings.jellyfin.serverId = result.Id;
-    settings.jellyfin.name = result.ServerName;
-    await settings.save();
-  } catch (e) {
-    if (e instanceof ApiError) {
-      logger.error('Something went wrong testing Jellyfin connection', {
-        label: 'API',
-        status: e.statusCode,
-        errorMessage: ApiErrorCode.InvalidUrl,
-      });
-
-      return next({
-        status: e.statusCode,
-        message: ApiErrorCode.InvalidUrl,
-      });
-    } else {
-      logger.error('Something went wrong', {
-        label: 'API',
-        errorMessage: e.message,
-      });
-
-      return next({
-        status: e.statusCode ?? 500,
-        message: ApiErrorCode.Unknown,
-      });
-    }
-  }
-
-  return res.status(200).json(settings.jellyfin);
-});
-
-settingsRoutes.get('/jellyfin/library', (_req, res) => {
-  const settings = getSettings();
-
-  return res.status(200).json(settings.jellyfin.libraries);
-});
-
-settingsRoutes.put('/jellyfin/library/:libraryId', async (req, res, next) => {
-  const settings = getSettings();
-
-  const bodyResult = libraryUpdateSchema.safeParse(req.body);
-
-  if (!bodyResult.success) {
-    return next({ status: 400, message: 'Invalid request body.' });
-  }
-
-  const library = settings.jellyfin.libraries.find(
-    (l) => l.id === req.params.libraryId
-  );
-
-  if (!library) {
-    return next({ status: 404, message: 'Library does not exist.' });
-  }
-
-  library.enabled = bodyResult.data.enabled;
-  await settings.save();
-
-  return res.status(200).json(library);
-});
-
-settingsRoutes.post('/jellyfin/library/sync', async (_req, res, next) => {
-  const settings = getSettings();
-
-  const userRepository = getRepository(User);
-  const admin = await userRepository.findOneOrFail({
-    select: ['id', 'jellyfinDeviceId', 'jellyfinUserId'],
-    where: { id: 1 },
-    order: { id: 'ASC' },
-  });
-  const jellyfinClient = new JellyfinAPI(
-    getHostname(),
-    settings.jellyfin.apiKey,
-    admin.jellyfinDeviceId ?? ''
-  );
-
-  jellyfinClient.setUserId(admin.jellyfinUserId ?? '');
-
-  let libraries: JellyfinLibrary[];
-
-  try {
-    libraries = await jellyfinClient.getLibraries();
-
-    if (libraries.length === 0) {
-      // Check if no libraries are found due to the fallback to user views
-      // This only affects LDAP users
-      const account = await jellyfinClient.getUser();
-
-      // Automatic Library grouping is not supported when user views are used to get library
-      if (account.Configuration.GroupedFolders?.length > 0) {
-        return next({
-          status: 501,
-          message: ApiErrorCode.SyncErrorGroupedFolders,
-        });
-      }
-
-      return next({ status: 404, message: ApiErrorCode.SyncErrorNoLibraries });
-    }
-  } catch (e) {
-    return next({
-      status: e.statusCode ?? 500,
-      message: e.errorCode ?? ApiErrorCode.Unknown,
-    });
-  }
-
-  const newLibraries: Library[] = libraries.map((library) => {
-    const existing = settings.jellyfin.libraries.find(
-      (l) => l.id === library.key
-    );
-
-    return {
-      id: library.key,
-      name: library.title,
-      enabled: existing?.enabled ?? false,
-      type: library.type,
-      lastScan: existing?.lastScan,
-    };
-  });
-
-  settings.jellyfin.libraries = newLibraries;
-  await settings.save();
-
-  return res.status(200).json(settings.jellyfin.libraries);
-});
-
-settingsRoutes.get('/jellyfin/users', async (req, res) => {
-  const settings = getSettings();
-
-  const userRepository = getRepository(User);
-  const admin = await userRepository.findOneOrFail({
-    select: ['id', 'jellyfinDeviceId', 'jellyfinUserId'],
-    where: { id: 1 },
-    order: { id: 'ASC' },
-  });
-  const jellyfinClient = new JellyfinAPI(
-    getHostname(),
-    settings.jellyfin.apiKey,
-    admin.jellyfinDeviceId ?? ''
-  );
-
-  jellyfinClient.setUserId(admin.jellyfinUserId ?? '');
-  const resp = await jellyfinClient.getUsers();
-  const users = resp.users.map((user) => ({
-    username: user.Name,
-    id: user.Id,
-    thumb: `/avatarproxy/${user.Id}`,
-    email: user.Name,
-  }));
-
-  return res.status(200).json(users);
-});
-
-settingsRoutes.get('/jellyfin/sync', (_req, res) => {
-  return res.status(200).json(jellyfinFullScanner.status());
-});
-
-settingsRoutes.post('/jellyfin/sync', (req, res) => {
-  if (req.body.cancel) {
-    jellyfinFullScanner.cancel();
-  } else if (req.body.start) {
-    jellyfinFullScanner.run();
-  }
-  return res.status(200).json(jellyfinFullScanner.status());
-});
-settingsRoutes.get('/tautulli', (_req, res) => {
-  const settings = getSettings();
-
-  res.status(200).json(settings.tautulli);
-});
-
-settingsRoutes.post('/tautulli', async (req, res, next) => {
-  const settings = getSettings();
-
-  Object.assign(settings.tautulli, req.body);
-
-  if (settings.tautulli.hostname) {
-    try {
-      const tautulliClient = new TautulliAPI(settings.tautulli);
-
-      const result = await tautulliClient.getInfo();
-
-      if (!semver.gte(semver.coerce(result?.tautulli_version) ?? '', '2.9.0')) {
-        throw new Error('Tautulli version not supported');
-      }
-
-      await settings.save();
-    } catch (e) {
-      logger.error('Something went wrong testing Tautulli connection', {
-        label: 'API',
-        errorMessage: e.message,
-      });
-      return next({
-        status: 500,
-        message: 'Unable to connect to Tautulli.',
-      });
-    }
-  }
-
-  return res.status(200).json(settings.tautulli);
-});
-
-settingsRoutes.get(
-  '/plex/users',
-  isAuthenticated(Permission.MANAGE_USERS),
-  async (req, res, next) => {
-    const userRepository = getRepository(User);
-    const qb = userRepository.createQueryBuilder('user');
-
-    try {
-      const admin = await userRepository.findOneOrFail({
-        select: { id: true, plexToken: true },
-        where: { id: 1 },
-      });
-      const plexApi = new PlexTvAPI(admin.plexToken ?? '');
-      const plexUsers = (await plexApi.getUsers()).MediaContainer.User.map(
-        (user) => user.$
-      ).filter((user) => user.email);
-
-      const unimportedPlexUsers: {
-        id: string;
-        title: string;
-        username: string;
-        email: string;
-        thumb: string;
-      }[] = [];
-
-      const plexIds = plexUsers.map((plexUser) => plexUser.id);
-      const plexEmails = plexUsers.map((plexUser) =>
-        plexUser.email.toLowerCase()
-      );
-      if (!plexIds.length) plexIds.push('-1');
-      if (!plexEmails.length) plexEmails.push('@');
-
-      const existingUsers = await qb
-        .where('user.plexId IN (:...plexIds)', { plexIds })
-        .orWhere('user.email IN (:...plexEmails)', { plexEmails })
-        .getMany();
-
-      await Promise.all(
-        plexUsers.map(async (plexUser) => {
-          if (
-            !existingUsers.find(
-              (user) =>
-                user.plexId === parseInt(plexUser.id) ||
-                user.email === plexUser.email.toLowerCase()
-            ) &&
-            (await plexApi.checkUserAccess(parseInt(plexUser.id)))
-          ) {
-            unimportedPlexUsers.push(plexUser);
-          }
-        })
-      );
-
-      return res.status(200).json(sortBy(unimportedPlexUsers, 'username'));
-    } catch (e) {
-      logger.error('Something went wrong getting unimported Plex users', {
-        label: 'API',
-        errorMessage: e.message,
-      });
-      next({
-        status: 500,
-        message: 'Unable to retrieve unimported Plex users.',
-      });
-    }
-  }
-);
 
 settingsRoutes.get(
   '/logs',
@@ -737,7 +402,7 @@ settingsRoutes.post<{ jobId: string }>('/jobs/:jobId/run', (req, res, next) => {
     return next({ status: 404, message: 'Job not found.' });
   }
 
-  scheduledJob.job.invoke();
+  runJobNow(scheduledJob.id);
 
   return res.status(200).json({
     id: scheduledJob.id,
@@ -821,18 +486,20 @@ settingsRoutes.get('/cache', async (_req, res) => {
     stats: cache.getStats(),
   }));
 
-  const tmdbImageCache = await ImageProxy.getImageStats('tmdb');
-  const avatarImageCache = await ImageProxy.getImageStats('avatar');
+  const imageCache: Record<string, { size: number; imageCount: number }> = {};
+  for (const key of [...imageSourceTypes(), 'avatar']) {
+    const imageStats = await ImageProxy.getImageStats(key);
+    if (imageStats.imageCount > 0 || key === 'caa' || key === 'avatar') {
+      imageCache[key] = imageStats;
+    }
+  }
 
   const stats: DnsStats | undefined = dnsCache?.getStats();
   const entries: DnsEntries | undefined = dnsCache?.getCacheEntries();
 
   return res.status(200).json({
     apiCaches,
-    imageCache: {
-      tmdb: tmdbImageCache,
-      avatar: avatarImageCache,
-    },
+    imageCache,
     dnsCache: {
       stats,
       entries,
@@ -881,17 +548,36 @@ settingsRoutes.post(
   }
 );
 
-settingsRoutes.get('/about', async (req, res) => {
+settingsRoutes.get('/about', async (_req, res) => {
   const mediaRepository = getRepository(Media);
-  const mediaRequestRepository = getRepository(MediaRequest);
 
-  const totalMediaItems = await mediaRepository.count();
-  const totalRequests = await mediaRequestRepository.count();
+  const [
+    totalMediaItems,
+    totalArtists,
+    totalTracks,
+    totalRequests,
+    totalUsers,
+  ] = await Promise.all([
+    mediaRepository.count({
+      where: {
+        mediaType: MediaType.RELEASE_GROUP,
+        status: Not(MediaStatus.UNKNOWN),
+      },
+    }),
+    mediaRepository.count({ where: { mediaType: MediaType.ARTIST } }),
+    getRepository(Track).count({ where: { status: MediaStatus.AVAILABLE } }),
+    getRepository(MediaRequest).count(),
+    getRepository(User).count(),
+  ]);
 
   return res.status(200).json({
     version: getAppVersion(),
+    commitTag: getCommitTag(),
     totalMediaItems,
+    totalArtists,
+    totalTracks,
     totalRequests,
+    totalUsers,
     tz: process.env.TZ,
     appDataPath: appDataPath(),
   } as SettingsAboutResponse);

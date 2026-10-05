@@ -1,13 +1,12 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { ButtonType } from '@app/components/Common/Button';
 import Button from '@app/components/Common/Button';
-import CachedImage from '@app/components/Common/CachedImage';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
-import useClickOutside from '@app/hooks/useClickOutside';
 import { useLockBodyScroll } from '@app/hooks/useLockBodyScroll';
 import globalMessages from '@app/i18n/globalMessages';
-import { Transition, TransitionChild } from '@headlessui/react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { MouseEvent } from 'react';
-import React, { Fragment, useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useIntl } from 'react-intl';
 
@@ -36,10 +35,14 @@ interface ModalProps {
   disableScrollLock?: boolean;
   backgroundClickable?: boolean;
   loading?: boolean;
+  /** Kept for API compatibility with Seerr; Shufflerr dialogs have no backdrop image. */
   backdrop?: string;
   children?: React.ReactNode;
   dialogClass?: string;
 }
+
+const FOCUSABLE =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
   (
@@ -65,7 +68,6 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
       tertiaryText,
       loading = false,
       onTertiary,
-      backdrop,
       dialogClass,
       okButtonProps,
       cancelButtonProps,
@@ -75,174 +77,150 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     parentRef
   ) => {
     const intl = useIntl();
-    const modalRef = useRef<HTMLDivElement>(null);
-    const backgroundClickableRef = useRef(backgroundClickable); // This ref is used to detect state change inside the useClickOutside hook
+    const headingId = useId();
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const cancelRef = useRef(onCancel);
     useEffect(() => {
-      backgroundClickableRef.current = backgroundClickable;
-    }, [backgroundClickable]);
-    useClickOutside(modalRef, () => {
-      if (onCancel && backgroundClickableRef.current) {
-        onCancel();
-      }
-    });
+      cancelRef.current = onCancel;
+    }, [onCancel]);
     useLockBodyScroll(true, disableScrollLock);
 
+    // Focus the dialog on open, restore focus on close, trap Tab, close on Esc.
+    useEffect(() => {
+      const previous = document.activeElement as HTMLElement | null;
+      const dialog = dialogRef.current;
+      const first = dialog?.querySelector<HTMLElement>(
+        'input:not([disabled]):not([type="hidden"]),select,textarea'
+      );
+      (first ?? dialog)?.focus({ preventScroll: true });
+
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && cancelRef.current) {
+          e.stopPropagation();
+          cancelRef.current();
+          return;
+        }
+        if (e.key !== 'Tab' || !dialog) return;
+        const items = Array.from(
+          dialog.querySelectorAll<HTMLElement>(FOCUSABLE)
+        ).filter((el) => el.offsetParent !== null);
+        if (!items.length) return;
+        const firstEl = items[0];
+        const lastEl = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      };
+      document.addEventListener('keydown', onKey);
+      return () => {
+        document.removeEventListener('keydown', onKey);
+        previous?.focus?.({ preventScroll: true });
+      };
+    }, []);
+
+    const hasFooter = onCancel || onOk || onSecondary || onTertiary;
+
     return ReactDOM.createPortal(
-      <TransitionChild
-        as="div"
-        className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-full w-full items-center justify-center bg-gray-800/70"
-        enter="transition-opacity duration-300"
-        enterFrom="opacity-0"
-        enterTo="opacity-100"
-        leave="transition-opacity duration-300"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
+      // Backdrop click closes; Esc and the close button are the keyboard paths.
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+      <div
+        className="sh-overlay"
         ref={parentRef}
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget && onCancel && backgroundClickable) {
+            onCancel();
+          }
+        }}
       >
-        <Transition
-          appear
-          as={Fragment}
-          enter="transition duration-300"
-          enterFrom="opacity-0 scale-75"
-          enterTo="opacity-100 scale-100"
-          leave="transition-opacity duration-300"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-          show={loading}
-        >
-          <div style={{ position: 'absolute' }}>
+        {loading ? (
+          <div className="self-center">
             <LoadingSpinner />
           </div>
-        </Transition>
-        <Transition
-          className={`hide-scrollbar relative inline-block w-full overflow-auto bg-gray-800 px-4 pb-4 pt-4 text-left align-bottom shadow-xl ring-1 ring-gray-700 transition-all sm:my-8 sm:max-w-3xl sm:rounded-lg sm:align-middle ${dialogClass}`}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-headline"
-          style={{
-            maxHeight: 'calc(100% - env(safe-area-inset-top) * 2)',
-          }}
-          appear
-          as="div"
-          enter="transition duration-300"
-          enterFrom="opacity-0 scale-75"
-          enterTo="opacity-100 scale-100"
-          leave="transition-opacity duration-300"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-          show={!loading}
-          ref={modalRef}
-        >
-          {backdrop && (
-            <div className="absolute left-0 right-0 top-0 z-0 h-64 max-h-full w-full">
-              <CachedImage
-                type="tmdb"
-                alt=""
-                src={backdrop}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                fill
-                priority
-              />
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(180deg, rgba(31, 41, 55, 0.75) 0%, rgba(31, 41, 55, 1) 100%)',
-                }}
-              />
-            </div>
-          )}
-          <div className="relative -mx-4 overflow-x-hidden px-4 pt-0.5 sm:flex sm:items-center">
-            <div
-              className={`mt-3 truncate text-center text-white sm:mt-0 sm:text-left`}
-            >
-              {(title || subTitle) && (
-                <div className="flex flex-col space-y-1">
-                  {title && (
-                    <span
-                      className="text-overseerr truncate pb-0.5 text-2xl font-bold leading-6"
-                      id="modal-headline"
-                      data-testid="modal-title"
-                    >
-                      {title}
-                    </span>
-                  )}
-                  {subTitle && (
-                    <span
-                      className="truncate text-lg font-semibold leading-6 text-gray-200"
-                      id="modal-headline"
-                      data-testid="modal-title"
-                    >
-                      {subTitle}
-                    </span>
-                  )}
+        ) : (
+          <div
+            className={`sh-dialog ${dialogClass ?? ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title || subTitle ? headingId : undefined}
+            tabIndex={-1}
+            ref={dialogRef}
+          >
+            {(title || subTitle || onCancel) && (
+              <header>
+                <div className="min-w-0">
+                  <h2 id={headingId} data-testid="modal-title">
+                    {title ?? subTitle}
+                  </h2>
+                  {title && subTitle && <p className="sh-sub">{subTitle}</p>}
                 </div>
-              )}
-            </div>
+                {typeof onCancel === 'function' && (
+                  <button
+                    type="button"
+                    className="sh-icon-btn"
+                    aria-label={intl.formatMessage(globalMessages.close)}
+                    onClick={onCancel}
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                )}
+              </header>
+            )}
+            {children && <div className="body">{children}</div>}
+            {hasFooter && (
+              <footer>
+                {typeof onCancel === 'function' && (
+                  <Button
+                    buttonType={cancelButtonType}
+                    onClick={onCancel}
+                    data-testid="modal-cancel-button"
+                    {...cancelButtonProps}
+                  >
+                    {cancelText
+                      ? cancelText
+                      : intl.formatMessage(globalMessages.cancel)}
+                  </Button>
+                )}
+                {typeof onTertiary === 'function' && tertiaryText && (
+                  <Button
+                    buttonType={tertiaryButtonType}
+                    onClick={onTertiary}
+                    disabled={tertiaryDisabled}
+                    {...tertiaryButtonProps}
+                  >
+                    {tertiaryText}
+                  </Button>
+                )}
+                {typeof onSecondary === 'function' && secondaryText && (
+                  <Button
+                    buttonType={secondaryButtonType}
+                    onClick={onSecondary}
+                    disabled={secondaryDisabled}
+                    data-testid="modal-secondary-button"
+                    {...secondaryButtonProps}
+                  >
+                    {secondaryText}
+                  </Button>
+                )}
+                {typeof onOk === 'function' && (
+                  <Button
+                    buttonType={okButtonType}
+                    onClick={onOk}
+                    disabled={okDisabled}
+                    data-testid="modal-ok-button"
+                    {...okButtonProps}
+                  >
+                    {okText ? okText : 'OK'}
+                  </Button>
+                )}
+              </footer>
+            )}
           </div>
-          {children && (
-            <div
-              className={`relative mt-4 text-sm leading-5 text-gray-300 ${
-                !(onCancel || onOk || onSecondary || onTertiary) ? 'mb-3' : ''
-              }`}
-            >
-              {children}
-            </div>
-          )}
-          {(onCancel || onOk || onSecondary || onTertiary) && (
-            <div className="relative mt-5 flex flex-row-reverse justify-center sm:mt-4 sm:justify-start">
-              {typeof onOk === 'function' && (
-                <Button
-                  buttonType={okButtonType}
-                  onClick={onOk}
-                  className="ml-3"
-                  disabled={okDisabled}
-                  data-testid="modal-ok-button"
-                  {...okButtonProps}
-                >
-                  {okText ? okText : 'Ok'}
-                </Button>
-              )}
-              {typeof onSecondary === 'function' && secondaryText && (
-                <Button
-                  buttonType={secondaryButtonType}
-                  onClick={onSecondary}
-                  className="ml-3"
-                  disabled={secondaryDisabled}
-                  data-testid="modal-secondary-button"
-                  {...secondaryButtonProps}
-                >
-                  {secondaryText}
-                </Button>
-              )}
-              {typeof onTertiary === 'function' && tertiaryText && (
-                <Button
-                  buttonType={tertiaryButtonType}
-                  onClick={onTertiary}
-                  className="ml-3"
-                  disabled={tertiaryDisabled}
-                  {...tertiaryButtonProps}
-                >
-                  {tertiaryText}
-                </Button>
-              )}
-              {typeof onCancel === 'function' && (
-                <Button
-                  buttonType={cancelButtonType}
-                  onClick={onCancel}
-                  className="ml-3 sm:ml-0"
-                  data-testid="modal-cancel-button"
-                  {...cancelButtonProps}
-                >
-                  {cancelText
-                    ? cancelText
-                    : intl.formatMessage(globalMessages.cancel)}
-                </Button>
-              )}
-            </div>
-          )}
-        </Transition>
-      </TransitionChild>,
+        )}
+      </div>,
       document.body
     );
   }

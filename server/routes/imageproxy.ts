@@ -1,34 +1,9 @@
-import ImageProxy from '@server/lib/imageproxy';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import { getImageSource } from '@server/lib/imageSources';
 import logger from '@server/logger';
 import { Router } from 'express';
 
 const router = Router();
-
-// Delay the initialization of ImageProxy instances until the proxy (if any) is properly configured
-let _tmdbImageProxy: ImageProxy;
-function initTmdbImageProxy() {
-  if (!_tmdbImageProxy) {
-    _tmdbImageProxy = new ImageProxy('tmdb', 'https://image.tmdb.org', {
-      rateLimitOptions: {
-        maxRequests: 20,
-        maxRPS: 50,
-      },
-    });
-  }
-  return _tmdbImageProxy;
-}
-let _tvdbImageProxy: ImageProxy;
-function initTvdbImageProxy() {
-  if (!_tvdbImageProxy) {
-    _tvdbImageProxy = new ImageProxy('tvdb', 'https://artworks.thetvdb.com', {
-      rateLimitOptions: {
-        maxRequests: 20,
-        maxRPS: 50,
-      },
-    });
-  }
-  return _tvdbImageProxy;
-}
 
 router.get<{
   type: string;
@@ -41,19 +16,16 @@ router.get<{
     return next({ status: 403, message: 'Invalid URL for image proxy.' });
   }
 
+  const source = getImageSource(req.params.type);
+  if (!source) {
+    return next({ status: 400, message: 'Unsupported image type.' });
+  }
+
   try {
-    let imageData;
-    if (req.params.type === 'tmdb') {
-      imageData = await initTmdbImageProxy().getImage(imagePath);
-    } else if (req.params.type === 'tvdb') {
-      imageData = await initTvdbImageProxy().getImage(imagePath);
-    } else {
-      logger.error('Unsupported image type', {
-        imagePath,
-        type: req.params.type,
-      });
-      return next({ status: 400, message: 'Unsupported image type.' });
-    }
+    const query = req.originalUrl.includes('?')
+      ? req.originalUrl.slice(req.originalUrl.indexOf('?'))
+      : '';
+    const imageData = await source.getImage(imagePath + query);
 
     res.writeHead(200, {
       'Content-Type': `image/${imageData.meta.extension}`,
@@ -65,12 +37,15 @@ router.get<{
 
     res.end(imageData.imageBuffer);
   } catch (e) {
-    logger.error('Failed to proxy image', {
+    // Missing art is normal (not every release group has a cover): 404 so the
+    // UI falls back to its placeholder.
+    logger.debug('Failed to proxy image', {
       imagePath,
+      type: req.params.type,
       errorMessage: e.message,
     });
     if (!res.headersSent) {
-      return next({ status: 500, message: 'Failed to proxy image.' });
+      return next({ status: 404, message: 'Image not found.' });
     }
     next(e);
   }

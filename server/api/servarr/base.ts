@@ -1,7 +1,13 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import ExternalAPI from '@server/api/externalapi';
 import type { AvailableCacheIds } from '@server/lib/cache';
 import cacheManager from '@server/lib/cache';
-import { getSettings, type DVRSettings } from '@server/lib/settings';
+import { getSettings, type LidarrSettings } from '@server/lib/settings';
+
+type ServarrConnection = Pick<
+  LidarrSettings,
+  'useSsl' | 'hostname' | 'port' | 'baseUrl'
+>;
 
 export interface SystemStatus {
   version: string;
@@ -79,7 +85,7 @@ interface QueueResponse<QueueItemAppendT> {
 }
 
 class ServarrBase<QueueItemAppendT> extends ExternalAPI {
-  static buildUrl(settings: DVRSettings, path?: string): string {
+  static buildUrl(settings: ServarrConnection, path = ''): string {
     return `${settings.useSsl ? 'https' : 'http'}://${settings.hostname}:${
       settings.port
     }${settings.baseUrl ?? ''}${path}`;

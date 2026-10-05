@@ -1,77 +1,96 @@
 <p align="center">
-<img src="./public/logo_full.svg" alt="Seerr" style="margin: 20px 0;">
+<img src="./public/logo_full.svg" alt="Shufflerr" width="360" style="margin: 20px 0;">
 </p>
-<p align="center">
-<img src="https://github.com/seerr-team/seerr/actions/workflows/release.yml/badge.svg" alt="Seerr Release" />
-<img src="https://github.com/seerr-team/seerr/actions/workflows/ci.yml/badge.svg" alt="Seerr CI">
-</p>
-<p align="center">
-<a href="https://discord.gg/seerr"><img src="https://img.shields.io/discord/783137440809746482" alt="Discord"></a>
-<a href="https://hub.docker.com/r/seerr/seerr"><img src="https://img.shields.io/docker/pulls/seerr/seerr" alt="Docker pulls"></a>
-<a href="https://translate.seerr.dev/engage/seerr/"><img src="https://translate.seerr.dev/widget/seerr/svg-badge.svg" alt="Translation status" /></a>
-<a href="https://github.com/seerr-team/seerr/blob/develop/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/seerr-team/seerr"></a>
 
-**Seerr** is a free and open source software application for managing requests for your media library. It integrates with the media server of your choice: [Jellyfin](https://jellyfin.org), [Plex](https://plex.tv), and [Emby](https://emby.media/). In addition, it integrates with your existing services, such as **[Sonarr](https://sonarr.tv/)**, **[Radarr](https://radarr.video/)**.
+# Shufflerr
 
-## Current Features
+Shufflerr is a self-hosted request and discovery manager for music. People search for artists,
+albums and tracks, request what's missing, admins approve (or permissions approve it
+automatically), Lidarr downloads it, and your media server — Plex, Jellyfin, Navidrome or plain
+folders — marks it available.
 
-- Full Jellyfin/Emby/Plex integration including authentication with user import & management.
-- Support for **PostgreSQL** and **SQLite** databases.
-- Supports Movies, Shows and Mixed Libraries.
-- Ability to change email addresses for SMTP purposes.
-- Easy integration with your existing services. Currently, Seerr supports Sonarr and Radarr. More to come!
-- Jellyfin/Emby/Plex library scan, to keep track of the titles which are already available.
-- Customizable request system, which allows users to request individual seasons or movies in a friendly, easy-to-use interface.
-- Incredibly simple request management UI. Don't dig through the app to simply approve recent requests!
-- Granular permission system.
-- Support for various notification agents.
-- Mobile-friendly design, for when you need to approve requests on the go!
-- Support for watchlisting & blocklisting media.
+- **Requests** for missing tracks, whole albums or full discographies, with per-user limits and
+  auto-approval rules.
+- **Metadata** from MusicBrainz, the Cover Art Archive, fanart.tv and Last.fm.
+- **Sign-in** with Plex, Jellyfin or a local account.
+- **Library** scanning for Plex, Jellyfin, Navidrome and local folders, with a built-in player.
+- **Notifications** by email, web push, Discord, Slack, Telegram, Pushbullet, Pushover, webhook,
+  Gotify and ntfy.
 
-With more features on the way! Check out our [issue tracker](/../../issues) to see the features which have already been requested.
+> Status: under construction (v0.1.0). See [CHANGES.md](CHANGES.md) for what is built so far
+> and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) for the plan.
 
-## Getting Started
+## Quick start
 
-Check out our documentation for instructions on how to install and run Seerr:
+### Docker
 
-https://docs.seerr.dev/getting-started/
+```bash
+docker compose up -d          # SQLite; data in ./config
+# or
+docker compose -f compose.postgres.yaml up -d
+```
 
-## Preview
+Open <http://localhost:5055>, sign in (the first account becomes the owner) and add your Lidarr
+server and library sources under Settings. To index and play local music, mount it read-only
+(see the commented volume in `compose.yaml`) and add the folder under Settings → Local files.
 
-<img src="./public/preview.jpg" alt="Seerr application preview" />
+### From source
 
-## Migrating from Overseerr/Jellyseerr to Seerr
+Requires Node 22 and pnpm 10.
 
-Read our [release announcement](https://docs.seerr.dev/blog/seerr-release) to learn what Seerr means for Jellyseerr and Overseerr users.
+```bash
+pnpm install
+pnpm dev            # http://localhost:5055
+pnpm build && pnpm start
+```
 
-Please follow our [migration guide](https://docs.seerr.dev/migration-guide) for detailed instructions on migrating from Overseerr or Jellyseerr.
+### Configuration
 
-## Support
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` / `HOST` | `5055` / all | Listen address |
+| `CONFIG_DIRECTORY` | `./config` | Settings, database, logs and image cache |
+| `LOG_LEVEL` | `debug` | `debug`, `info`, `warn`, `error` |
+| `TZ` | system | Time zone for schedules and logs |
+| `API_KEY` | generated | Fix the API key instead of generating one |
+| `DB_TYPE` | `sqlite` | `postgres` to use PostgreSQL (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_USE_SSL`, …) |
 
-- Check out the [Seerr Documentation](https://docs.seerr.dev) before asking for help. Your question might already be in the docs!
-- You can get support on [Discord](https://discord.gg/seerr).
-- You can ask questions in the Help category of our [GitHub Discussions](/../../discussions).
-- Bug reports and feature requests can be submitted via [GitHub Issues](/../../issues).
+`config/settings.json` holds API keys and the server secret; it is written with mode `0600`.
 
-## API Documentation
+## Development
 
-You can access the API documentation from your local Seerr install at http://localhost:5055/api-docs
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test           # unit tests (no network access)
+pnpm build
+```
 
-## Community
+- [HANDOFF.md](HANDOFF.md) — product brief and decisions
+- [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — every HTTP route and its types
+- [docs/](docs) — data model, permissions, auth, integrations, front end, admin pages
+- [CHANGELOG.md](CHANGELOG.md) · [RELEASELOG.md](RELEASELOG.md) · [CHANGES.md](CHANGES.md)
 
-You can ask questions, share ideas, and more in [GitHub Discussions](/../../discussions).
+## Acknowledgements
 
-If you would like to chat with other members of our growing community, [join the Seerr Discord server](https://discord.gg/seerr)!
+Shufflerr is built on the platform of **[Seerr](https://github.com/seerr-team/seerr)**
+(MIT License, Copyright (c) 2020 sct), the merged successor of
+**[Overseerr](https://github.com/sct/overseerr)** and
+**[Jellyseerr](https://github.com/fallenbagel/jellyseerr)**. Authentication, users and
+permissions, request quotas and approvals, settings, notification agents, the job scheduler, the
+image proxy and the UI primitives are derived from Seerr; see [NOTICE.md](NOTICE.md),
+[LICENSES/seerr-MIT.txt](LICENSES/seerr-MIT.txt) and [docs/REUSE_MAP.md](docs/REUSE_MAP.md).
+Thank you to everyone who built them.
 
-Our [Code of Conduct](./CODE_OF_CONDUCT.md) applies to all Seerr community channels.
+Music metadata comes from [MusicBrainz](https://musicbrainz.org) and the
+[Cover Art Archive](https://coverartarchive.org); artist information from
+[Last.fm](https://www.last.fm) and [fanart.tv](https://fanart.tv); listening history is shared
+with [ListenBrainz](https://listenbrainz.org) and Last.fm when you link them.
 
-## Contributing
+Shufflerr is an independent project. It is not affiliated with or endorsed by the Seerr team,
+Plex, Jellyfin, Lidarr, Spotify, Deezer, Apple, Ticketmaster, Skiddle, Last.fm, MetaBrainz or
+YouTube.
 
-You can help improve Seerr too! Check out our [Contribution Guide](./CONTRIBUTING.md) to get started.
+## License
 
-## Contributors ✨
-
-[![Contributors](https://opencollective.com/seerr/contributors.svg?width=890)](https://opencollective.com/seerr/#backers)
-
-[![Become a Backer](https://opencollective.com/seerr/backers.svg)](https://opencollective.com/seerr/#backers)
-[![Become a Sponsor](https://opencollective.com/seerr/sponsors.svg)](https://opencollective.com/seerr/#sponsors)
+[MIT](LICENSE)

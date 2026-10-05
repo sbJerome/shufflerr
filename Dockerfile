@@ -1,3 +1,4 @@
+# Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 FROM node:22.23.2-alpine3.23@sha256:46825fbbd4e996a78b7a2cdc08d75e38a5a505bdab95dcda55605359bf124bc6 AS base
 ARG SOURCE_DATE_EPOCH
 ARG TARGETPLATFORM
@@ -56,7 +57,8 @@ ARG COMMIT_TAG
 ENV NODE_ENV=production
 ENV COMMIT_TAG=${COMMIT_TAG}
 
-RUN apk add --no-cache tzdata
+# ffmpeg: transcoding for client apps and waveform peaks for the web player
+RUN apk add --no-cache tzdata ffmpeg
 
 USER node:node
 
@@ -67,9 +69,15 @@ COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
 COPY --chown=node:node --from=build /app/.next ./.next
 COPY --chown=node:node --from=build /app/dist ./dist
 
-RUN touch config/DOCKER && \
+# MIT attribution must ship with the image (see NOTICE.md)
+RUN test -f /app/NOTICE.md && test -f /app/LICENSE && test -f /app/LICENSES/seerr-MIT.txt
+
+RUN mkdir -p config && touch config/DOCKER && \
   echo "{\"commitTag\": \"${COMMIT_TAG}\"}" > committag.json
 
 EXPOSE 5055
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:${PORT:-5055}/api/v1/status >/dev/null || exit 1
 
 CMD [ "npm", "start" ]

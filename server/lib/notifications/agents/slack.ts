@@ -1,3 +1,5 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV5): reword for music (types, copy, payload variables).
 import { IssueStatus, IssueTypeName } from '@server/constants/issue';
 import { getIntl } from '@server/i18n';
 import globalMessages from '@server/i18n/globalMessages';
@@ -7,7 +9,7 @@ import logger from '@server/logger';
 import axios from 'axios';
 import { Notification, hasNotificationType } from '..';
 import type { NotificationAgent, NotificationPayload } from './agent';
-import { BaseAgent } from './agent';
+import { BaseAgent, mediaPath } from './agent';
 
 interface EmbedField {
   type: 'plain_text' | 'mrkdwn';
@@ -188,7 +190,7 @@ class SlackAgent
       ? payload.issue
         ? `${applicationUrl}/issues/${payload.issue.id}`
         : payload.media
-          ? `${applicationUrl}/${payload.media.mediaType}/${payload.media.tmdbId}`
+          ? `${applicationUrl}/${mediaPath(payload.media)}`
           : undefined
       : undefined;
 
@@ -197,7 +199,7 @@ class SlackAgent
         type: 'actions',
         elements: [
           {
-            action_id: 'open-in-seerr',
+            action_id: 'open-in-shufflerr',
             type: 'button',
             url,
             text: {

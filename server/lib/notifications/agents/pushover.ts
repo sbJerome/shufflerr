@@ -1,3 +1,5 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV5): reword for music (types, copy, payload variables).
 import { IssueStatus, IssueTypeName } from '@server/constants/issue';
 import { MediaStatus } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
@@ -15,7 +17,7 @@ import {
   shouldSendAdminNotification,
 } from '..';
 import type { NotificationAgent, NotificationPayload } from './agent';
-import { BaseAgent } from './agent';
+import { BaseAgent, mediaPath } from './agent';
 
 interface PushoverImagePayload {
   attachment_base64: string;
@@ -163,7 +165,7 @@ class PushoverAgent
       ? payload.issue
         ? `${applicationUrl}/issues/${payload.issue.id}`
         : payload.media
-          ? `${applicationUrl}/${payload.media.mediaType}/${payload.media.tmdbId}`
+          ? `${applicationUrl}/${mediaPath(payload.media)}`
           : undefined
       : undefined;
     const url_title = url

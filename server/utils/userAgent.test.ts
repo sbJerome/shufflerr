@@ -43,7 +43,7 @@ class TestExternalAPI extends ExternalAPI {
 
 describe('outbound user agent', () => {
   it('identifies the application by name and version', () => {
-    assert.match(getUserAgent(), /^Seerr\/.+$/);
+    assert.match(getUserAgent(), /^Shufflerr\/.+$/);
   });
 
   it('is sent by clients built on ExternalAPI', async () => {

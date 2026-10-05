@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Link from 'next/link';
 import React from 'react';
 
@@ -20,7 +21,7 @@ const Badge = (
   ref?: React.Ref<HTMLElement>
 ) => {
   const badgeStyle = [
-    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full whitespace-nowrap',
+    'px-2.5 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-pill whitespace-nowrap',
   ];
 
   if (href) {
@@ -31,46 +32,25 @@ const Badge = (
 
   switch (badgeType) {
     case 'danger':
-      badgeStyle.push('bg-red-600/80 border-red-500 border !text-red-100');
-      if (href) {
-        badgeStyle.push('hover:bg-red-500');
-      }
+      badgeStyle.push('bg-hover !text-st-declined');
       break;
     case 'warning':
-      badgeStyle.push(
-        'bg-yellow-500/80 border-yellow-500 border !text-yellow-100'
-      );
-      if (href) {
-        badgeStyle.push('hover:bg-yellow-500');
-      }
+      badgeStyle.push('bg-hover !text-st-pending');
       break;
     case 'success':
-      badgeStyle.push(
-        'bg-green-500/80 border border-green-500 !text-green-100'
-      );
-      if (href) {
-        badgeStyle.push('hover:bg-green-500');
-      }
+      badgeStyle.push('bg-hover !text-st-available');
       break;
     case 'dark':
-      badgeStyle.push('bg-gray-900 !text-gray-400');
-      if (href) {
-        badgeStyle.push('hover:bg-gray-800');
-      }
+      badgeStyle.push('bg-bg !text-muted');
       break;
     case 'light':
-      badgeStyle.push('bg-gray-700 !text-gray-300');
-      if (href) {
-        badgeStyle.push('hover:bg-gray-600');
-      }
+      badgeStyle.push('bg-hover !text-muted');
       break;
     default:
-      badgeStyle.push(
-        'bg-indigo-500/80 border border-indigo-500 !text-indigo-100'
-      );
-      if (href) {
-        badgeStyle.push('hover:bg-indigo-500');
-      }
+      badgeStyle.push('bg-hover !text-accent');
+  }
+  if (href) {
+    badgeStyle.push('hover:brightness-110');
   }
 
   if (className) {

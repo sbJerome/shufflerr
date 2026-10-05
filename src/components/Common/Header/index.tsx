@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 interface HeaderProps {
   extraMargin?: number;
   subtext?: React.ReactNode;
@@ -9,12 +10,12 @@ const Header = ({ children, extraMargin = 0, subtext }: HeaderProps) => {
     <div className="mt-8 md:flex md:items-center md:justify-between">
       <div className={`min-w-0 flex-1 mx-${extraMargin}`}>
         <h2
-          className="mb-4 truncate text-2xl font-bold leading-7 text-gray-100 sm:overflow-visible sm:text-4xl sm:leading-9 md:mb-0"
+          className="mb-4 truncate text-[30px] font-bold leading-9 tracking-[-0.02em] text-ink sm:overflow-visible md:mb-0"
           data-testid="page-header"
         >
-          <span className="text-overseerr">{children}</span>
+          {children}
         </h2>
-        {subtext && <div className="mt-2 text-gray-400">{subtext}</div>}
+        {subtext && <div className="sh-sub mt-2">{subtext}</div>}
       </div>
     </div>
   );

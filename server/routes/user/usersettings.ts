@@ -1,3 +1,7 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV4): adapt per docs/USER_SYSTEM.md + docs/API_CONTRACT.md §SV4
+// (linked accounts incl. Last.fm/ListenBrainz/Spotify, app passwords,
+// notification channels in the new response shape).
 import JellyfinAPI from '@server/api/jellyfin';
 import PlexTvAPI from '@server/api/plextv';
 import { ApiErrorCode } from '@server/constants/error';
@@ -51,18 +55,16 @@ userSettingsRoutes.get<{ id: string }, UserSettingsGeneralResponse>(
         email: user.email,
         locale: user.settings?.locale,
         discoverRegion: user.settings?.discoverRegion,
-        streamingRegion: user.settings?.streamingRegion,
-        originalLanguage: user.settings?.originalLanguage,
-        movieQuotaLimit: user.movieQuotaLimit,
-        movieQuotaDays: user.movieQuotaDays,
-        tvQuotaLimit: user.tvQuotaLimit,
-        tvQuotaDays: user.tvQuotaDays,
-        globalMovieQuotaDays: defaultQuotas.movie.quotaDays,
-        globalMovieQuotaLimit: defaultQuotas.movie.quotaLimit,
-        globalTvQuotaDays: defaultQuotas.tv.quotaDays,
-        globalTvQuotaLimit: defaultQuotas.tv.quotaLimit,
-        watchlistSyncMovies: user.settings?.watchlistSyncMovies,
-        watchlistSyncTv: user.settings?.watchlistSyncTv,
+        albumQuotaLimit: user.albumQuotaLimit,
+        albumQuotaDays: user.albumQuotaDays,
+        trackQuotaLimit: user.trackQuotaLimit,
+        trackQuotaDays: user.trackQuotaDays,
+        globalAlbumQuotaDays: defaultQuotas.album.quotaDays,
+        globalAlbumQuotaLimit: defaultQuotas.album.quotaLimit,
+        globalTrackQuotaDays: defaultQuotas.track.quotaDays,
+        globalTrackQuotaLimit: defaultQuotas.track.quotaLimit,
+        autoRequestSpotifySaved: user.settings?.autoRequestSpotifySaved,
+        scrobbleEnabled: user.settings?.scrobbleEnabled,
       });
     } catch (e) {
       next({ status: 500, message: e.message });
@@ -113,10 +115,10 @@ userSettingsRoutes.post<
       !user.hasPermission(Permission.MANAGE_USERS) &&
       req.user?.id !== user.id
     ) {
-      user.movieQuotaDays = req.body.movieQuotaDays;
-      user.movieQuotaLimit = req.body.movieQuotaLimit;
-      user.tvQuotaDays = req.body.tvQuotaDays;
-      user.tvQuotaLimit = req.body.tvQuotaLimit;
+      user.albumQuotaDays = req.body.albumQuotaDays;
+      user.albumQuotaLimit = req.body.albumQuotaLimit;
+      user.trackQuotaDays = req.body.trackQuotaDays;
+      user.trackQuotaLimit = req.body.trackQuotaLimit;
     }
 
     if (!user.settings) {
@@ -124,18 +126,17 @@ userSettingsRoutes.post<
         user: req.user,
         locale: req.body.locale,
         discoverRegion: req.body.discoverRegion,
-        streamingRegion: req.body.streamingRegion,
-        originalLanguage: req.body.originalLanguage,
-        watchlistSyncMovies: req.body.watchlistSyncMovies,
-        watchlistSyncTv: req.body.watchlistSyncTv,
+        autoRequestSpotifySaved: req.body.autoRequestSpotifySaved ?? false,
+        scrobbleEnabled: req.body.scrobbleEnabled ?? true,
       });
     } else {
       user.settings.locale = req.body.locale;
       user.settings.discoverRegion = req.body.discoverRegion;
-      user.settings.streamingRegion = req.body.streamingRegion;
-      user.settings.originalLanguage = req.body.originalLanguage;
-      user.settings.watchlistSyncMovies = req.body.watchlistSyncMovies;
-      user.settings.watchlistSyncTv = req.body.watchlistSyncTv;
+      user.settings.autoRequestSpotifySaved =
+        req.body.autoRequestSpotifySaved ??
+        user.settings.autoRequestSpotifySaved;
+      user.settings.scrobbleEnabled =
+        req.body.scrobbleEnabled ?? user.settings.scrobbleEnabled;
     }
 
     const savedUser = await userRepository.save(user);
@@ -144,10 +145,8 @@ userSettingsRoutes.post<
       username: savedUser.username,
       locale: savedUser.settings?.locale,
       discoverRegion: savedUser.settings?.discoverRegion,
-      streamingRegion: savedUser.settings?.streamingRegion,
-      originalLanguage: savedUser.settings?.originalLanguage,
-      watchlistSyncMovies: savedUser.settings?.watchlistSyncMovies,
-      watchlistSyncTv: savedUser.settings?.watchlistSyncTv,
+      autoRequestSpotifySaved: savedUser.settings?.autoRequestSpotifySaved,
+      scrobbleEnabled: savedUser.settings?.scrobbleEnabled,
       email: savedUser.email,
     });
   } catch (e) {
@@ -284,7 +283,7 @@ userSettingsRoutes.post<{ authToken: string }>(
     // Do not allow linking of an already linked account
     if (await userRepository.exist({ where: { plexId: account.id } })) {
       return res.status(422).json({
-        message: 'This Plex account is already linked to a Seerr user',
+        message: 'This Plex account is already linked to a Shufflerr user',
       });
     }
 
@@ -387,13 +386,15 @@ userSettingsRoutes.post<{ username: string; password: string }>(
       })
     ) {
       return res.status(422).json({
-        message: 'The specified account is already linked to a Seerr user',
+        message: 'The specified account is already linked to a Shufflerr user',
       });
     }
 
     const hostname = getHostname();
     const deviceId = Buffer.from(
-      req.user?.id === 1 ? 'BOT_seerr' : `BOT_seerr_${req.user.username ?? ''}`
+      req.user?.id === 1
+        ? 'BOT_shufflerr'
+        : `BOT_shufflerr_${req.user.username ?? ''}`
     ).toString('base64');
 
     const jellyfinserver = new JellyfinAPI(hostname, undefined, deviceId);
@@ -422,7 +423,8 @@ userSettingsRoutes.post<{ username: string; password: string }>(
         })
       ) {
         return res.status(422).json({
-          message: 'The specified account is already linked to a Seerr user',
+          message:
+            'The specified account is already linked to a Shufflerr user',
         });
       }
 
@@ -560,13 +562,14 @@ userSettingsRoutes.post<{ secret: string }>(
         })
       ) {
         return res.status(422).json({
-          message: 'The specified account is already linked to a Seerr user',
+          message:
+            'The specified account is already linked to a Shufflerr user',
         });
       }
 
       const user = req.user;
       const deviceId = Buffer.from(
-        user.id === 1 ? 'BOT_seerr' : `BOT_seerr_${user.username ?? ''}`
+        user.id === 1 ? 'BOT_shufflerr' : `BOT_shufflerr_${user.username ?? ''}`
       ).toString('base64');
 
       user.userType = UserType.JELLYFIN;
@@ -606,7 +609,8 @@ userSettingsRoutes.get<{ id: string }, UserSettingsNotificationsResponse>(
         return next({ status: 404, message: 'User not found.' });
       }
 
-      return res.status(200).json({
+      // STREAM(SV4): return UserSettingsNotificationsResponse (channels shape)
+      return res.status(200).json(<UserSettingsNotificationsResponse>(<unknown>{
         emailEnabled: settings.email.enabled,
         pgpKey: user.settings?.pgpKey,
         discordEnabled:
@@ -627,7 +631,7 @@ userSettingsRoutes.get<{ id: string }, UserSettingsNotificationsResponse>(
         telegramSendSilently: user.settings?.telegramSendSilently,
         webPushEnabled: settings.webpush.enabled,
         notificationTypes: user.settings?.notificationTypes ?? {},
-      });
+      }));
     } catch (e) {
       next({ status: 500, message: e.message });
     }
@@ -694,7 +698,7 @@ userSettingsRoutes.post<{ id: string }, UserSettingsNotificationsResponse>(
 
       await userRepository.save(user);
 
-      return res.status(200).json({
+      return res.status(200).json(<UserSettingsNotificationsResponse>(<unknown>{
         pgpKey: user.settings.pgpKey,
         discordIds: user.settings.discordIds ?? [],
         pushbulletAccessToken: user.settings.pushbulletAccessToken,
@@ -705,7 +709,7 @@ userSettingsRoutes.post<{ id: string }, UserSettingsNotificationsResponse>(
         telegramMessageThreadId: user.settings.telegramMessageThreadId,
         telegramSendSilently: user.settings.telegramSendSilently,
         notificationTypes: user.settings.notificationTypes,
-      });
+      }));
     } catch (e) {
       next({ status: 500, message: e.message });
     }

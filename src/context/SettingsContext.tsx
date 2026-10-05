@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { MediaServerType } from '@server/constants/server';
 import type { PublicSettingsResponse } from '@server/interfaces/api/settingsInterfaces';
 import React from 'react';
@@ -8,33 +9,56 @@ export interface SettingsContextProps {
   children?: React.ReactNode;
 }
 
-const defaultSettings = {
+/** Safe defaults used before `/api/v1/settings/public` answers. */
+export const defaultPublicSettings: PublicSettingsResponse = {
   initialized: false,
-  applicationTitle: 'Seerr',
+  applicationTitle: 'Shufflerr',
   applicationUrl: '',
   hideAvailable: false,
-  hideBlocklisted: false,
-  hideRequested: false,
+  allowTrackRequests: true,
+  discographyAlwaysReview: true,
   localLogin: true,
   mediaServerLogin: true,
-  movie4kEnabled: false,
-  series4kEnabled: false,
+  plexLoginEnabled: false,
+  jellyfinLoginEnabled: false,
+  newPlexLogin: false,
+  newJellyfinLogin: false,
   discoverRegion: '',
-  streamingRegion: '',
-  originalLanguage: '',
   mediaServerType: MediaServerType.NOT_CONFIGURED,
-  partialRequestsEnabled: true,
-  enableSpecialEpisodes: false,
   cacheImages: false,
   vapidPublic: '',
   enablePushRegistration: false,
   locale: 'en',
   emailEnabled: false,
-  newPlexLogin: true,
-  youtubeUrl: '',
+  userEmailRequired: false,
   versionCheck: true,
   plexClientIdentifier: '',
+  integrations: {
+    lidarr: false,
+    plex: false,
+    jellyfin: false,
+    navidrome: false,
+    localFiles: false,
+    youtube: false,
+    youtubeFill: false,
+    spotify: false,
+    deezer: false,
+    itunes: false,
+    ticketmaster: false,
+    skiddle: false,
+    listenbrainzTrending: false,
+    listenbrainz: false,
+    lastfm: false,
+    lastfmScrobble: false,
+    fanart: false,
+    openSubsonic: false,
+    jellyfinApi: false,
+  },
+  importEnabled: false,
+  concertsEnabled: false,
 };
+
+const defaultSettings = defaultPublicSettings;
 
 export const SettingsContext = React.createContext<SettingsContextProps>({
   currentSettings: defaultSettings,
@@ -49,7 +73,7 @@ export const SettingsProvider = ({
     { fallbackData: currentSettings }
   );
 
-  let newSettings = defaultSettings;
+  let newSettings: PublicSettingsResponse = defaultSettings;
 
   if (data && !error) {
     newSettings = data;

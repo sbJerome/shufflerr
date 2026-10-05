@@ -1,6 +1,6 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { ForwardedRef, JSX } from 'react';
 import React from 'react';
-import { twMerge } from 'tailwind-merge';
 
 export type ButtonType =
   | 'default'
@@ -8,7 +8,8 @@ export type ButtonType =
   | 'danger'
   | 'warning'
   | 'success'
-  | 'ghost';
+  | 'ghost'
+  | 'accent';
 
 // Helper type to override types (overrides onClick)
 type MergeElementProps<
@@ -46,51 +47,38 @@ function Button<P extends ElementTypes = 'button'>(
   }: ButtonProps<P>,
   ref?: React.Ref<Element<P>>
 ): JSX.Element {
-  const buttonStyle = [
-    'inline-flex items-center justify-center border leading-5 font-medium rounded-md focus:outline-none transition ease-in-out duration-150 cursor-pointer disabled:opacity-50 whitespace-nowrap',
-  ];
+  const buttonStyle = ['sh-btn whitespace-nowrap'];
   switch (buttonType) {
     case 'primary':
-      buttonStyle.push(
-        'text-white border border-indigo-500 bg-indigo-600/80 hover:bg-indigo-600 hover:border-indigo-500 focus:border-indigo-700 focus:ring-indigo active:bg-indigo-600 active:border-indigo-700'
-      );
+      buttonStyle.push('primary');
       break;
     case 'danger':
-      buttonStyle.push(
-        'text-white bg-red-600/80 border-red-500 hover:bg-red-600 hover:border-red-500 focus:border-red-700 focus:ring-red active:bg-red-700 active:border-red-700'
-      );
+      buttonStyle.push('danger');
       break;
     case 'warning':
-      buttonStyle.push(
-        'text-white border border-yellow-500 bg-yellow-500/80 hover:bg-yellow-500 hover:border-yellow-400 focus:border-yellow-700 focus:ring-yellow active:bg-yellow-500 active:border-yellow-700'
-      );
+      buttonStyle.push('border-st-pending text-st-pending');
       break;
     case 'success':
-      buttonStyle.push(
-        'text-white bg-green-500/80 border-green-500 hover:bg-green-500 hover:border-green-400 focus:border-green-700 focus:ring-green active:bg-green-500 active:border-green-700'
-      );
+      buttonStyle.push('ok');
+      break;
+    case 'accent':
+      buttonStyle.push('ghost-accent');
       break;
     case 'ghost':
-      buttonStyle.push(
-        'text-white bg-transparent border-gray-600 hover:border-gray-200 focus:border-gray-100 active:border-gray-100'
-      );
-      break;
     default:
-      buttonStyle.push(
-        'text-gray-200 bg-gray-800/80 border-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-600 group-hover:text-white group-hover:bg-gray-700 group-hover:border-gray-600 focus:border-blue-300 focus:ring-blue active:text-gray-200 active:bg-gray-700 active:border-gray-600'
-      );
+      break;
   }
 
   switch (buttonSize) {
     case 'sm':
-      buttonStyle.push('px-2.5 py-1.5 text-xs button-sm');
+      buttonStyle.push('small button-sm');
       break;
     case 'lg':
-      buttonStyle.push('px-6 py-3 text-base button-lg');
+      buttonStyle.push('min-h-[52px] text-[15px] button-lg');
       break;
     case 'md':
     default:
-      buttonStyle.push('px-4 py-2 text-sm button-md');
+      buttonStyle.push('button-md');
   }
 
   buttonStyle.push(className ?? '');
@@ -98,21 +86,21 @@ function Button<P extends ElementTypes = 'button'>(
   if (as === 'a') {
     return (
       <a
-        className={twMerge(buttonStyle)}
+        className={buttonStyle.join(' ')}
         {...(props as React.ComponentProps<'a'>)}
         ref={ref as ForwardedRef<HTMLAnchorElement>}
       >
-        <span className="flex items-center">{children}</span>
+        <span className="flex items-center gap-2">{children}</span>
       </a>
     );
   } else {
     return (
       <button
-        className={twMerge(buttonStyle)}
+        className={buttonStyle.join(' ')}
         {...(props as React.ComponentProps<'button'>)}
         ref={ref as ForwardedRef<HTMLButtonElement>}
       >
-        <span className="flex items-center">{children}</span>
+        <span className="flex items-center gap-2">{children}</span>
       </button>
     );
   }

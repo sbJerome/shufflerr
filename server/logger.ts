@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 /* eslint-disable no-console */
 import path from 'path';
 import * as winston from 'winston';
@@ -15,16 +16,16 @@ const hformat = winston.format.printf(
   }
 );
 
-const seerrFileTransport = new winston.transports.DailyRotateFile({
+const fileTransport = new winston.transports.DailyRotateFile({
   filename: process.env.CONFIG_DIRECTORY
-    ? `${process.env.CONFIG_DIRECTORY}/logs/seerr-%DATE%.log`
-    : path.join(__dirname, '../config/logs/seerr-%DATE%.log'),
+    ? `${process.env.CONFIG_DIRECTORY}/logs/shufflerr-%DATE%.log`
+    : path.join(__dirname, '../config/logs/shufflerr-%DATE%.log'),
   datePattern: 'YYYY-MM-DD',
   zippedArchive: true,
   maxSize: '20m',
   maxFiles: '7d',
   createSymlink: true,
-  symlinkName: 'seerr.log',
+  symlinkName: 'shufflerr.log',
 });
 const machineLogFileTransport = new winston.transports.DailyRotateFile({
   filename: process.env.CONFIG_DIRECTORY
@@ -43,8 +44,8 @@ const machineLogFileTransport = new winston.transports.DailyRotateFile({
   ),
 });
 
-seerrFileTransport.on('error', (err) => {
-  console.error('Error in seerr file transport:', err);
+fileTransport.on('error', (err) => {
+  console.error('Error in shufflerr file transport:', err);
 });
 
 machineLogFileTransport.on('error', (err) => {
@@ -67,7 +68,7 @@ const logger = winston.createLogger({
         hformat
       ),
     }),
-    seerrFileTransport,
+    fileTransport,
     machineLogFileTransport,
   ],
 });

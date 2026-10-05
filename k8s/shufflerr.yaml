@@ -1,0 +1,95 @@
+# Shufflerr in the-arrs, modelled on the seerr Deployment/Service in the same namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shufflerr
+  namespace: the-arrs
+  labels:
+    app: shufflerr
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: shufflerr
+  # SQLite on a hostPath: never run two pods against the same config dir.
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: shufflerr
+    spec:
+      containers:
+        - name: shufflerr
+          image: localhost/shufflerr:0.1.0
+          imagePullPolicy: Never
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: LOG_LEVEL
+              value: info
+          ports:
+            - containerPort: 5055
+              name: webui
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /api/v1/status
+              port: 5055
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/status
+              port: 5055
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /app/config
+              name: shufflerr-app
+            - mountPath: /music
+              name: shufflerr-music
+              readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: my-node
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: shufflerr-app
+          hostPath:
+            path: /srv/shufflerr/config
+            type: DirectoryOrCreate
+        - name: shufflerr-music
+          hostPath:
+            path: /srv/music
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shufflerr-service
+  namespace: the-arrs
+  labels:
+    app: shufflerr
+  annotations:
+    metallb.io/loadBalancerIPs: 192.0.2.29
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  ports:
+    - name: shufflerr-webui
+      port: 80
+      protocol: TCP
+      targetPort: 5055
+  selector:
+    app: shufflerr

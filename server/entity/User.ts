@@ -1,4 +1,5 @@
-import { MediaRequestStatus, MediaType } from '@server/constants/media';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import { MediaRequestStatus, RequestScope } from '@server/constants/media';
 import { UserType } from '@server/constants/user';
 import { getRepository } from '@server/datasource';
 import { Watchlist } from '@server/entity/Watchlist';
@@ -9,7 +10,6 @@ import { Permission, hasPermission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
-import { AfterDate } from '@server/utils/dateHelpers';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { nanoid } from 'nanoid';
@@ -18,16 +18,16 @@ import {
   AfterLoad,
   Column,
   Entity,
-  Not,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   RelationCount,
   UpdateDateColumn,
 } from 'typeorm';
+import AppPassword from './AppPassword';
 import Issue from './Issue';
+import LinkedAccount from './LinkedAccount';
 import { MediaRequest } from './MediaRequest';
-import SeasonRequest from './SeasonRequest';
 import { UserPushSubscription } from './UserPushSubscription';
 import { UserSettings } from './UserSettings';
 
@@ -124,17 +124,24 @@ export class User {
   @OneToMany(() => Watchlist, (watchlist) => watchlist.requestedBy)
   public watchlists: Watchlist[];
 
-  @Column({ nullable: true })
-  public movieQuotaLimit?: number;
+  /** null = use the global limit. 0 = unlimited. */
+  @Column({ type: 'int', nullable: true })
+  public albumQuotaLimit?: number | null;
 
-  @Column({ nullable: true })
-  public movieQuotaDays?: number;
+  @Column({ type: 'int', nullable: true })
+  public albumQuotaDays?: number | null;
 
-  @Column({ nullable: true })
-  public tvQuotaLimit?: number;
+  @Column({ type: 'int', nullable: true })
+  public trackQuotaLimit?: number | null;
 
-  @Column({ nullable: true })
-  public tvQuotaDays?: number;
+  @Column({ type: 'int', nullable: true })
+  public trackQuotaDays?: number | null;
+
+  @OneToMany(() => LinkedAccount, (account) => account.user)
+  public linkedAccounts: LinkedAccount[];
+
+  @OneToMany(() => AppPassword, (appPassword) => appPassword.user)
+  public appPasswords: AppPassword[];
 
   @OneToOne(() => UserSettings, (settings) => settings.user, {
     cascade: true,
@@ -282,6 +289,12 @@ export class User {
       this.username || this.plexUsername || this.jellyfinUsername || this.email;
   }
 
+  /**
+   * Request quotas (docs/PERMISSIONS_AND_APPROVALS.md §Quotas).
+   * - album usage = count(scope=album) + sum(releaseCount for scope=discography)
+   * - track usage = sum(trackCount for scope=tracks)
+   * Requests that are DECLINED or have ignoreQuota are not counted.
+   */
   public async getQuota(): Promise<QuotaResponse> {
     const {
       main: { defaultQuotas },
@@ -291,98 +304,85 @@ export class User {
       type: 'or',
     });
 
-    const movieQuotaLimit = !canBypass
-      ? (this.movieQuotaLimit ?? defaultQuotas.movie.quotaLimit)
+    const albumQuotaLimit = !canBypass
+      ? (this.albumQuotaLimit ?? defaultQuotas.album.quotaLimit ?? 0)
       : 0;
-    const movieQuotaDays = this.movieQuotaDays ?? defaultQuotas.movie.quotaDays;
+    const albumQuotaDays =
+      this.albumQuotaDays ?? defaultQuotas.album.quotaDays ?? 7;
+    const trackQuotaLimit = !canBypass
+      ? (this.trackQuotaLimit ?? defaultQuotas.track.quotaLimit ?? 0)
+      : 0;
+    const trackQuotaDays =
+      this.trackQuotaDays ?? defaultQuotas.track.quotaDays ?? 7;
 
-    // Count movie requests made during quota period
-    const movieDate = new Date();
-    if (movieQuotaDays) {
-      movieDate.setDate(movieDate.getDate() - movieQuotaDays);
-    }
-
-    const movieQuotaUsed = movieQuotaLimit
-      ? await requestRepository.count({
-          where: {
-            requestedBy: {
-              id: this.id,
-            },
-            ...(movieQuotaDays ? { createdAt: AfterDate(movieDate) } : {}),
-            type: MediaType.MOVIE,
-            status: Not(MediaRequestStatus.DECLINED),
-            ignoreQuota: false,
-          },
+    const usage = async (
+      scopes: RequestScope[],
+      days: number
+    ): Promise<MediaRequest[]> => {
+      const qb = requestRepository
+        .createQueryBuilder('request')
+        .leftJoin('request.requestedBy', 'requestedBy')
+        .where('requestedBy.id = :userId', { userId: this.id })
+        .andWhere('request.scope IN (:...scopes)', { scopes })
+        .andWhere('request.status != :declined', {
+          declined: MediaRequestStatus.DECLINED,
         })
-      : 0;
+        .andWhere('request.ignoreQuota = :ignoreQuota', { ignoreQuota: false });
 
-    const tvQuotaLimit = !canBypass
-      ? (this.tvQuotaLimit ?? defaultQuotas.tv.quotaLimit)
-      : 0;
-    const tvQuotaDays = this.tvQuotaDays ?? defaultQuotas.tv.quotaDays;
+      if (days) {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        qb.andWhere('request.createdAt > :since', { since: since.toJSON() });
+      }
 
-    // Count tv season requests made during quota period
-    const tvDate = new Date();
-    if (tvQuotaDays) {
-      tvDate.setDate(tvDate.getDate() - tvQuotaDays);
-    }
-    const tvQuotaStartDate = tvDate.toJSON();
-    const tvQuotaUsedQuery = requestRepository
-      .createQueryBuilder('request')
-      .leftJoin('request.requestedBy', 'requestedBy')
-      .where('request.type = :requestType', {
-        requestType: MediaType.TV,
-      })
-      .andWhere('requestedBy.id = :userId', {
-        userId: this.id,
-      })
-      .andWhere('request.status != :declinedStatus', {
-        declinedStatus: MediaRequestStatus.DECLINED,
-      });
+      return qb.getMany();
+    };
 
-    if (tvQuotaDays) {
-      tvQuotaUsedQuery.andWhere('request.createdAt > :date', {
-        date: tvQuotaStartDate,
-      });
-    }
-
-    const tvQuotaUsed = tvQuotaLimit
+    const albumQuotaUsed = albumQuotaLimit
       ? (
-          await tvQuotaUsedQuery
-            .andWhere('request.ignoreQuota = :ignoreQuota', {
-              ignoreQuota: false,
-            })
-            .addSelect((subQuery) => {
-              return subQuery
-                .select('COUNT(season.id)', 'seasonCount')
-                .from(SeasonRequest, 'season')
-                .leftJoin('season.request', 'parentRequest')
-                .where('parentRequest.id = request.id');
-            }, 'seasonCount')
-            .getMany()
-        ).reduce((sum: number, req: MediaRequest) => sum + req.seasonCount, 0)
+          await usage(
+            [RequestScope.ALBUM, RequestScope.DISCOGRAPHY],
+            albumQuotaDays
+          )
+        ).reduce(
+          (sum, r) =>
+            sum +
+            (r.scope === RequestScope.DISCOGRAPHY
+              ? Math.max(1, r.releaseCount ?? 0)
+              : 1),
+          0
+        )
+      : 0;
+
+    const trackQuotaUsed = trackQuotaLimit
+      ? (await usage([RequestScope.TRACKS], trackQuotaDays)).reduce(
+          (sum, r) => sum + (r.trackCount ?? 0),
+          0
+        )
       : 0;
 
     return {
-      movie: {
-        days: movieQuotaDays,
-        limit: movieQuotaLimit,
-        used: movieQuotaUsed,
-        remaining: movieQuotaLimit
-          ? Math.max(0, movieQuotaLimit - movieQuotaUsed)
+      album: {
+        days: albumQuotaDays,
+        limit: albumQuotaLimit,
+        used: albumQuotaUsed,
+        remaining: albumQuotaLimit
+          ? Math.max(0, albumQuotaLimit - albumQuotaUsed)
           : undefined,
         restricted: !!(
-          movieQuotaLimit && movieQuotaLimit - movieQuotaUsed <= 0
+          albumQuotaLimit && albumQuotaLimit - albumQuotaUsed <= 0
         ),
       },
-      tv: {
-        days: tvQuotaDays,
-        limit: tvQuotaLimit,
-        used: tvQuotaUsed,
-        remaining: tvQuotaLimit
-          ? Math.max(0, tvQuotaLimit - tvQuotaUsed)
+      track: {
+        days: trackQuotaDays,
+        limit: trackQuotaLimit,
+        used: trackQuotaUsed,
+        remaining: trackQuotaLimit
+          ? Math.max(0, trackQuotaLimit - trackQuotaUsed)
           : undefined,
-        restricted: !!(tvQuotaLimit && tvQuotaLimit - tvQuotaUsed <= 0),
+        restricted: !!(
+          trackQuotaLimit && trackQuotaLimit - trackQuotaUsed <= 0
+        ),
       },
     };
   }

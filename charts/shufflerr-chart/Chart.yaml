@@ -1,0 +1,13 @@
+apiVersion: v2
+kubeVersion: '>=1.23.0-0'
+name: shufflerr-chart
+description: Shufflerr helm chart for Kubernetes (adapted from the Seerr chart, MIT)
+type: application
+version: 0.1.0
+appVersion: '0.1.0'
+maintainers:
+  - name: Jerome S B
+    url: https://github.com/sbJerome
+sources:
+  - https://github.com/sbjerome/shufflerr/tree/main/charts/shufflerr-chart
+home: https://github.com/sbjerome/shufflerr

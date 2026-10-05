@@ -1,3 +1,5 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV5): reword for music (types, copy, payload variables).
 import { IssueType, IssueTypeName } from '@server/constants/issue';
 import { MediaRequestStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
@@ -13,7 +15,7 @@ import type { AvailableLocale } from '@server/types/languages';
 import webpush from 'web-push';
 import { Notification, shouldSendAdminNotification } from '..';
 import type { NotificationAgent, NotificationPayload } from './agent';
-import { BaseAgent } from './agent';
+import { BaseAgent, mediaPath } from './agent';
 
 const messages = defineMessages('notifications.agents.webpush', {
   autoRequested: 'Automatically submitted a new {quality}{mediaType} request.',
@@ -77,11 +79,11 @@ class WebPushAgent
     const { embedPoster } = getSettings().notifications.agents.webpush;
 
     const mediaType = payload.media
-      ? payload.media.mediaType === MediaType.MOVIE
+      ? payload.media.mediaType === MediaType.RELEASE_GROUP
         ? intl.formatMessage(globalMessages.movie)
         : intl.formatMessage(globalMessages.series)
       : undefined;
-    const is4k = payload.request?.is4k;
+    const is4k = false as boolean;
     const quality = is4k ? '4K ' : '';
 
     const issueType = payload.issue
@@ -175,7 +177,7 @@ class WebPushAgent
     const actionUrl = payload.issue
       ? `/issues/${payload.issue.id}`
       : payload.media
-        ? `/${payload.media.mediaType}/${payload.media.tmdbId}`
+        ? `/${mediaPath(payload.media)}`
         : undefined;
 
     const actionUrlTitle = actionUrl

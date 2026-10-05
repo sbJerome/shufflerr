@@ -1,3 +1,5 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+// STREAM(SV5): reword for music (types, copy, payload variables).
 import { IssueStatus, IssueTypeName } from '@server/constants/issue';
 import { getIntl } from '@server/i18n';
 import globalMessages from '@server/i18n/globalMessages';
@@ -7,7 +9,7 @@ import logger from '@server/logger';
 import axios from 'axios';
 import { Notification, hasNotificationType } from '..';
 import type { NotificationAgent, NotificationPayload } from './agent';
-import { BaseAgent } from './agent';
+import { BaseAgent, mediaPath } from './agent';
 
 interface GotifyPayload {
   title: string;
@@ -108,7 +110,7 @@ class GotifyAgent
     }
 
     if (applicationUrl && payload.media) {
-      const actionUrl = `${applicationUrl}/${payload.media.mediaType}/${payload.media.tmdbId}`;
+      const actionUrl = `${applicationUrl}/${mediaPath(payload.media)}`;
       const displayUrl =
         actionUrl.length > 40 ? `${actionUrl.slice(0, 41)}...` : actionUrl;
       message += `\n\n**${intl.formatMessage(globalMessages.openIn, { applicationTitle })}:** [${displayUrl}](${actionUrl})  `;

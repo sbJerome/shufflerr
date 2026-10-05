@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ExternalAPI from '@server/api/externalapi';
 import { ApiErrorCode } from '@server/constants/error';
@@ -153,14 +154,14 @@ class JellyfinAPI extends ExternalAPI {
     const safeDeviceId =
       deviceId && deviceId.length > 0
         ? deviceId
-        : Buffer.from('BOT_seerr').toString('base64');
+        : Buffer.from('BOT_shufflerr').toString('base64');
 
     const version =
       settings.main.mediaServerType === MediaServerType.EMBY
         ? '1.0.0'
         : getAppVersion();
 
-    let authHeaderVal = `MediaBrowser Client="Seerr", Device="Seerr", DeviceId="${safeDeviceId}", Version="${version}"`;
+    let authHeaderVal = `MediaBrowser Client="Shufflerr", Device="Shufflerr", DeviceId="${safeDeviceId}", Version="${version}"`;
     if (authToken) {
       authHeaderVal += `, Token="${authToken}"`;
     }

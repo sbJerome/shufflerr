@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { withProperties } from '@app/utils/typeHelpers';
 
 interface ListItemProps {
@@ -11,7 +12,7 @@ const ListItem = ({ title, className, children }: ListItemProps) => {
     <div>
       <div className="max-w-6xl py-4 sm:grid sm:grid-cols-3 sm:gap-4">
         <dt className="block text-sm font-bold text-gray-400">{title}</dt>
-        <dd className="flex text-sm text-white sm:col-span-2 sm:mt-0">
+        <dd className="flex text-sm text-ink sm:col-span-2 sm:mt-0">
           <span className={`flex-grow ${className}`}>{children}</span>
         </dd>
       </div>

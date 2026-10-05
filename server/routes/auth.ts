@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import JellyfinAPI from '@server/api/jellyfin';
 import PlexTvAPI from '@server/api/plextv';
 import { ApiErrorCode } from '@server/constants/error';
@@ -57,11 +58,9 @@ authRoutes.get('/me', isAuthenticated(), async (req, res) => {
     settings: user.settings && {
       locale: user.settings.locale,
       discoverRegion: user.settings.discoverRegion,
-      streamingRegion: user.settings.streamingRegion,
-      originalLanguage: user.settings.originalLanguage,
       notificationTypes: user.settings.notificationTypes,
-      watchlistSyncMovies: user.settings.watchlistSyncMovies,
-      watchlistSyncTv: user.settings.watchlistSyncTv,
+      autoRequestSpotifySaved: user.settings.autoRequestSpotifySaved,
+      scrobbleEnabled: user.settings.scrobbleEnabled,
     },
   });
 });
@@ -181,7 +180,7 @@ authRoutes.post('/plex', async (req, res, next) => {
           });
         } else {
           logger.info(
-            'Sign-in attempt from Plex user with access to the media server; creating new Seerr user',
+            'Sign-in attempt from Plex user with access to the media server; creating new Shufflerr user',
             {
               label: 'API',
               ip: req.ip,
@@ -296,14 +295,16 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       select: { id: true, jellyfinDeviceId: true },
     });
 
-    let deviceId = 'BOT_seerr';
+    let deviceId = 'BOT_shufflerr';
     if (user && user.id === 1) {
-      // Admin is always BOT_seerr
-      deviceId = 'BOT_seerr';
+      // Admin is always BOT_shufflerr
+      deviceId = 'BOT_shufflerr';
     } else if (user && user.jellyfinDeviceId) {
       deviceId = user.jellyfinDeviceId;
     } else if (body.username) {
-      deviceId = Buffer.from(`BOT_seerr_${body.username}`).toString('base64');
+      deviceId = Buffer.from(`BOT_shufflerr_${body.username}`).toString(
+        'base64'
+      );
     }
 
     // First we need to attempt to log the user in to jellyfin
@@ -351,7 +352,7 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
 
       if (missingAdminUser) {
         logger.info(
-          'Sign-in attempt from Jellyfin user with access to the media server; creating initial admin user for Seerr',
+          'Sign-in attempt from Jellyfin user with access to the media server; creating initial admin user for Shufflerr',
           {
             label: 'API',
             ip: req.ip,
@@ -380,7 +381,7 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
         await userRepository.save(user);
       } else {
         logger.info(
-          'Sign-in attempt from Jellyfin user with access to the media server; editing admin user for Seerr',
+          'Sign-in attempt from Jellyfin user with access to the media server; editing admin user for Shufflerr',
           {
             label: 'API',
             ip: req.ip,
@@ -417,7 +418,7 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
         account.AccessToken,
         deviceId
       );
-      const apiKey = await jellyfinClient.createApiToken('Seerr');
+      const apiKey = await jellyfinClient.createApiToken('Shufflerr');
 
       const serverName = await jellyfinserver.getServerName();
 
@@ -473,7 +474,7 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       });
     } else if (!user) {
       logger.info(
-        'Sign-in attempt from Jellyfin user with access to the media server; creating new Seerr user',
+        'Sign-in attempt from Jellyfin user with access to the media server; creating new Shufflerr user',
         {
           label: 'API',
           ip: req.ip,
@@ -759,7 +760,7 @@ authRoutes.post(
       });
 
       const deviceId = Buffer.from(
-        `BOT_seerr_${account.User.Name ?? ''}`
+        `BOT_shufflerr_${account.User.Name ?? ''}`
       ).toString('base64');
 
       if (user) {
@@ -790,7 +791,7 @@ authRoutes.post(
         });
       } else {
         logger.info(
-          'Quick Connect sign-in from new Jellyfin user; creating new Seerr user',
+          'Quick Connect sign-in from new Jellyfin user; creating new Shufflerr user',
           {
             label: 'API',
             ip: req.ip,
@@ -870,7 +871,7 @@ authRoutes.post('/local', async (req, res, next) => {
       .getOne();
 
     if (!user || !(await user.passwordMatch(body.password))) {
-      logger.warn('Failed sign-in attempt using invalid Seerr password', {
+      logger.warn('Failed sign-in attempt using invalid Shufflerr password', {
         label: 'API',
         ip: req.ip,
         email: body.email,
@@ -889,12 +890,15 @@ authRoutes.post('/local', async (req, res, next) => {
 
     return res.status(200).json(user?.filter() ?? {});
   } catch (e) {
-    logger.error('Something went wrong authenticating with Seerr password', {
-      label: 'API',
-      errorMessage: e.message,
-      ip: req.ip,
-      email: body.email,
-    });
+    logger.error(
+      'Something went wrong authenticating with Shufflerr password',
+      {
+        label: 'API',
+        errorMessage: e.message,
+        ip: req.ip,
+        email: body.email,
+      }
+    );
     return next({
       status: 500,
       message: 'Unable to authenticate.',
@@ -928,7 +932,7 @@ authRoutes.post('/logout', async (req, res, next) => {
             await axios.delete(`${baseUrl}/Devices`, {
               params: { Id: user.jellyfinDeviceId },
               headers: {
-                Authorization: `MediaBrowser Client="Seerr", Device="Seerr", DeviceId="seerr", Version="${
+                Authorization: `MediaBrowser Client="Shufflerr", Device="Shufflerr", DeviceId="shufflerr", Version="${
                   settings.main.mediaServerType === MediaServerType.EMBY
                     ? '1.0.0'
                     : getAppVersion()

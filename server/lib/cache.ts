@@ -1,16 +1,24 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { LRUCache } from 'lru-cache';
 
 export type AvailableCacheIds =
-  | 'tmdb'
-  | 'tmdbscan'
-  | 'radarr'
-  | 'sonarr'
-  | 'rt'
-  | 'imdb'
-  | 'github'
+  | 'musicbrainz'
+  | 'coverart'
+  | 'fanart'
+  | 'lastfm'
+  | 'listenbrainz'
+  | 'spotify'
+  | 'deezer'
+  | 'itunes'
+  | 'ticketmaster'
+  | 'skiddle'
+  | 'youtube'
+  | 'lidarr'
+  | 'plex'
+  | 'jellyfin'
+  | 'navidrome'
   | 'plextv'
-  | 'plexwatchlist'
-  | 'tvdb';
+  | 'plexwatchlist';
 
 const DEFAULT_TTL = 300;
 
@@ -18,35 +26,24 @@ const OBJECT_VALUE_SIZE = 80;
 const PROMISE_VALUE_SIZE = 80;
 const ARRAY_VALUE_SIZE = 40;
 
-// Limits key count, not memory, since TMDB never caps the credits rosters.
-const TMDB_MAX_KEYS = 1000;
+// Lookups (24 h) and searches (1 h); one key per MBID / query.
+const MUSICBRAINZ_MAX_KEYS = 5000;
 
-// Backstop against unbounded growth as the 15 minute TTL is what bounds this tier.
-const TMDB_SCAN_MAX_KEYS = 2000;
+// Small metadata/discovery tiers: one key per artist, album, link or query.
+const METADATA_MAX_KEYS = 2000;
 
-// Only the rolling quality profile, root folder and language profile lookups reach
-// these tiers, and keys are prefixed by server url, so this is a few keys per server.
-const RADARR_MAX_KEYS = 64;
-const SONARR_MAX_KEYS = 64;
+// Only the rolling profile, root folder and tag lookups reach this tier, and keys
+// are prefixed by server url, so this is a few keys per server.
+const LIDARR_MAX_KEYS = 256;
 
-// One key per searched title, each holding twenty search hits.
-const RT_MAX_KEYS = 500;
+// Media-server lookups made while scanning and resolving stream sources.
+const MEDIA_SERVER_MAX_KEYS = 2000;
 
-// One key per IMDb id, requested from the same endpoint as the RT ratings.
-const IMDB_MAX_KEYS = 500;
-
-// Releases and commits, varying only by page size and branch.
-const GITHUB_MAX_KEYS = 16;
-
-// Watchlist item metadata, shared between users as the token is not part of the key.
+// Shared between users as the token is not part of the key.
 const PLEX_TV_MAX_KEYS = 5000;
 
 // Keyed by auth token, so one key per Plex linked user.
 const PLEX_WATCHLIST_MAX_KEYS = 500;
-
-// Several keys per show, holding the largest payloads of any tier as the extended
-// series lookup carries every episode.
-const TVDB_MAX_KEYS = 500;
 
 export interface CacheStats {
   hits: number;
@@ -217,27 +214,55 @@ class Cache {
 
 class CacheManager {
   private availableCaches: Record<AvailableCacheIds, Cache> = {
-    tmdb: new Cache('tmdb', 'The Movie Database API', {
-      stdTtl: 21600,
-      max: TMDB_MAX_KEYS,
+    musicbrainz: new Cache('musicbrainz', 'MusicBrainz', {
+      stdTtl: 86400,
+      max: MUSICBRAINZ_MAX_KEYS,
     }),
-    tmdbscan: new Cache('tmdbscan', 'The Movie Database API (Library Scans)', {
-      stdTtl: 900,
-      max: TMDB_SCAN_MAX_KEYS,
+    coverart: new Cache('coverart', 'Cover Art Archive', {
+      stdTtl: 86400,
+      max: METADATA_MAX_KEYS,
     }),
-    radarr: new Cache('radarr', 'Radarr API', { max: RADARR_MAX_KEYS }),
-    sonarr: new Cache('sonarr', 'Sonarr API', { max: SONARR_MAX_KEYS }),
-    rt: new Cache('rt', 'Rotten Tomatoes API', {
+    fanart: new Cache('fanart', 'fanart.tv', {
+      stdTtl: 86400,
+      max: METADATA_MAX_KEYS,
+    }),
+    lastfm: new Cache('lastfm', 'Last.fm', {
       stdTtl: 43200,
-      max: RT_MAX_KEYS,
+      max: METADATA_MAX_KEYS,
     }),
-    imdb: new Cache('imdb', 'IMDB Radarr Proxy', {
-      stdTtl: 43200,
-      max: IMDB_MAX_KEYS,
-    }),
-    github: new Cache('github', 'GitHub API', {
+    listenbrainz: new Cache('listenbrainz', 'ListenBrainz', {
       stdTtl: 21600,
-      max: GITHUB_MAX_KEYS,
+      max: METADATA_MAX_KEYS,
+    }),
+    spotify: new Cache('spotify', 'Spotify', {
+      stdTtl: 3600,
+      max: METADATA_MAX_KEYS,
+    }),
+    deezer: new Cache('deezer', 'Deezer', {
+      stdTtl: 3600,
+      max: METADATA_MAX_KEYS,
+    }),
+    itunes: new Cache('itunes', 'iTunes', {
+      stdTtl: 21600,
+      max: METADATA_MAX_KEYS,
+    }),
+    ticketmaster: new Cache('ticketmaster', 'Ticketmaster', {
+      stdTtl: 43200,
+      max: METADATA_MAX_KEYS,
+    }),
+    skiddle: new Cache('skiddle', 'Skiddle', {
+      stdTtl: 43200,
+      max: METADATA_MAX_KEYS,
+    }),
+    youtube: new Cache('youtube', 'YouTube', {
+      stdTtl: 86400 * 30,
+      max: METADATA_MAX_KEYS,
+    }),
+    lidarr: new Cache('lidarr', 'Lidarr', { max: LIDARR_MAX_KEYS }),
+    plex: new Cache('plex', 'Plex', { max: MEDIA_SERVER_MAX_KEYS }),
+    jellyfin: new Cache('jellyfin', 'Jellyfin', { max: MEDIA_SERVER_MAX_KEYS }),
+    navidrome: new Cache('navidrome', 'Navidrome', {
+      max: MEDIA_SERVER_MAX_KEYS,
     }),
     plextv: new Cache('plextv', 'Plex TV', {
       stdTtl: 86400 * 7, // 1 week cache
@@ -245,10 +270,6 @@ class CacheManager {
     }),
     plexwatchlist: new Cache('plexwatchlist', 'Plex Watchlist', {
       max: PLEX_WATCHLIST_MAX_KEYS,
-    }),
-    tvdb: new Cache('tvdb', 'The TVDB API', {
-      stdTtl: 21600,
-      max: TVDB_MAX_KEYS,
     }),
   };
 

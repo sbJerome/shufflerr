@@ -36,3 +36,9 @@ export interface NotificationAgent {
   shouldSend(): boolean;
   send(type: Notification, payload: NotificationPayload): Promise<boolean>;
 }
+
+/** App path for a Media row: /album/<release-group mbid> or /artist/<artist mbid>. */
+export const mediaPath = (media?: Media): string =>
+  media
+    ? `${media.mediaType === 'artist' ? 'artist' : 'album'}/${media.mbid}`
+    : '';

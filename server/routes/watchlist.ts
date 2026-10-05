@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import {
   DuplicateWatchlistRequestError,
   NotFoundError,
@@ -36,7 +37,7 @@ watchlistRoutes.post<never, Watchlist, Watchlist>(
       switch (error.constructor) {
         case QueryFailedError:
           logger.warn('Something wrong with data watchlist', {
-            tmdbId: req.body.tmdbId,
+            mbid: req.body.mbid,
             mediaType: req.body.mediaType,
             label: 'Watchlist',
           });
@@ -50,7 +51,7 @@ watchlistRoutes.post<never, Watchlist, Watchlist>(
   }
 );
 
-watchlistRoutes.delete('/:tmdbId', async (req, res, next) => {
+watchlistRoutes.delete<{ mbid: string }>('/:mbid', async (req, res, next) => {
   if (!req.user) {
     return next({
       status: 401,
@@ -59,18 +60,17 @@ watchlistRoutes.delete('/:tmdbId', async (req, res, next) => {
   }
   try {
     const mediaType = req.query.mediaType;
-    if (mediaType !== MediaType.MOVIE && mediaType !== MediaType.TV) {
+    if (
+      mediaType !== MediaType.ARTIST &&
+      mediaType !== MediaType.RELEASE_GROUP
+    ) {
       return next({
         status: 400,
         message: 'Invalid mediaType query parameter.',
       });
     }
 
-    await Watchlist.deleteWatchlist(
-      Number(req.params.tmdbId),
-      mediaType,
-      req.user
-    );
+    await Watchlist.deleteWatchlist(req.params.mbid, mediaType, req.user);
     return res.status(204).send();
   } catch (e) {
     if (e instanceof NotFoundError) {

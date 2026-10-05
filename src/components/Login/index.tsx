@@ -1,63 +1,76 @@
-import EmbyLogo from '@app/assets/services/emby-icon-only.svg';
-import JellyfinLogo from '@app/assets/services/jellyfin-icon.svg';
-import PlexLogo from '@app/assets/services/plex.svg';
-import Button from '@app/components/Common/Button';
-import ImageFader from '@app/components/Common/ImageFader';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import PageTitle from '@app/components/Common/PageTitle';
-import LanguagePicker from '@app/components/Layout/LanguagePicker';
+import AuthShell from '@app/components/Login/AuthShell';
 import JellyfinLogin from '@app/components/Login/JellyfinLogin';
 import LocalLogin from '@app/components/Login/LocalLogin';
 import PlexLoginButton from '@app/components/Login/PlexLoginButton';
 import useSettings from '@app/hooks/useSettings';
 import { useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import { Transition } from '@headlessui/react';
-import { XCircleIcon } from '@heroicons/react/24/solid';
-import { MediaServerType } from '@server/constants/server';
+import { loginMethods } from '@app/utils/publicSettings';
 import axios from 'axios';
-import { useRouter } from 'next/dist/client/router';
-import Image from 'next/image';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { CSSTransition, SwitchTransition } from 'react-transition-group';
-import useSWR from 'swr';
 
-const messages = defineMessages('components.Login', {
-  signin: 'Sign In',
-  signinheader: 'Sign in to continue',
-  signinwithplex: 'Use your Plex account',
-  signinwithjellyfin: 'Use your {mediaServerName} account',
-  signinwithoverseerr: 'Use your {applicationTitle} account',
-  orsigninwith: 'Or sign in with',
+const messages = defineMessages('components.Login.Page', {
+  signin: 'Sign in',
+  ledeplex:
+    'Use the Plex account you listen with. Your requests and limits follow you.',
+  ledejellyfin:
+    'Use the {mediaServerName} account you listen with. Your requests and limits follow you.',
+  ledelocal: 'Use your Shufflerr account. Your requests and limits follow you.',
+  signinwithjellyfin: 'Sign in with {mediaServerName}',
+  orlocal: 'or use a Shufflerr account',
+  newhere: 'New here?',
+  newplex:
+    'If the server owner has shared their Plex library with you, sign in with Plex. Your Shufflerr account is created the first time, with the owner’s default permissions.',
+  newjellyfin:
+    'If you have a {mediaServerName} account on this server, sign in with it. Your Shufflerr account is created the first time, with the owner’s default permissions.',
+  newclosed:
+    'Accounts are created by the server owner. Ask them to add or import you, then sign in here.',
+  plexerror:
+    'Plex sign-in didn’t finish. Try again, and allow the pop-up window if your browser blocked it.',
+  plexnoaccount:
+    'Your Plex account doesn’t have a Shufflerr account yet. Ask the server owner to import you.',
+  nomethods:
+    'No sign-in method is turned on. The server owner can fix this in settings.json (main.localLogin).',
 });
 
 const Login = () => {
   const intl = useIntl();
   const router = useRouter();
-  const settings = useSettings();
+  const { currentSettings } = useSettings();
   const { user, revalidate } = useUser();
+  const methods = loginMethods(currentSettings);
 
   const [error, setError] = useState('');
   const [isProcessing, setProcessing] = useState(false);
   const [authToken, setAuthToken] = useState<string | undefined>(undefined);
-  const [mediaServerLogin, setMediaServerLogin] = useState(
-    settings.currentSettings.mediaServerLogin
-  );
+  const [showJellyfin, setShowJellyfin] = useState(false);
 
-  // Effect that is triggered when the `authToken` comes back from the Plex OAuth
-  // We take the token and attempt to sign in. If we get a success message, we will
-  // ask swr to revalidate the user which _should_ come back with a valid user.
+  // The Plex PIN flow hands back a token; trade it for a Shufflerr session.
   useEffect(() => {
     const login = async () => {
       setProcessing(true);
+      setError('');
       try {
         const response = await axios.post('/api/v1/auth/plex', { authToken });
-
         if (response.data?.id) {
           revalidate();
         }
       } catch (e) {
-        setError(e.response?.data?.message);
+        const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+        const message: unknown = axios.isAxiosError(e)
+          ? e.response?.data?.message
+          : undefined;
+        setError(
+          typeof message === 'string' && /\s/.test(message)
+            ? message
+            : intl.formatMessage(
+                status === 403 ? messages.plexnoaccount : messages.plexerror
+              )
+        );
         setAuthToken(undefined);
         setProcessing(false);
       }
@@ -65,199 +78,114 @@ const Login = () => {
     if (authToken) {
       login();
     }
-  }, [authToken, revalidate]);
+  }, [authToken, revalidate, intl]);
 
-  // Effect that is triggered whenever `useUser`'s user changes. If we get a new
-  // valid user, we redirect the user to the home page as the login was successful.
+  // Signed in: go to the app.
   useEffect(() => {
     if (user) {
       router.push('/');
     }
   }, [user, router]);
 
-  const { data: backdrops } = useSWR<string[]>('/api/v1/backdrops', {
-    refreshInterval: 0,
-    refreshWhenHidden: false,
-    revalidateOnFocus: false,
-  });
+  const jf = { mediaServerName: methods.jellyfinName };
+  const lede = methods.plex
+    ? intl.formatMessage(messages.ledeplex)
+    : methods.jellyfin
+      ? intl.formatMessage(messages.ledejellyfin, jf)
+      : intl.formatMessage(messages.ledelocal);
 
-  const mediaServerName =
-    settings.currentSettings.mediaServerType === MediaServerType.PLEX
-      ? 'Plex'
-      : settings.currentSettings.mediaServerType === MediaServerType.JELLYFIN
-        ? 'Jellyfin'
-        : settings.currentSettings.mediaServerType === MediaServerType.EMBY
-          ? 'Emby'
-          : undefined;
-
-  const MediaServerLogo =
-    settings.currentSettings.mediaServerType === MediaServerType.PLEX
-      ? PlexLogo
-      : settings.currentSettings.mediaServerType === MediaServerType.JELLYFIN
-        ? JellyfinLogo
-        : settings.currentSettings.mediaServerType === MediaServerType.EMBY
-          ? EmbyLogo
-          : undefined;
-
-  const isJellyfin =
-    settings.currentSettings.mediaServerType === MediaServerType.JELLYFIN ||
-    settings.currentSettings.mediaServerType === MediaServerType.EMBY;
-  const mediaServerLoginRef = useRef<HTMLDivElement>(null);
-  const localLoginRef = useRef<HTMLDivElement>(null);
-  const loginRef = mediaServerLogin ? mediaServerLoginRef : localLoginRef;
-
-  const loginFormVisible =
-    (isJellyfin && settings.currentSettings.mediaServerLogin) ||
-    settings.currentSettings.localLogin;
-  const additionalLoginOptions = [
-    settings.currentSettings.mediaServerLogin &&
-      (settings.currentSettings.mediaServerType === MediaServerType.PLEX ? (
-        <PlexLoginButton
-          key="plex"
-          isProcessing={isProcessing}
-          onAuthToken={(authToken) => setAuthToken(authToken)}
-          large={!isJellyfin && !settings.currentSettings.localLogin}
-        />
-      ) : (
-        settings.currentSettings.localLogin &&
-        (mediaServerLogin ? (
-          <Button
-            key="seerr"
-            data-testid="seerr-login-button"
-            className="flex-1 bg-transparent"
-            onClick={() => setMediaServerLogin(false)}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/os_icon.svg"
-              alt={settings.currentSettings.applicationTitle}
-              className="mr-2 h-5"
-            />
-            <span>{settings.currentSettings.applicationTitle}</span>
-          </Button>
-        ) : (
-          <Button
-            key="mediaserver"
-            data-testid="mediaserver-login-button"
-            className="flex-1 bg-transparent"
-            onClick={() => setMediaServerLogin(true)}
-          >
-            <MediaServerLogo />
-            <span>{mediaServerName}</span>
-          </Button>
-        ))
-      )),
-  ].filter((o): o is JSX.Element => !!o);
+  const jellyfinButton = (
+    <button
+      type="button"
+      className="sh-btn jellyfin"
+      onClick={() => {
+        setError('');
+        setShowJellyfin(true);
+      }}
+      data-testid="jellyfin-login-button"
+    >
+      {intl.formatMessage(messages.signinwithjellyfin, jf)}
+    </button>
+  );
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-gray-900 py-14">
+    <AuthShell>
       <PageTitle title={intl.formatMessage(messages.signin)} />
-      <ImageFader
-        backgroundImages={
-          backdrops?.map(
-            (backdrop) => `https://image.tmdb.org/t/p/original${backdrop}`
-          ) ?? []
-        }
-      />
-      <div className="absolute right-4 top-4 z-50">
-        <LanguagePicker />
-      </div>
-      <div className="relative z-40 mt-10 flex flex-col items-center px-4 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="relative h-48 w-full max-w-full">
-          <Image src="/logo_stacked.svg" alt="Logo" fill />
-        </div>
-      </div>
-      <div className="relative z-50 mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div
-          className="bg-gray-800/50 shadow sm:rounded-lg"
-          style={{ backdropFilter: 'blur(5px)' }}
-        >
-          <>
-            <Transition
-              as="div"
-              show={!!error}
-              enter="transition-opacity duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="transition-opacity duration-300"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div className="mb-4 rounded-md bg-red-600 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <XCircleIcon className="h-5 w-5 text-red-300" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-300">
-                      {error}
-                    </h3>
-                  </div>
+      <div className="sh-auth-grid">
+        <section className="sh-auth-card" aria-labelledby="login-title">
+          <h1 id="login-title">{intl.formatMessage(messages.signin)}</h1>
+          <p className="lede">{lede}</p>
+          {error && (
+            <p className="sh-err" role="alert" data-testid="login-error">
+              {error}
+            </p>
+          )}
+          {!methods.plex && !methods.jellyfin && !methods.local && (
+            <p className="sh-err" role="alert">
+              {intl.formatMessage(messages.nomethods)}
+            </p>
+          )}
+          {methods.plex && (
+            <PlexLoginButton
+              isProcessing={isProcessing}
+              onAuthToken={(token) => setAuthToken(token)}
+              onError={() => setError(intl.formatMessage(messages.plexerror))}
+            />
+          )}
+          {methods.jellyfin && jellyfinButton}
+          {methods.local && (
+            <>
+              {(methods.plex || methods.jellyfin) && (
+                <div className="sh-or">
+                  {intl.formatMessage(messages.orlocal)}
                 </div>
-              </div>
-            </Transition>
-            <div className="px-10 py-8">
-              <SwitchTransition mode="out-in">
-                <CSSTransition
-                  key={mediaServerLogin ? 'ms' : 'local'}
-                  nodeRef={loginRef}
-                  timeout={{ enter: 300, exit: 150 }}
-                  onEntered={() => {
-                    document
-                      .querySelector<HTMLInputElement>('#email, #username')
-                      ?.focus();
-                  }}
-                  classNames={{
-                    enter: 'opacity-0',
-                    enterActive: 'transition-opacity duration-300 opacity-100',
-                    exit: 'opacity-100',
-                    exitActive: 'transition-opacity duration-150 opacity-0',
-                  }}
-                >
-                  <div ref={loginRef} className="button-container">
-                    {isJellyfin &&
-                    (mediaServerLogin ||
-                      !settings.currentSettings.localLogin) ? (
-                      <JellyfinLogin
-                        serverType={settings.currentSettings.mediaServerType}
-                        revalidate={revalidate}
-                      />
-                    ) : (
-                      settings.currentSettings.localLogin && (
-                        <LocalLogin revalidate={revalidate} />
-                      )
-                    )}
-                  </div>
-                </CSSTransition>
-              </SwitchTransition>
-
-              {additionalLoginOptions.length > 0 &&
-                (loginFormVisible ? (
-                  <div className="flex items-center py-5">
-                    <div className="flex-grow border-t border-gray-600" />
-                    <span className="mx-2 flex-shrink text-sm text-gray-400">
-                      {intl.formatMessage(messages.orsigninwith)}
-                    </span>
-                    <div className="flex-grow border-t border-gray-600" />
-                  </div>
-                ) : (
-                  <h2 className="mb-6 text-center text-lg font-bold text-neutral-200">
-                    {intl.formatMessage(messages.signinheader)}
-                  </h2>
-                ))}
-
-              <div
-                className={`flex w-full flex-wrap gap-2 ${
-                  !loginFormVisible ? 'flex-col' : ''
-                }`}
-              >
-                {additionalLoginOptions}
-              </div>
+              )}
+              <LocalLogin revalidate={revalidate} onError={setError} />
+            </>
+          )}
+        </section>
+        <aside className="sh-auth-side">
+          <h2>{intl.formatMessage(messages.newhere)}</h2>
+          <p className="lede">
+            {methods.plex && methods.newPlex
+              ? intl.formatMessage(messages.newplex)
+              : methods.jellyfin && methods.newJellyfin
+                ? intl.formatMessage(messages.newjellyfin, jf)
+                : intl.formatMessage(messages.newclosed)}
+          </p>
+          {methods.plex && methods.newPlex && (
+            <div>
+              <PlexLoginButton
+                variant="outline"
+                isProcessing={isProcessing}
+                onAuthToken={(token) => setAuthToken(token)}
+                onError={() => setError(intl.formatMessage(messages.plexerror))}
+              />
             </div>
-          </>
-        </div>
+          )}
+          {!(methods.plex && methods.newPlex) &&
+            methods.jellyfin &&
+            methods.newJellyfin && (
+              <div>
+                <button
+                  type="button"
+                  className="sh-btn outline-accent"
+                  onClick={() => setShowJellyfin(true)}
+                >
+                  {intl.formatMessage(messages.signinwithjellyfin, jf)}
+                </button>
+              </div>
+            )}
+        </aside>
       </div>
-    </div>
+      {showJellyfin && (
+        <JellyfinLogin
+          mediaServerName={methods.jellyfinName}
+          revalidate={revalidate}
+          onClose={() => setShowJellyfin(false)}
+        />
+      )}
+    </AuthShell>
   );
 };
 

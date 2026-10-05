@@ -77,3 +77,17 @@ Every Keep/Adapt row must be listed in `NOTICE.md` and carry the attribution hea
 | `seerr-api.yml` | Rewrite as `shufflerr-api.yml` |
 | `docs/`, `gen-docs/` | Drop; new docs later |
 | `cypress/*` | Adapt for new flows |
+
+## Status after Phase 0 + 1 (spine)
+
+What was actually done to each row above is recorded in `CHANGES.md` (Phase 0, Phase 1) and
+`changes/spine.md`. Differences from the table:
+
+- `server/lib/scanners/baseScanner.ts` — **Adapt** (run loop kept; movie/TV processing removed).
+- `server/lib/watchlistsync.ts` — **Dropped** for now (Plex movie/TV watchlist); `Watchlist`
+  entity and routes are kept, MBID-based, for the "follow artist" backlog item.
+- `server/api/github.ts` — **Dropped** (update check against Seerr's releases).
+- `server/routes/settings/index.ts` — Plex and Jellyfin routes split into
+  `server/routes/settings/plex.ts` and `server/routes/settings/jellyfin.ts`.
+- `server/routes/settings/discover.ts` → `server/routes/settings/sliders.ts`.
+- `charts/seerr-chart` → `charts/shufflerr-chart`; `.github/workflows` reduced to `ci.yml`.

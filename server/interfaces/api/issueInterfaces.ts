@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type { IssueType } from '@server/constants/issue';
 import type Issue from '@server/entity/Issue';
 import type { PaginatedResponse } from './common';
@@ -10,7 +11,7 @@ export type IssueRequestBody = {
   message: string;
   mediaId: number;
   issueType: IssueType;
-  problemSeason?: number;
-  problemEpisode?: number;
+  /** Track row ids the problem applies to. */
+  problemTracks?: number[];
   userId?: number;
 };
