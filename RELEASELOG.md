@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.6 — 2026-10-05
+
+- **Centred pages.** On wide screens every page now sits in the middle of the window instead of
+  hugging the left edge.
+
 ## v0.1.5 — 2026-10-05
 
 - **Navigation moved to the top.** One bar holds the links, search and your account; on

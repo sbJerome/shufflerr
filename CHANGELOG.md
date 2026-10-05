@@ -6,6 +6,13 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-05
+
+### Changed
+
+- Pages are centred on wide screens: the content column (max 1400px) now sits in the middle
+  of the window, in line with the top navigation, and the player bar's contents line up with it.
+
 ## [0.1.5] - 2026-10-05
 
 ### Changed
@@ -162,7 +169,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/sbJerome/shufflerr/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/sbJerome/shufflerr/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/sbJerome/shufflerr/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/sbJerome/shufflerr/compare/v0.1.2...v0.1.3

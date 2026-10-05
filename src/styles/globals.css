@@ -4544,3 +4544,16 @@
     }
   }
 }
+
+/* Pages are centred on wide screens; the player's contents line up with them. */
+@layer components {
+  .sh-view {
+    margin: 0 auto;
+  }
+  @media (min-width: 1449px) {
+    .sh-player {
+      padding-left: max(24px, calc((100% - 1400px) / 2 + 24px));
+      padding-right: max(24px, calc((100% - 1400px) / 2 + 24px));
+    }
+  }
+}
