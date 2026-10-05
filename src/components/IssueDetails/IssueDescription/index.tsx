@@ -1,166 +1,108 @@
-import Button from '@app/components/Common/Button';
-import { Permission, useUser } from '@app/hooks/useUser';
-import globalMessages from '@app/i18n/globalMessages';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import StatusDot from '@app/components/Common/StatusDot';
+import { issueOption } from '@app/components/IssueModal/constants';
 import defineMessages from '@app/utils/defineMessages';
-import {
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
-  Transition,
-} from '@headlessui/react';
-import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
-import { Field, Form, Formik } from 'formik';
-import { useState } from 'react';
-import { useIntl } from 'react-intl';
-import ReactMarkdown from 'react-markdown';
+import { IssueStatus } from '@server/constants/issue';
+import type Issue from '@server/entity/Issue';
+import type { AlbumTrack } from '@server/models/music';
+import { FormattedDate, useIntl } from 'react-intl';
 
 const messages = defineMessages('components.IssueDetails.IssueDescription', {
-  description: 'Description',
-  edit: 'Edit Description',
-  deleteissue: 'Delete Issue',
+  problem: 'Problem',
+  status: 'Status',
+  open: 'Open',
+  resolved: 'Resolved',
+  reportedBy: 'Reported by',
+  reported: 'Reported',
+  lastChange: 'Last change',
+  changedBy: '{date} by {name}',
+  tracks: 'Tracks',
+  wholeAlbum: 'The whole album',
+  wholeArtist: 'Everything by this artist',
+  unknownTracks: '{count, plural, one {# track} other {# tracks}}',
 });
 
 interface IssueDescriptionProps {
-  description: string;
-  belongsToUser: boolean;
-  commentCount: number;
-  onEdit: (newDescription: string) => void;
-  onDelete: () => void;
+  issue: Issue;
+  /** The album's tracklist, when it could be loaded, to name the affected tracks. */
+  tracks?: AlbumTrack[];
 }
 
-const IssueDescription = ({
-  description,
-  belongsToUser,
-  commentCount,
-  onEdit,
-  onDelete,
-}: IssueDescriptionProps) => {
+/** The facts of a report: what kind, who, when, which tracks. */
+const IssueDescription = ({ issue, tracks }: IssueDescriptionProps) => {
   const intl = useIntl();
-  const { hasPermission } = useUser();
-  const [isEditing, setIsEditing] = useState(false);
+  const problemIds = issue.problemTracks ?? [];
+  const named = (tracks ?? []).filter(
+    (track) => track.id !== undefined && problemIds.includes(track.id)
+  );
+  const isAlbum = issue.media?.mediaType === 'release-group';
+  const date = (value: Date) => (
+    <FormattedDate value={value} year="numeric" month="long" day="numeric" />
+  );
 
   return (
-    <div className="relative">
-      <div className="flex items-center justify-between">
-        <div className="font-semibold text-gray-100 lg:text-xl">
-          {intl.formatMessage(messages.description)}
-        </div>
-        {(hasPermission(Permission.MANAGE_ISSUES) || belongsToUser) && (
-          <Menu as="div" className="relative inline-block text-left">
-            {({ open }) => (
-              <>
-                <div>
-                  <MenuButton className="flex items-center rounded-full text-gray-400 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100">
-                    <span className="sr-only">Open options</span>
-                    <EllipsisVerticalIcon
-                      className="h-5 w-5"
-                      aria-hidden="true"
-                    />
-                  </MenuButton>
-                </div>
-
-                <Transition
-                  show={open}
-                  as="div"
-                  enter="transition ease-out duration-100"
-                  enterFrom="opacity-0 scale-95"
-                  enterTo="opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="opacity-100 scale-100"
-                  leaveTo="opacity-0 scale-95"
-                >
-                  <MenuItems
-                    static
-                    className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-gray-700 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                  >
-                    <div className="py-1">
-                      {belongsToUser && (
-                        <MenuItem>
-                          {({ active }) => (
-                            <button
-                              onClick={() => setIsEditing(true)}
-                              className={`block w-full px-4 py-2 text-left text-sm ${
-                                active
-                                  ? 'bg-gray-600 text-white'
-                                  : 'text-gray-100'
-                              }`}
-                            >
-                              {intl.formatMessage(messages.edit)}
-                            </button>
-                          )}
-                        </MenuItem>
-                      )}
-                      {(hasPermission(Permission.MANAGE_ISSUES) ||
-                        !commentCount) && (
-                        <MenuItem>
-                          {({ active }) => (
-                            <button
-                              onClick={() => onDelete()}
-                              className={`block w-full px-4 py-2 text-left text-sm ${
-                                active
-                                  ? 'bg-gray-600 text-white'
-                                  : 'text-gray-100'
-                              }`}
-                            >
-                              {intl.formatMessage(messages.deleteissue)}
-                            </button>
-                          )}
-                        </MenuItem>
-                      )}
-                    </div>
-                  </MenuItems>
-                </Transition>
-              </>
-            )}
-          </Menu>
-        )}
+    <dl className="sh-kv">
+      <div>
+        <dt>{intl.formatMessage(messages.problem)}</dt>
+        <dd>{intl.formatMessage(issueOption(issue.issueType).name)}</dd>
       </div>
-      {isEditing ? (
-        <Formik
-          initialValues={{ newMessage: description }}
-          onSubmit={(values) => {
-            onEdit(values.newMessage);
-            setIsEditing(false);
-          }}
-        >
-          {() => {
-            return (
-              <Form className="mt-4">
-                <Field
-                  id="newMessage"
-                  name="newMessage"
-                  as="textarea"
-                  className="h-40"
-                />
-                <div className="mt-2 flex justify-end">
-                  <Button
-                    buttonType="default"
-                    className="mr-2"
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    <span>{intl.formatMessage(globalMessages.cancel)}</span>
-                  </Button>
-                  <Button buttonType="primary">
-                    <span>{intl.formatMessage(globalMessages.save)}</span>
-                  </Button>
-                </div>
-              </Form>
-            );
-          }}
-        </Formik>
-      ) : (
-        <div className="prose mt-4">
-          <ReactMarkdown
-            allowedElements={['p', 'em', 'strong', 'ul', 'ol', 'li']}
-            skipHtml
+      <div>
+        <dt>{intl.formatMessage(messages.status)}</dt>
+        <dd>
+          <StatusDot
+            tone={issue.status === IssueStatus.OPEN ? 'pending' : 'available'}
           >
-            {description}
-          </ReactMarkdown>
+            {intl.formatMessage(
+              issue.status === IssueStatus.OPEN
+                ? messages.open
+                : messages.resolved
+            )}
+          </StatusDot>
+        </dd>
+      </div>
+      <div>
+        <dt>{intl.formatMessage(messages.reportedBy)}</dt>
+        <dd>{issue.createdBy?.displayName}</dd>
+      </div>
+      <div>
+        <dt>{intl.formatMessage(messages.reported)}</dt>
+        <dd>{date(issue.createdAt)}</dd>
+      </div>
+      {issue.modifiedBy && (
+        <div>
+          <dt>{intl.formatMessage(messages.lastChange)}</dt>
+          <dd>
+            {intl.formatMessage(messages.changedBy, {
+              date: date(issue.updatedAt),
+              name: issue.modifiedBy.displayName,
+            })}
+          </dd>
         </div>
       )}
-    </div>
+      <div>
+        <dt>{intl.formatMessage(messages.tracks)}</dt>
+        <dd>
+          {problemIds.length === 0 ? (
+            intl.formatMessage(
+              isAlbum ? messages.wholeAlbum : messages.wholeArtist
+            )
+          ) : named.length > 0 ? (
+            <ul>
+              {named.map((track) => (
+                <li key={track.id}>
+                  <span className="font-mono text-faint">{track.position}</span>{' '}
+                  {track.title}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            intl.formatMessage(messages.unknownTracks, {
+              count: problemIds.length,
+            })
+          )}
+        </dd>
+      </div>
+    </dl>
   );
 };
 

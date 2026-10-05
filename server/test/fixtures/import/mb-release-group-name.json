@@ -1,0 +1,83 @@
+{
+ "count": 4,
+ "offset": 0,
+ "release-groups": [
+  {
+   "id": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+   "title": "Random Access Memories",
+   "primary-type": "Album",
+   "first-release-date": "2013-05-17",
+   "score": 100,
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": "",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    }
+   ]
+  },
+  {
+   "id": "d34c6b11-6b3b-41ea-9fc6-44db1cc6577a",
+   "title": "Random Access Memories (drumless edition)",
+   "primary-type": "Album",
+   "secondary-types": [
+    "Remix"
+   ],
+   "first-release-date": "2023-11-17",
+   "score": 88,
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": "",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    }
+   ]
+  },
+  {
+   "id": "984b148e-1208-408f-aa5e-8cb930315be4",
+   "title": "Random Access Memories: The Collaborators",
+   "primary-type": "Album",
+   "secondary-types": [
+    "Interview"
+   ],
+   "first-release-date": "2013-05-14",
+   "score": 88,
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": "",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    }
+   ]
+  },
+  {
+   "id": "1f333970-c21f-4923-9f20-fb3f6120b507",
+   "title": "Random Access Memories (Vanderway Edit)",
+   "primary-type": "Single",
+   "secondary-types": [
+    "Remix"
+   ],
+   "first-release-date": "2013-03-31",
+   "score": 88,
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": "",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    }
+   ]
+  }
+ ]
+}

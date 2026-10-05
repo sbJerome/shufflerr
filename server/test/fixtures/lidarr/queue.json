@@ -1,0 +1,138 @@
+{
+  "page": 1,
+  "pageSize": 3,
+  "totalRecords": 2,
+  "records": [
+    {
+      "artistId": 5,
+      "albumId": 201,
+      "size": 73310165,
+      "title": "Artist - Album 1 (2023) [FLAC]",
+      "sizeleft": 0,
+      "timeleft": "00:00:00",
+      "estimatedCompletionTime": "2026-10-05T09:01:33Z",
+      "status": "completed",
+      "trackedDownloadStatus": "warning",
+      "trackedDownloadState": "importFailed",
+      "statusMessages": [
+        {
+          "title": "One or more tracks expected in this release were not imported or missing from the release",
+          "messages": []
+        },
+        {
+          "title": "Artist - Album 1 (2023) [FLAC]",
+          "messages": [
+            "Album match is not close enough: 65.9 % vs 80 % [artist, country, tracks, unmatched tracks]",
+            "Has unmatched tracks"
+          ]
+        },
+        {
+          "title": "Artist - Album 1 (2023) [FLAC]",
+          "messages": [
+            "Album match is not close enough: 65.9 % vs 80 % [artist, country, tracks, unmatched tracks]",
+            "Has unmatched tracks"
+          ]
+        }
+      ],
+      "errorMessage": "",
+      "downloadId": "0000000000000000000000000000000000000000",
+      "protocol": "usenet",
+      "downloadClient": "client",
+      "id": 1929912491
+    },
+    {
+      "artistId": 1,
+      "albumId": 700,
+      "size": 354437603,
+      "title": "Artist - Album 2 (2023) [FLAC]",
+      "sizeleft": 0,
+      "timeleft": "00:00:00",
+      "estimatedCompletionTime": "2026-10-05T09:01:33Z",
+      "status": "completed",
+      "trackedDownloadStatus": "warning",
+      "trackedDownloadState": "importFailed",
+      "statusMessages": [
+        {
+          "title": "One or more tracks expected in this release were not imported or missing from the release",
+          "messages": []
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        },
+        {
+          "title": "Artist - Album 2 (2023) [FLAC]",
+          "messages": [
+            "Failed to import track, Permissions error"
+          ]
+        }
+      ],
+      "downloadId": "0000000000000000000000000000000000000000",
+      "protocol": "torrent",
+      "downloadClient": "client",
+      "id": 216010255
+    }
+  ]
+}

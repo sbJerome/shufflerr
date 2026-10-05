@@ -1,0 +1,112 @@
+{
+ "_embedded": {
+  "events": [
+   {
+    "id": "vvG1VZbKfS7Gd0",
+    "name": "John Summit: Experts Only",
+    "url": "https://www.ticketmaster.com/event/vvG1VZbKfS7Gd0",
+    "dates": {
+     "start": {
+      "localDate": "2099-03-14",
+      "localTime": "20:00:00",
+      "dateTime": "2099-03-15T00:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "images": [
+     {
+      "ratio": "3_2",
+      "url": "https://s1.ticketm.net/dam/a/1f6/small_ARTIST_PAGE_3_2.jpg",
+      "width": 305,
+      "height": 203
+     },
+     {
+      "ratio": "16_9",
+      "url": "https://s1.ticketm.net/dam/a/1f6/wide_RETINA_LANDSCAPE_16_9.jpg",
+      "width": 1136,
+      "height": 639
+     },
+     {
+      "ratio": "16_9",
+      "url": "https://s1.ticketm.net/dam/a/1f6/wide_TABLET_LANDSCAPE_16_9.jpg",
+      "width": 1024,
+      "height": 576
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Madison Square Garden",
+       "city": {
+        "name": "New York"
+       },
+       "country": {
+        "countryCode": "US"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "vvG1VZbKfS7Gd1",
+    "name": "John Summit (cancelled show)",
+    "url": "https://www.ticketmaster.com/event/vvG1VZbKfS7Gd1",
+    "dates": {
+     "start": {
+      "localDate": "2099-04-02"
+     },
+     "status": {
+      "code": "cancelled"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Red Rocks Amphitheatre",
+       "city": {
+        "name": "Morrison"
+       },
+       "country": {
+        "countryCode": "US"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "vvG1VZbKfS7Gd2",
+    "name": "John Summit at The Brooklyn Mirage",
+    "url": "https://www.ticketmaster.com/event/vvG1VZbKfS7Gd2",
+    "dates": {
+     "start": {
+      "localDate": "2099-05-20"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Brooklyn Mirage",
+       "city": {
+        "name": "Brooklyn"
+       },
+       "country": {
+        "countryCode": "US"
+       }
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "page": {
+  "size": 50,
+  "totalElements": 3,
+  "totalPages": 1,
+  "number": 0
+ }
+}

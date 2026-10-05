@@ -72,6 +72,9 @@ setupTestDb();
 function configureJellyfin() {
   const settings = getSettings();
   settings.main.mediaServerType = MediaServerType.JELLYFIN;
+  settings.main.mediaServerLogin = true;
+  settings.jellyfin.loginEnabled = true;
+  settings.jellyfin.newLogin = true;
   settings.jellyfin.ip = 'localhost';
   settings.jellyfin.port = 8096;
   settings.jellyfin.useSsl = false;
@@ -105,14 +108,18 @@ describe('POST /user/:id/settings/linked-accounts/jellyfin/quickconnect', () => 
       .post(`/user/${userId}/settings/linked-accounts/jellyfin/quickconnect`)
       .send({ secret: 'abc123def456abc123def456' });
 
-    assert.strictEqual(res.status, 204);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.provider, 'jellyfin');
+    assert.strictEqual(res.body.linked, true);
     assert.strictEqual(authenticateQCMock.mock.callCount(), 1);
 
     const user = await getRepository(User).findOneOrFail({
       where: { id: userId },
     });
     assert.strictEqual(user.jellyfinUserId, 'jf-link-user-001');
-    assert.strictEqual(user.userType, UserType.JELLYFIN);
+    // The seeded account already signs in with Plex; linking Jellyfin adds a
+    // second way in without changing what the account is.
+    assert.strictEqual(user.userType, UserType.PLEX);
   });
 
   it('returns 403 when the media server is Emby', async () => {

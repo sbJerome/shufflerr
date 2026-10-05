@@ -1,8 +1,9 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 //
-// STREAM(SV5): owns this file. All 15 jobs (docs/ADMIN_PAGES.md §Jobs) are
-// registered here and call into the owning stream's module, so other streams
-// only implement their module and never edit this file.
+// All 15 jobs (docs/ADMIN_PAGES.md §Jobs) are registered here and call into the
+// module that implements them. Jobs are always registered; a tick is skipped
+// while the integration behind the job is switched off.
+import type { JobItem } from '@server/interfaces/api/settingsInterfaces';
 import availabilitySync from '@server/lib/availabilitySync';
 import { refreshConcerts } from '@server/lib/concerts';
 import downloadTracker from '@server/lib/downloadtracker';
@@ -22,6 +23,7 @@ import { processScrobbleQueue } from '@server/lib/scrobble';
 import type { JobId } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
+import cronstrue from 'cronstrue';
 import schedule from 'node-schedule';
 
 export interface ScheduledJob {
@@ -31,8 +33,11 @@ export interface ScheduledJob {
   type: 'process' | 'command';
   interval: 'seconds' | 'minutes' | 'hours' | 'days' | 'fixed';
   cronSchedule: string;
-  running?: () => boolean;
+  /** True while the job body is executing (scheduled or "Run now"). */
+  running: () => boolean;
   cancelFn?: () => void;
+  /** False while the integration behind the job is switched off. */
+  enabled: () => boolean;
 }
 
 interface JobDefinition {
@@ -61,24 +66,8 @@ const scanner = (s: {
   cancel: () => s.cancel(),
 });
 
-/** Guards jobs that are plain async functions against overlapping runs. */
-const single = (fn: () => Promise<void>) => {
-  let active = false;
-  return {
-    run: async () => {
-      if (active) {
-        return;
-      }
-      active = true;
-      try {
-        await fn();
-      } finally {
-        active = false;
-      }
-    },
-    running: () => active,
-  };
-};
+/** Job ids whose body is executing right now. */
+const activeRuns = new Set<JobId>();
 
 const jobDefinitions = (): JobDefinition[] => {
   const settings = getSettings();
@@ -152,7 +141,7 @@ const jobDefinitions = (): JobDefinition[] => {
       id: 'download-sync',
       name: 'Download sync',
       type: 'command',
-      interval: 'seconds',
+      interval: 'minutes',
       quiet: true,
       enabled: () => on().lidarr,
       run: () => downloadTracker.updateDownloads(),
@@ -180,7 +169,7 @@ const jobDefinitions = (): JobDefinition[] => {
       interval: 'hours',
       enabled: () =>
         on().spotify && settings.discover.spotify.savedAlbumsSync !== 'never',
-      ...single(syncSpotifySavedAlbums),
+      run: () => syncSpotifySavedAlbums(),
     },
     {
       id: 'scrobble-queue',
@@ -189,7 +178,7 @@ const jobDefinitions = (): JobDefinition[] => {
       interval: 'seconds',
       quiet: true,
       enabled: () => on().listenbrainz || on().lastfmScrobble,
-      ...single(processScrobbleQueue),
+      run: () => processScrobbleQueue(),
     },
     {
       id: 'concerts-refresh',
@@ -197,38 +186,58 @@ const jobDefinitions = (): JobDefinition[] => {
       type: 'process',
       interval: 'hours',
       enabled: () => on().ticketmaster || on().skiddle,
-      ...single(refreshConcerts),
+      run: () => refreshConcerts(),
     },
     {
       id: 'image-cache-cleanup',
       name: 'Image cache cleanup',
       type: 'process',
       interval: 'hours',
-      run: () => {
-        [...imageSourceTypes(), 'avatar'].forEach((key) =>
-          ImageProxy.clearCache(key)
-        );
-      },
+      run: () => cleanImageCache(),
     },
   ];
 };
 
-/** Run a job's body now (used by the schedule and by "Run now"). */
-const execute = (def: JobDefinition, manual = false): void => {
+/** Removes expired files from every image cache folder. */
+export const cleanImageCache = async (): Promise<void> => {
+  for (const key of [...imageSourceTypes(), 'avatar']) {
+    await ImageProxy.clearCache(key);
+  }
+};
+
+const isRunning = (def: JobDefinition): boolean =>
+  activeRuns.has(def.id) || (def.running ? def.running() : false);
+
+/**
+ * Run a job's body now (used by the schedule and by "Run now"). A job never
+ * overlaps itself: a tick that arrives while the previous run is still going
+ * is dropped.
+ */
+const execute = async (def: JobDefinition, manual = false): Promise<void> => {
   if (!manual && def.enabled && !def.enabled()) {
     return;
   }
-  logger[def.quiet ? 'debug' : 'info'](`Starting scheduled job: ${def.name}`, {
-    label: 'Jobs',
-  });
-  Promise.resolve()
-    .then(() => def.run())
-    .catch((e) => {
-      logger.error(`Scheduled job failed: ${def.name}`, {
-        label: 'Jobs',
-        errorMessage: e.message,
-      });
+  if (isRunning(def)) {
+    logger.debug(`Skipped job, the last run is still going: ${def.name}`, {
+      label: 'Jobs',
     });
+    return;
+  }
+  logger[def.quiet && !manual ? 'debug' : 'info'](
+    `Starting ${manual ? 'job (run now)' : 'scheduled job'}: ${def.name}`,
+    { label: 'Jobs' }
+  );
+  activeRuns.add(def.id);
+  try {
+    await def.run();
+  } catch (e) {
+    logger.error(`Job failed: ${def.name}`, {
+      label: 'Jobs',
+      errorMessage: e.message,
+    });
+  } finally {
+    activeRuns.delete(def.id);
+  }
 };
 
 export const startJobs = (): void => {
@@ -247,13 +256,22 @@ export const startJobs = (): void => {
       type: def.type,
       interval: def.interval,
       cronSchedule,
-      job: schedule.scheduleJob(cronSchedule, () => execute(def)),
-      running: def.running,
+      job: schedule.scheduleJob(cronSchedule, () => void execute(def)),
+      running: () => isRunning(def),
       cancelFn: def.cancel,
+      enabled: () => (def.enabled ? def.enabled() : true),
     });
   }
 
   logger.info('Scheduled jobs loaded', { label: 'Jobs' });
+};
+
+/** Stops every job timer (tests, shutdown). */
+export const stopJobs = (): void => {
+  for (const job of scheduledJobs) {
+    job.job?.cancel();
+  }
+  scheduledJobs.length = 0;
 };
 
 /** "Run now" from Settings → Jobs: runs the job even when its integration is off. */
@@ -262,6 +280,89 @@ export const runJobNow = (jobId: JobId): boolean => {
   if (!def) {
     return false;
   }
-  execute(def, true);
+  void execute(def, true);
   return true;
+};
+
+/** Asks a running job to stop. Returns false when the job can't be cancelled. */
+export const cancelJob = (jobId: JobId): boolean => {
+  const job = scheduledJobs.find((j) => j.id === jobId);
+  if (!job?.cancelFn) {
+    return false;
+  }
+  job.cancelFn();
+  return true;
+};
+
+/** "Every 5 minutes", "At 03:00 AM" … for a 6-field cron expression. */
+export const describeSchedule = (cron: string): string => {
+  try {
+    return cronstrue.toString(cron, { verbose: false });
+  } catch {
+    return cron;
+  }
+};
+
+/** A 6-field (seconds first) cron expression node-schedule can run. */
+export const isValidSchedule = (cron: unknown): cron is string => {
+  if (typeof cron !== 'string' || cron.trim().split(/\s+/).length !== 6) {
+    return false;
+  }
+  try {
+    cronstrue.toString(cron);
+  } catch {
+    return false;
+  }
+  // node-schedule is the final judge: an expression it can't parse never fires.
+  const probe = schedule.scheduleJob(cron, () => undefined);
+  if (!probe) {
+    return false;
+  }
+  const next = probe.nextInvocation();
+  probe.cancel();
+  return !!next;
+};
+
+/**
+ * Changes when a job runs: saved in settings.jobs and applied to the live
+ * timer. Returns false when the job is unknown or the expression is invalid.
+ */
+export const setJobSchedule = async (
+  jobId: JobId,
+  cron: string
+): Promise<boolean> => {
+  const settings = getSettings();
+  if (!settings.jobs[jobId] || !isValidSchedule(cron)) {
+    return false;
+  }
+  const cronSchedule = cron.trim();
+
+  const job = scheduledJobs.find((j) => j.id === jobId);
+  if (job) {
+    if (!schedule.rescheduleJob(job.job, cronSchedule)) {
+      return false;
+    }
+    job.cronSchedule = cronSchedule;
+  }
+
+  settings.jobs[jobId].schedule = cronSchedule;
+  await settings.save();
+  return true;
+};
+
+/** GET /settings/jobs item. */
+export const jobItem = (job: ScheduledJob): JobItem => {
+  const next = job.job?.nextInvocation();
+  return {
+    id: job.id,
+    name: job.name,
+    type: job.type,
+    interval: job.interval,
+    cronSchedule: job.cronSchedule,
+    scheduleText: describeSchedule(job.cronSchedule),
+    nextExecutionTime: next ? new Date(next.getTime()).toISOString() : null,
+    running: job.running(),
+    enabled: job.enabled(),
+    cancellable: !!job.cancelFn,
+  };
 };

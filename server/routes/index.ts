@@ -138,8 +138,10 @@ router.use('/public', publicRoutes);
 router.use('/auth', authRoutes);
 // Authenticated by apikey query (Plex / Jellyfin cannot send a session)
 router.use('/webhooks', webhookRoutes);
-// OAuth / web-auth returns for linked accounts (session cookie identifies the user)
-router.use('/callback', isAuthenticated(), callbackRoutes);
+// OAuth / web-auth returns for linked accounts. The one-shot `state` from the
+// authorize route identifies the user, so this works even when the session
+// cookie is withheld on the cross-site return (SameSite=Strict with CSRF on).
+router.use('/callback', callbackRoutes);
 
 router.use('/search', isAuthenticated(), searchRoutes);
 router.use('/discover', isAuthenticated(), discoverRoutes);

@@ -87,8 +87,14 @@ export interface JobItem {
   type: 'process' | 'command';
   interval: 'seconds' | 'minutes' | 'hours' | 'days' | 'fixed';
   cronSchedule: string;
+  /** `cronSchedule` in words, e.g. "Every 5 minutes". */
+  scheduleText?: string;
   nextExecutionTime: string | null;
   running: boolean;
+  /** False while the integration behind the job is off: scheduled ticks are skipped ("Run now" still works). */
+  enabled?: boolean;
+  /** True when a running job can be stopped with POST …/cancel. */
+  cancellable?: boolean;
 }
 
 /** GET|POST /settings/main (apiKey unmasked for admins: it has Copy). */

@@ -1,0 +1,429 @@
+{
+  "Items": [
+    {
+      "Name": "STATUS:AWAY",
+      "Id": "c00f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 1,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 2070000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "4184b019-df75-44a7-bcca-fa542b7d03cb",
+        "MusicBrainzRecording": "d4a62b28-afa9-4c42-a1da-60dd3d56ecac"
+      },
+      "MediaSources": [
+        {
+          "Id": "c00f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "SHADES OF BLUE",
+      "Id": "c01f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 2,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 2030000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "7f6f73f4-c45f-4ac9-bcd6-326854bc3889"
+      },
+      "MediaSources": [
+        {
+          "Id": "c01f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "SATA",
+      "Id": "c02f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 3,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1830000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "3d85ec05-fd8e-44e6-9f0c-1f3c75aba5a1",
+        "MusicBrainzRecording": "34e11944-3b08-487b-a782-9113df6a3d8a"
+      },
+      "MediaSources": [
+        {
+          "Id": "c02f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "WITH ME",
+      "Id": "c03f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 4,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1830000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "5bbbeeb5-bf15-44f0-a9b1-68025d69c877"
+      },
+      "MediaSources": [
+        {
+          "Id": "c03f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "DON'T BELIEVE IT",
+      "Id": "c04f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 5,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1880000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "fa902ec5-6e68-4f4c-9d8a-e37a9c743678",
+        "MusicBrainzRecording": "7b5c79a2-e9c8-4810-96cf-8bb8d81da874"
+      },
+      "MediaSources": [
+        {
+          "Id": "c04f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "LIGHTS GO OUT",
+      "Id": "c05f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 6,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1580000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "1d9f2452-6700-4993-b318-83662e3b9168"
+      },
+      "MediaSources": [
+        {
+          "Id": "c05f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "MESS W/ ME",
+      "Id": "c06f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 7,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 2500000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "8f28ecd2-2d13-4843-bb74-b6ced23abbec",
+        "MusicBrainzRecording": "33ec766d-d1d5-48f0-85b6-9627d491f20a"
+      },
+      "MediaSources": [
+        {
+          "Id": "c06f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "CHICA 305",
+      "Id": "c07f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 8,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1880000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "5ab36fdd-1a21-4bed-b6df-a23aaf37e1a5"
+      },
+      "MediaSources": [
+        {
+          "Id": "c07f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "ALL THE TIME",
+      "Id": "c08f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 9,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1800000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "43030272-e9ff-4dd7-a49c-068e3297a9b3",
+        "MusicBrainzRecording": "f322fda6-e7eb-4697-b08f-dbacb7846b44"
+      },
+      "MediaSources": [
+        {
+          "Id": "c08f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "OOO",
+      "Id": "c09f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 10,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 600000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "828e3e9b-40b2-48c2-8d2b-a53dd36efd75"
+      },
+      "MediaSources": [
+        {
+          "Id": "c09f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "SHADOWS",
+      "Id": "c10f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 11,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 2020000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "d1096e2a-1fcd-45cf-bc9a-7472154366c6",
+        "MusicBrainzRecording": "54c018bc-39a2-42a6-b91f-141cca73e55f"
+      },
+      "MediaSources": [
+        {
+          "Id": "c10f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "TIME WITH YOU",
+      "Id": "c11f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 12,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 2380000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "20bb63f4-5dd2-4c48-8657-6264c47112c1"
+      },
+      "MediaSources": [
+        {
+          "Id": "c11f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "CYANIDE",
+      "Id": "c12f1c0de5b7a4e6f9d2c1b0a9988776",
+      "Type": "Audio",
+      "Album": "CTRL ESCAPE",
+      "AlbumId": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "AlbumArtist": "John Summit",
+      "IndexNumber": 13,
+      "ParentIndexNumber": 1,
+      "RunTimeTicks": 1990000000,
+      "LocationType": "FileSystem",
+      "Container": "flac",
+      "ProviderIds": {
+        "MusicBrainzTrack": "1933e023-5f67-4469-b454-2e649cbeb627",
+        "MusicBrainzRecording": "b82cdfef-28d9-44b2-b87d-fedfdbe831e1"
+      },
+      "MediaSources": [
+        {
+          "Id": "c12f1c0de5b7a4e6f9d2c1b0a9988776",
+          "Container": "flac",
+          "Bitrate": 1011000,
+          "MediaStreams": [
+            {
+              "Type": "Audio",
+              "Codec": "flac",
+              "BitRate": 1011000,
+              "BitDepth": 16,
+              "SampleRate": 44100
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "TotalRecordCount": 13,
+  "StartIndex": 0
+}

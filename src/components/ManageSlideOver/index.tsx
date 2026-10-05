@@ -1,751 +1,457 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import BlocklistBlock from '@app/components/BlocklistBlock';
+import BlocklistModal from '@app/components/BlocklistModal';
+import Alert from '@app/components/Common/Alert';
+import Avatar from '@app/components/Common/Avatar';
 import Button from '@app/components/Common/Button';
-import CachedImage from '@app/components/Common/CachedImage';
 import ConfirmButton from '@app/components/Common/ConfirmButton';
+import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import SlideOver from '@app/components/Common/SlideOver';
-import Tooltip from '@app/components/Common/Tooltip';
-import DownloadBlock from '@app/components/DownloadBlock';
+import ExternalLinkBlock from '@app/components/ExternalLinkBlock';
 import IssueBlock from '@app/components/IssueBlock';
-import RequestBlock from '@app/components/RequestBlock';
-import useSettings from '@app/hooks/useSettings';
-import useToasts from '@app/hooks/useToasts';
+import StatusBadge from '@app/components/StatusBadge';
+import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
-import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
-import { Bars4Icon, ServerIcon } from '@heroicons/react/24/outline';
-import {
-  CheckCircleIcon,
-  DocumentMinusIcon,
-  TrashIcon,
-} from '@heroicons/react/24/solid';
-import { IssueStatus } from '@server/constants/issue';
-import {
-  MediaRequestStatus,
-  MediaStatus,
-  MediaType,
-} from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
-import type { MediaWatchDataResponse } from '@server/interfaces/api/mediaInterfaces';
-import type { DownloadingItem } from '@server/lib/downloadtracker';
-import type { RadarrSettings, SonarrSettings } from '@server/lib/settings';
-import type { MovieDetails } from '@server/models/Movie';
-import type { TvDetails } from '@server/models/Tv';
+import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
+import type { IssueResultsResponse } from '@server/interfaces/api/issueInterfaces';
+import type {
+  AlbumDetails,
+  ArtistDetails,
+  ExternalLink,
+  RequestSummary,
+} from '@server/models/music';
 import axios from 'axios';
 import Link from 'next/link';
-import { useIntl } from 'react-intl';
-import useSWR from 'swr';
-
-import type { JSX } from 'react';
-
-const filterDuplicateDownloads = (
-  items: DownloadingItem[] = []
-): DownloadingItem[] => {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.downloadId)) return false;
-    seen.add(item.downloadId);
-    return true;
-  });
-};
+import { useState } from 'react';
+import { FormattedDate, useIntl } from 'react-intl';
+import useSWR, { mutate as globalMutate } from 'swr';
 
 const messages = defineMessages('components.ManageSlideOver', {
-  manageModalTitle: 'Manage {mediaType}',
-  manageModalIssues: 'Open Issues',
-  manageModalRequests: 'Requests',
-  manageModalMedia: 'Media',
-  manageModalMedia4k: '4K Media',
-  manageModalAdvanced: 'Advanced',
-  manageModalNoRequests: 'No requests.',
-  manageModalClearMedia: 'Clear Data',
-  manageModalClearMediaWarning:
-    '* This will irreversibly remove all data for this {mediaType}, including any requests. If this item exists in your {mediaServerName} library, the media information will be recreated during the next scan.',
-  manageModalRemoveMediaWarning:
-    '* This will irreversibly remove this {mediaType} from {arr}, including all files.',
-  openarr: 'Open in {arr}',
-  removearr: 'Remove from {arr}',
-  openarr4k: 'Open in 4K {arr}',
-  removearr4k: 'Remove from 4K {arr}',
-  clearmediadataerror: 'Something went wrong while clearing the media data.',
-  removemediaerror: 'Something went wrong while removing the media.',
-  downloadstatus: 'Downloads',
-  markavailable: 'Mark as Available',
-  mark4kavailable: 'Mark as Available in 4K',
-  markallseasonsavailable: 'Mark All Seasons as Available',
-  markallseasons4kavailable: 'Mark All Seasons as Available in 4K',
-  opentautulli: 'Open in Tautulli',
-  plays:
-    '<strong>{playCount, number}</strong> {playCount, plural, one {play} other {plays}}',
-  pastdays: 'Past {days, number} Days',
-  alltime: 'All Time',
-  playedby: 'Played By',
-  movie: 'movie',
-  tvshow: 'series',
+  manage: 'Manage {title}',
+  manageUntitled: 'Manage',
+  subAlbum: 'Requests, issues and library data for this album.',
+  subArtist: 'Requests, issues and library data for this artist.',
+  loadError:
+    'Shufflerr could not load this item. Close the panel and try again in a moment.',
+  requests: 'Requests',
+  noRequests: 'Nobody has requested this.',
+  scopeTracks: 'Missing tracks',
+  scopeAlbum: 'Whole album',
+  scopeDiscography: 'Discography',
+  requestedBy: '{scope}, requested by {name} on {date}',
+  approve: 'Approve',
+  decline: 'Decline',
+  approveLabel: 'Approve the request from {name}',
+  declineLabel: 'Decline the request from {name}',
+  approved: 'Approved {title}. Sent to Lidarr.',
+  declined: 'Declined {title}.',
+  allRequests: 'All requests',
+  issues: 'Open issues',
+  noIssues: 'No open issues.',
+  allIssues: 'All issues',
+  library: 'Library data',
+  libraryStatus: 'Shufflerr currently shows this as:',
+  markAvailable: 'Mark as available',
+  markAvailableSub:
+    'Use this when the music is in the library but a scan has not picked it up.',
+  markedAvailable: 'Marked {title} as available.',
+  clearData: 'Clear data',
+  clearDataConfirm: 'Are you sure?',
+  clearDataSub:
+    'Removes what Shufflerr knows about this item, including its requests and issues. Files and Lidarr are not touched; the next scan finds the music again.',
+  cleared: 'Cleared the data for {title}.',
+  notTracked:
+    'Shufflerr has no library data for this yet. It appears after a request or a library scan.',
+  blocklist: 'Blocklist',
+  block: 'Block',
+  blockSub: 'Stops anyone from requesting this.',
+  links: 'Open in',
+  failed: 'That did not work. {reason}',
+  tryAgain: 'Try again in a moment.',
 });
 
-const isMovie = (movie: MovieDetails | TvDetails): movie is MovieDetails => {
-  return (movie as MovieDetails).title !== undefined;
-};
-
-interface ManageSlideOverProps {
-  // mediaType: 'movie' | 'tv';
-  show?: boolean;
+export interface ManageSlideOverProps {
+  mediaType: 'artist' | 'release-group';
+  mbid: string;
+  show: boolean;
   onClose: () => void;
-  revalidate: () => void;
 }
 
-interface ManageSlideOverMovieProps extends ManageSlideOverProps {
-  mediaType: 'movie';
-  data: MovieDetails;
-}
-
-interface ManageSlideOverTvProps extends ManageSlideOverProps {
-  mediaType: 'tv';
-  data: TvDetails;
-}
+const linkTypes: ExternalLink['type'][] = [
+  'lidarr',
+  'plex',
+  'jellyfin',
+  'navidrome',
+  'musicbrainz',
+];
 
 const ManageSlideOver = ({
-  show,
   mediaType,
+  mbid,
+  show,
   onClose,
-  data,
-  revalidate,
-}: ManageSlideOverMovieProps | ManageSlideOverTvProps) => {
-  const { user: currentUser, hasPermission } = useUser();
+}: ManageSlideOverProps) => {
   const intl = useIntl();
   const { addToast } = useToasts();
-  const settings = useSettings();
-  const { data: watchData } = useSWR<MediaWatchDataResponse>(
-    settings.currentSettings.mediaServerType === MediaServerType.PLEX &&
-      data.mediaInfo &&
-      hasPermission(Permission.ADMIN)
-      ? `/api/v1/media/${data.mediaInfo.id}/watch_data`
+  const { hasPermission } = useUser();
+  const isArtist = mediaType === 'artist';
+  const itemKey = `/api/v1/${isArtist ? 'artist' : 'album'}/${mbid}`;
+  const canManageRequests = hasPermission(Permission.MANAGE_REQUESTS);
+  const canManageBlocklist = hasPermission(Permission.MANAGE_BLOCKLIST);
+  const canSeeIssues = hasPermission(
+    [Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES],
+    { type: 'or' }
+  );
+
+  const { data, error, mutate } = useSWR<AlbumDetails | ArtistDetails>(
+    show ? itemKey : null
+  );
+  const mediaId = data?.mediaInfo?.id;
+  // The issue list has no per-item filter, so open issues are filtered here.
+  const { data: issues, mutate: mutateIssues } = useSWR<IssueResultsResponse>(
+    show && canSeeIssues && mediaId
+      ? '/api/v1/issue?take=100&filter=open'
       : null
   );
-  const { data: radarrData } = useSWR<RadarrSettings[]>(
-    hasPermission(Permission.ADMIN) ? '/api/v1/settings/radarr' : null
+  const [busy, setBusy] = useState<string | null>(null);
+  const [showBlock, setShowBlock] = useState(false);
+
+  const title = data ? ('title' in data ? data.title : data.name) : undefined;
+  const requests: RequestSummary[] = data
+    ? 'requests' in data
+      ? [
+          ...data.requests,
+          ...(data.discographyRequest ? [data.discographyRequest] : []),
+        ]
+      : data.discographyRequest
+        ? [data.discographyRequest]
+        : []
+    : [];
+  const itemIssues = (issues?.results ?? []).filter(
+    (issue) => issue.media?.id === mediaId
   );
-  const { data: sonarrData } = useSWR<SonarrSettings[]>(
-    hasPermission(Permission.ADMIN) ? '/api/v1/settings/sonarr' : null
-  );
+  const links: ExternalLink[] = data
+    ? [
+        ...data.links,
+        ...(data.links.some((link) => link.type === 'musicbrainz')
+          ? []
+          : [
+              {
+                type: 'musicbrainz' as const,
+                url: `https://musicbrainz.org/${
+                  isArtist ? 'artist' : 'release-group'
+                }/${mbid}`,
+              },
+            ]),
+      ]
+    : [];
+  const status = data?.mediaInfo?.status ?? data?.status;
+  const isBlocked = status === MediaStatus.BLOCKLISTED;
 
-  const deleteMedia = async () => {
-    if (data.mediaInfo) {
-      try {
-        await axios.delete(`/api/v1/media/${data.mediaInfo.id}`);
-        revalidate();
-        onClose();
-      } catch {
-        addToast(intl.formatMessage(messages.clearmediadataerror), {
-          appearance: 'error',
-          autoDismiss: true,
-        });
-      }
-    }
+  const refresh = () => {
+    mutate();
+    mutateIssues();
+    globalMutate('/api/v1/request/count');
   };
 
-  const deleteMediaFile = async (is4k = false) => {
-    if (data.mediaInfo) {
-      try {
-        await axios.delete(
-          `/api/v1/media/${data.mediaInfo.id}/file?is4k=${is4k}`
-        );
-      } catch (e) {
-        if (!axios.isAxiosError(e) || e.response?.status !== 404) {
-          addToast(intl.formatMessage(messages.removemediaerror), {
-            appearance: 'error',
-            autoDismiss: true,
-          });
-          revalidate();
-          return;
-        }
-      }
-      revalidate();
-      onClose();
-    }
-  };
-
-  const isDefaultService = () => {
-    if (data.mediaInfo) {
-      if (data.mediaInfo.mediaType === MediaType.MOVIE) {
-        return (
-          radarrData?.find(
-            (radarr) =>
-              radarr.isDefault && radarr.id === data.mediaInfo?.serviceId
-          ) !== undefined
-        );
-      } else {
-        return (
-          sonarrData?.find(
-            (sonarr) =>
-              sonarr.isDefault && sonarr.id === data.mediaInfo?.serviceId
-          ) !== undefined
-        );
-      }
-    }
-    return false;
-  };
-
-  const isDefault4kService = () => {
-    if (data.mediaInfo) {
-      if (data.mediaInfo.mediaType === MediaType.MOVIE) {
-        return (
-          radarrData?.find(
-            (radarr) =>
-              radarr.isDefault &&
-              radarr.is4k &&
-              radarr.id === data.mediaInfo?.serviceId4k
-          ) !== undefined
-        );
-      } else {
-        return (
-          sonarrData?.find(
-            (sonarr) =>
-              sonarr.isDefault &&
-              sonarr.is4k &&
-              sonarr.id === data.mediaInfo?.serviceId4k
-          ) !== undefined
-        );
-      }
-    }
-    return false;
-  };
-
-  const markAvailable = async (is4k = false) => {
-    if (data.mediaInfo) {
-      await axios.post(`/api/v1/media/${data.mediaInfo?.id}/available`, {
-        is4k,
-        ...(mediaType === 'tv' && {
-          seasons: data.seasons.filter((season) => season.seasonNumber !== 0),
+  const run = async (
+    name: string,
+    action: () => Promise<unknown>,
+    done: string
+  ) => {
+    setBusy(name);
+    try {
+      await action();
+      addToast(done, { appearance: 'success' });
+      refresh();
+    } catch (e) {
+      addToast(
+        intl.formatMessage(messages.failed, {
+          reason:
+            e?.response?.data?.message ?? intl.formatMessage(messages.tryAgain),
         }),
-      });
-      revalidate();
+        { appearance: 'error' }
+      );
+    } finally {
+      setBusy(null);
     }
   };
 
-  const requests =
-    data.mediaInfo?.requests?.filter(
-      (request) => request.status !== MediaRequestStatus.DECLINED
-    ) ?? [];
-
-  const openIssues =
-    data.mediaInfo?.issues?.filter(
-      (issue) => issue.status === IssueStatus.OPEN
-    ) ?? [];
-
-  const styledPlayCount = (playCount: number): JSX.Element => {
-    return (
-      <>
-        {intl.formatMessage(messages.plays, {
-          playCount,
-          strong: (msg: React.ReactNode) => (
-            <strong className="text-2xl font-semibold">{msg}</strong>
-          ),
-        })}
-      </>
+  const scopeLabel = (scope: RequestSummary['scope']) =>
+    intl.formatMessage(
+      scope === 'tracks'
+        ? messages.scopeTracks
+        : scope === 'discography'
+          ? messages.scopeDiscography
+          : messages.scopeAlbum
     );
-  };
 
   return (
-    <SlideOver
-      show={show}
-      title={intl.formatMessage(messages.manageModalTitle, {
-        mediaType: intl.formatMessage(
-          mediaType === 'movie' ? globalMessages.movie : globalMessages.tvshow
-        ),
-      })}
-      onClose={() => onClose()}
-      subText={isMovie(data) ? data.title : data.name}
-    >
-      <div className="space-y-6">
-        {((data?.mediaInfo?.downloadStatus ?? []).length > 0 ||
-          (data?.mediaInfo?.downloadStatus4k ?? []).length > 0) && (
-          <div>
-            <h3 className="mb-2 text-xl font-bold">
-              {intl.formatMessage(messages.downloadstatus)}
-            </h3>
-            <div className="overflow-hidden rounded-md border border-gray-700 shadow">
-              <ul>
-                {filterDuplicateDownloads(data.mediaInfo?.downloadStatus).map(
-                  (status, index) => (
-                    <Tooltip
-                      key={`dl-status-${status.externalId}-${index}`}
-                      content={status.title}
-                    >
-                      <li className="border-b border-gray-700 last:border-b-0">
-                        <DownloadBlock downloadItem={status} />
-                      </li>
-                    </Tooltip>
-                  )
-                )}
-                {filterDuplicateDownloads(data.mediaInfo?.downloadStatus4k).map(
-                  (status, index) => (
-                    <Tooltip
-                      key={`dl-status-4k-${status.externalId}-${index}`}
-                      content={status.title}
-                    >
-                      <li className="border-b border-gray-700 last:border-b-0">
-                        <DownloadBlock downloadItem={status} is4k />
-                      </li>
-                    </Tooltip>
-                  )
-                )}
-              </ul>
-            </div>
-          </div>
+    <>
+      <SlideOver
+        show={show}
+        title={
+          title
+            ? intl.formatMessage(messages.manage, { title })
+            : intl.formatMessage(messages.manageUntitled)
+        }
+        subText={intl.formatMessage(
+          isArtist ? messages.subArtist : messages.subAlbum
         )}
-        {hasPermission([Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES], {
-          type: 'or',
-        }) &&
-          openIssues.length > 0 && (
-            <div>
-              <h3 className="mb-2 text-xl font-bold">
-                {intl.formatMessage(messages.manageModalIssues)}
-              </h3>
-              <div className="overflow-hidden rounded-md border border-gray-700 shadow">
-                <ul>
-                  {openIssues.map((issue) => (
-                    <li
-                      key={`manage-issue-${issue.id}`}
-                      className="border-b border-gray-700 last:border-b-0"
-                    >
-                      <IssueBlock issue={issue} />
-                    </li>
-                  ))}
-                </ul>
+        onClose={onClose}
+      >
+        {!data && !error && <LoadingSpinner />}
+        {error && (
+          <Alert type="error" title={intl.formatMessage(messages.loadError)} />
+        )}
+        {data && (
+          <div className="sh-stack">
+            <section>
+              <div className="sh-sec-head">
+                <h3 className="sh-h-section">
+                  {intl.formatMessage(messages.requests)}
+                </h3>
+                <Link href="/requests" onClick={onClose}>
+                  {intl.formatMessage(messages.allRequests)}
+                </Link>
               </div>
-            </div>
-          )}
-        {requests.length > 0 && (
-          <div>
-            <h3 className="mb-2 text-xl font-bold">
-              {intl.formatMessage(messages.manageModalRequests)}
-            </h3>
-            <div className="overflow-hidden rounded-md border border-gray-700 shadow">
-              <ul>
-                {requests.map((request) => (
-                  <li
-                    key={`manage-request-${request.id}`}
-                    className="border-b border-gray-700 last:border-b-0"
-                  >
-                    <RequestBlock
-                      request={request}
-                      onUpdate={() => revalidate()}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-        {data.mediaInfo?.status === MediaStatus.BLOCKLISTED && (
-          <div>
-            <h3 className="mb-2 text-xl font-bold">
-              {intl.formatMessage(globalMessages.blocklist)}
-            </h3>
-            <div className="overflow-hidden rounded-md border border-gray-700 shadow">
-              <BlocklistBlock
-                tmdbId={data.mediaInfo.tmdbId}
-                mediaType={data.mediaInfo.mediaType}
-                onUpdate={() => revalidate()}
-                onDelete={() => onClose()}
-              />
-            </div>
-          </div>
-        )}
-        {hasPermission(Permission.ADMIN) &&
-          (data.mediaInfo?.serviceUrl ||
-            data.mediaInfo?.tautulliUrl ||
-            watchData?.data) && (
-            <div>
-              <h3 className="mb-2 text-xl font-bold">
-                {intl.formatMessage(messages.manageModalMedia)}
-              </h3>
-              <div className="space-y-2">
-                {(watchData?.data || data.mediaInfo?.tautulliUrl) && (
-                  <div>
-                    {!!watchData?.data && (
-                      <div
-                        className={`grid grid-cols-1 divide-y divide-gray-700 overflow-hidden border-gray-700 text-sm text-gray-300 shadow ${
-                          data.mediaInfo?.tautulliUrl
-                            ? 'rounded-t-md border-x border-t'
-                            : 'rounded-md border'
-                        }`}
-                      >
-                        <div className="grid grid-cols-3 divide-x divide-gray-700">
-                          <div className="px-4 py-3">
-                            <div className="font-bold">
-                              {intl.formatMessage(messages.pastdays, {
-                                days: 7,
-                              })}
-                            </div>
-                            <div className="text-white">
-                              {styledPlayCount(watchData.data.playCount7Days)}
-                            </div>
-                          </div>
-                          <div className="px-4 py-3">
-                            <div className="font-bold">
-                              {intl.formatMessage(messages.pastdays, {
-                                days: 30,
-                              })}
-                            </div>
-                            <div className="text-white">
-                              {styledPlayCount(watchData.data.playCount30Days)}
-                            </div>
-                          </div>
-                          <div className="px-4 py-3">
-                            <div className="font-bold">
-                              {intl.formatMessage(messages.alltime)}
-                            </div>
-                            <div className="text-white">
-                              {styledPlayCount(watchData.data.playCount)}
-                            </div>
+              {requests.length === 0 ? (
+                <p className="text-muted">
+                  {intl.formatMessage(messages.noRequests)}
+                </p>
+              ) : (
+                <div className="sh-box">
+                  <ul className="sh-list">
+                    {requests.map((request) => (
+                      <li key={request.id} className="flex-wrap">
+                        <Avatar
+                          size="sm"
+                          name={request.requestedBy.displayName}
+                          src={request.requestedBy.avatar}
+                        />
+                        <div className="grow">
+                          <StatusBadge requestStatus={request.status} />
+                          <div className="text-muted">
+                            {intl.formatMessage(messages.requestedBy, {
+                              scope: scopeLabel(request.scope),
+                              name: request.requestedBy.displayName,
+                              date: (
+                                <FormattedDate
+                                  value={request.createdAt}
+                                  year="numeric"
+                                  month="short"
+                                  day="numeric"
+                                />
+                              ),
+                            })}
                           </div>
                         </div>
-                        {!!watchData.data.users.length && (
-                          <div className="flex flex-row space-x-2 px-4 pb-2 pt-3">
-                            <span className="shrink-0 font-bold leading-8">
-                              {intl.formatMessage(messages.playedby)}
+                        {canManageRequests &&
+                          request.status === MediaRequestStatus.PENDING && (
+                            <span className="flex gap-2">
+                              <Button
+                                buttonType="success"
+                                buttonSize="sm"
+                                disabled={busy !== null}
+                                aria-label={intl.formatMessage(
+                                  messages.approveLabel,
+                                  { name: request.requestedBy.displayName }
+                                )}
+                                onClick={() =>
+                                  run(
+                                    `approve-${request.id}`,
+                                    () =>
+                                      axios.post(
+                                        `/api/v1/request/${request.id}/approve`
+                                      ),
+                                    intl.formatMessage(messages.approved, {
+                                      title,
+                                    })
+                                  )
+                                }
+                              >
+                                {intl.formatMessage(messages.approve)}
+                              </Button>
+                              <Button
+                                buttonSize="sm"
+                                disabled={busy !== null}
+                                aria-label={intl.formatMessage(
+                                  messages.declineLabel,
+                                  { name: request.requestedBy.displayName }
+                                )}
+                                onClick={() =>
+                                  run(
+                                    `decline-${request.id}`,
+                                    () =>
+                                      axios.post(
+                                        `/api/v1/request/${request.id}/decline`
+                                      ),
+                                    intl.formatMessage(messages.declined, {
+                                      title,
+                                    })
+                                  )
+                                }
+                              >
+                                {intl.formatMessage(messages.decline)}
+                              </Button>
                             </span>
-                            <span className="flex flex-row flex-wrap">
-                              {watchData.data.users.map((user) => (
-                                <Link
-                                  href={
-                                    currentUser?.id === user.id
-                                      ? '/profile'
-                                      : `/users/${user.id}`
-                                  }
-                                  key={`watch-user-${user.id}`}
-                                  className="z-0 -mr-2 mb-1 shrink-0 hover:z-50"
-                                >
-                                  <Tooltip
-                                    key={`watch-user-${user.id}`}
-                                    content={user.displayName}
-                                  >
-                                    <CachedImage
-                                      type="avatar"
-                                      src={user.avatar}
-                                      alt={user.displayName}
-                                      className="h-8 w-8 scale-100 transform-gpu rounded-full object-cover ring-1 ring-gray-500 transition duration-300 hover:scale-105"
-                                      width={32}
-                                      height={32}
-                                    />
-                                  </Tooltip>
-                                </Link>
-                              ))}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {data.mediaInfo?.tautulliUrl && (
-                      <a
-                        href={data.mediaInfo.tautulliUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Button
-                          buttonType="ghost"
-                          className={`w-full ${
-                            watchData?.data ? 'rounded-t-none' : ''
-                          }`}
-                        >
-                          <Bars4Icon />
-                          <span>
-                            {intl.formatMessage(messages.opentautulli)}
-                          </span>
-                        </Button>
-                      </a>
-                    )}
+                          )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+
+            {canSeeIssues && mediaId && (
+              <section>
+                <div className="sh-sec-head">
+                  <h3 className="sh-h-section">
+                    {intl.formatMessage(messages.issues)}
+                  </h3>
+                  <Link href="/issues" onClick={onClose}>
+                    {intl.formatMessage(messages.allIssues)}
+                  </Link>
+                </div>
+                {!issues ? (
+                  <LoadingSpinner />
+                ) : itemIssues.length === 0 ? (
+                  <p className="text-muted">
+                    {intl.formatMessage(messages.noIssues)}
+                  </p>
+                ) : (
+                  <div className="sh-box">
+                    <ul className="sh-list">
+                      {itemIssues.map((issue) => (
+                        <IssueBlock issue={issue} key={issue.id} />
+                      ))}
+                    </ul>
                   </div>
                 )}
-                {data.mediaInfo?.serviceUrl && (
-                  <a
-                    href={data?.mediaInfo?.serviceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block"
-                  >
-                    <Button buttonType="ghost" className="w-full">
-                      <ServerIcon />
-                      <span>
-                        {intl.formatMessage(messages.openarr, {
-                          arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
-                        })}
-                      </span>
-                    </Button>
-                  </a>
-                )}
+              </section>
+            )}
 
-                {hasPermission(Permission.ADMIN) &&
-                  data?.mediaInfo?.serviceUrl &&
-                  isDefaultService() && (
+            {canManageRequests && (
+              <section>
+                <h3 className="sh-h-section">
+                  {intl.formatMessage(messages.library)}
+                </h3>
+                {!mediaId ? (
+                  <p className="mt-2 text-muted">
+                    {intl.formatMessage(messages.notTracked)}
+                  </p>
+                ) : (
+                  <div className="mt-2 flex flex-col gap-4">
+                    <p className="flex flex-wrap items-center gap-2">
+                      <span className="text-muted">
+                        {intl.formatMessage(messages.libraryStatus)}
+                      </span>
+                      <StatusBadge status={status} />
+                    </p>
+                    {!isArtist &&
+                      !isBlocked &&
+                      status !== MediaStatus.AVAILABLE && (
+                        <div>
+                          <Button
+                            buttonSize="sm"
+                            disabled={busy !== null}
+                            onClick={() =>
+                              run(
+                                'available',
+                                () =>
+                                  axios.post(
+                                    `/api/v1/media/${mediaId}/available`
+                                  ),
+                                intl.formatMessage(messages.markedAvailable, {
+                                  title,
+                                })
+                              )
+                            }
+                          >
+                            {intl.formatMessage(messages.markAvailable)}
+                          </Button>
+                          <p className="sh-sub mt-1">
+                            {intl.formatMessage(messages.markAvailableSub)}
+                          </p>
+                        </div>
+                      )}
                     <div>
                       <ConfirmButton
-                        onClick={() => deleteMediaFile(false)}
+                        className="min-w-[9rem]"
                         confirmText={intl.formatMessage(
-                          globalMessages.areyousure
+                          messages.clearDataConfirm
                         )}
-                        className="w-full"
+                        onClick={() =>
+                          run(
+                            'clear',
+                            () => axios.delete(`/api/v1/media/${mediaId}`),
+                            intl.formatMessage(messages.cleared, { title })
+                          )
+                        }
                       >
-                        <TrashIcon />
-                        <span>
-                          {intl.formatMessage(messages.removearr, {
-                            arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
-                          })}
-                        </span>
+                        {intl.formatMessage(messages.clearData)}
                       </ConfirmButton>
-                      <div className="mt-1 text-xs text-gray-400">
-                        {intl.formatMessage(
-                          messages.manageModalRemoveMediaWarning,
-                          {
-                            mediaType: intl.formatMessage(
-                              mediaType === 'movie'
-                                ? messages.movie
-                                : messages.tvshow
-                            ),
-                            arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
-                          }
-                        )}
-                      </div>
+                      <p className="sh-sub mt-1">
+                        {intl.formatMessage(messages.clearDataSub)}
+                      </p>
                     </div>
-                  )}
-              </div>
-            </div>
-          )}
-        {hasPermission(Permission.ADMIN) &&
-          (data.mediaInfo?.serviceUrl4k ||
-            data.mediaInfo?.tautulliUrl4k ||
-            watchData?.data4k) && (
-            <div>
-              <h3 className="mb-2 text-xl font-bold">
-                {intl.formatMessage(messages.manageModalMedia4k)}
-              </h3>
-              <div className="space-y-2">
-                {(watchData?.data4k || data.mediaInfo?.tautulliUrl4k) && (
-                  <div>
-                    {watchData?.data4k && (
-                      <div
-                        className={`grid grid-cols-1 divide-y divide-gray-700 overflow-hidden border-gray-700 text-sm text-gray-300 shadow ${
-                          data.mediaInfo?.tautulliUrl4k
-                            ? 'rounded-t-md border-x border-t'
-                            : 'rounded-md border'
-                        }`}
-                      >
-                        <div className="grid grid-cols-3 divide-x divide-gray-700">
-                          <div className="px-4 py-3">
-                            <div className="font-bold">
-                              {intl.formatMessage(messages.pastdays, {
-                                days: 7,
-                              })}
-                            </div>
-                            <div className="text-white">
-                              {styledPlayCount(watchData.data4k.playCount7Days)}
-                            </div>
-                          </div>
-                          <div className="px-4 py-3">
-                            <div className="font-bold">
-                              {intl.formatMessage(messages.pastdays, {
-                                days: 30,
-                              })}
-                            </div>
-                            <div className="text-white">
-                              {styledPlayCount(
-                                watchData.data4k.playCount30Days
-                              )}
-                            </div>
-                          </div>
-                          <div className="px-4 py-3">
-                            <div className="font-bold">
-                              {intl.formatMessage(messages.alltime)}
-                            </div>
-                            <div className="text-white">
-                              {styledPlayCount(watchData.data4k.playCount)}
-                            </div>
-                          </div>
-                        </div>
-                        {!!watchData.data4k.users.length && (
-                          <div className="flex flex-row space-x-2 px-4 pb-2 pt-3">
-                            <span className="shrink-0 font-bold leading-8">
-                              {intl.formatMessage(messages.playedby)}
-                            </span>
-                            <span className="flex flex-row flex-wrap">
-                              {watchData.data4k.users.map((user) => (
-                                <Link
-                                  href={
-                                    currentUser?.id === user.id
-                                      ? '/profile'
-                                      : `/users/${user.id}`
-                                  }
-                                  key={`watch-user-${user.id}`}
-                                  className="z-0 -mr-2 mb-1 shrink-0 hover:z-50"
-                                >
-                                  <Tooltip
-                                    key={`watch-user-${user.id}`}
-                                    content={user.displayName}
-                                  >
-                                    <CachedImage
-                                      type="avatar"
-                                      src={user.avatar}
-                                      alt={user.displayName}
-                                      className="h-8 w-8 scale-100 transform-gpu rounded-full object-cover ring-1 ring-gray-500 transition duration-300 hover:scale-105"
-                                      width={32}
-                                      height={32}
-                                    />
-                                  </Tooltip>
-                                </Link>
-                              ))}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {data.mediaInfo?.tautulliUrl4k && (
-                      <a
-                        href={data.mediaInfo.tautulliUrl4k}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Button
-                          buttonType="ghost"
-                          className={`w-full ${
-                            watchData?.data4k ? 'rounded-t-none' : ''
-                          }`}
-                        >
-                          <Bars4Icon />
-                          <span>
-                            {intl.formatMessage(messages.opentautulli)}
-                          </span>
-                        </Button>
-                      </a>
-                    )}
                   </div>
                 )}
-                {data?.mediaInfo?.serviceUrl4k && (
-                  <>
-                    <a
-                      href={data?.mediaInfo?.serviceUrl4k}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block"
-                    >
-                      <Button buttonType="ghost" className="w-full">
-                        <ServerIcon />
-                        <span>
-                          {intl.formatMessage(messages.openarr4k, {
-                            arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
-                          })}
-                        </span>
+              </section>
+            )}
+
+            {canManageBlocklist && (
+              <section>
+                <h3 className="sh-h-section">
+                  {intl.formatMessage(messages.blocklist)}
+                </h3>
+                <div className="mt-2">
+                  {isBlocked ? (
+                    <BlocklistBlock
+                      mediaType={mediaType}
+                      mbid={mbid}
+                      title={title}
+                      onUnblock={refresh}
+                    />
+                  ) : (
+                    <>
+                      <Button
+                        buttonType="danger"
+                        buttonSize="sm"
+                        onClick={() => setShowBlock(true)}
+                      >
+                        {intl.formatMessage(messages.block)}
                       </Button>
-                    </a>
-                    {isDefault4kService() && (
-                      <div>
-                        <ConfirmButton
-                          onClick={() => deleteMediaFile(true)}
-                          confirmText={intl.formatMessage(
-                            globalMessages.areyousure
-                          )}
-                          className="w-full"
-                        >
-                          <TrashIcon />
-                          <span>
-                            {intl.formatMessage(messages.removearr4k, {
-                              arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
-                            })}
-                          </span>
-                        </ConfirmButton>
-                        <div className="mt-1 text-xs text-gray-400">
-                          {intl.formatMessage(
-                            messages.manageModalRemoveMediaWarning,
-                            {
-                              mediaType: intl.formatMessage(
-                                mediaType === 'movie'
-                                  ? messages.movie
-                                  : messages.tvshow
-                              ),
-                              arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
-                            }
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        {hasPermission(Permission.ADMIN) &&
-          data?.mediaInfo &&
-          data.mediaInfo.status !== MediaStatus.BLOCKLISTED && (
-            <div>
-              <h3 className="mb-2 text-xl font-bold">
-                {intl.formatMessage(messages.manageModalAdvanced)}
-              </h3>
-              <div className="space-y-2">
-                {data?.mediaInfo.status !== MediaStatus.AVAILABLE && (
-                  <Button
-                    onClick={() => markAvailable()}
-                    className="w-full"
-                    buttonType="success"
-                  >
-                    <CheckCircleIcon />
-                    <span>
-                      {intl.formatMessage(
-                        mediaType === 'movie'
-                          ? messages.markavailable
-                          : messages.markallseasonsavailable
-                      )}
-                    </span>
-                  </Button>
-                )}
-                {data?.mediaInfo.status4k !== MediaStatus.AVAILABLE &&
-                  settings.currentSettings.series4kEnabled && (
-                    <Button
-                      onClick={() => markAvailable(true)}
-                      className="w-full"
-                      buttonType="success"
-                    >
-                      <CheckCircleIcon />
-                      <span>
-                        {intl.formatMessage(
-                          mediaType === 'movie'
-                            ? messages.mark4kavailable
-                            : messages.markallseasons4kavailable
-                        )}
-                      </span>
-                    </Button>
+                      <p className="sh-sub mt-1">
+                        {intl.formatMessage(messages.blockSub)}
+                      </p>
+                    </>
                   )}
-                <div>
-                  <ConfirmButton
-                    onClick={() => deleteMedia()}
-                    confirmText={intl.formatMessage(globalMessages.areyousure)}
-                    className="w-full"
-                  >
-                    <DocumentMinusIcon />
-                    <span>
-                      {intl.formatMessage(messages.manageModalClearMedia)}
-                    </span>
-                  </ConfirmButton>
-                  <div className="mt-2 text-xs text-gray-400">
-                    {intl.formatMessage(messages.manageModalClearMediaWarning, {
-                      mediaType: intl.formatMessage(
-                        mediaType === 'movie' ? messages.movie : messages.tvshow
-                      ),
-                      mediaServerName:
-                        settings.currentSettings.mediaServerType ===
-                        MediaServerType.EMBY
-                          ? 'Emby'
-                          : settings.currentSettings.mediaServerType ===
-                              MediaServerType.PLEX
-                            ? 'Plex'
-                            : 'Jellyfin',
-                    })}
-                  </div>
                 </div>
+              </section>
+            )}
+
+            <section>
+              <h3 className="sh-h-section">
+                {intl.formatMessage(messages.links)}
+              </h3>
+              <div className="mt-2">
+                <ExternalLinkBlock links={links} only={linkTypes} />
               </div>
-            </div>
-          )}
-      </div>
-    </SlideOver>
+            </section>
+          </div>
+        )}
+      </SlideOver>
+      <BlocklistModal
+        mediaType={mediaType}
+        mbid={mbid}
+        title={title}
+        show={showBlock}
+        onClose={() => setShowBlock(false)}
+        onComplete={refresh}
+      />
+    </>
   );
 };
 

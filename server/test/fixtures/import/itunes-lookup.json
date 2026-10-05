@@ -1,0 +1,43 @@
+{
+ "resultCount": 3,
+ "results": [
+  {
+   "wrapperType": "collection",
+   "collectionId": 617154241,
+   "collectionName": "Random Access Memories",
+   "artistName": "Daft Punk",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/e8/43/5f/e8435ffa-b6b9-b171-40ab-4ff3959ab661/886443919266.jpg/100x100bb.jpg",
+   "trackCount": 14,
+   "releaseDate": "2013-05-17T07:00:00Z",
+   "collectionViewUrl": "https://music.apple.com/us/album/random-access-memories/617154241?uo=4"
+  },
+  {
+   "wrapperType": "track",
+   "kind": "song",
+   "collectionId": 617154241,
+   "collectionName": "Random Access Memories",
+   "artistName": "Daft Punk",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/e8/43/5f/e8435ffa-b6b9-b171-40ab-4ff3959ab661/886443919266.jpg/100x100bb.jpg",
+   "trackCount": 13,
+   "releaseDate": "2013-05-17T07:00:00Z",
+   "collectionViewUrl": "https://music.apple.com/us/album/give-life-back-to-music/617154241?i=617154353&uo=4",
+   "trackId": 617154353,
+   "trackName": "Give Life Back to Music",
+   "trackTimeMillis": 274403
+  },
+  {
+   "wrapperType": "track",
+   "kind": "song",
+   "collectionId": 617154241,
+   "collectionName": "Random Access Memories",
+   "artistName": "Daft Punk",
+   "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/e8/43/5f/e8435ffa-b6b9-b171-40ab-4ff3959ab661/886443919266.jpg/100x100bb.jpg",
+   "trackCount": 13,
+   "releaseDate": "2013-05-17T07:00:00Z",
+   "collectionViewUrl": "https://music.apple.com/us/album/the-game-of-love/617154241?i=617154354&uo=4",
+   "trackId": 617154354,
+   "trackName": "The Game of Love",
+   "trackTimeMillis": 322149
+  }
+ ]
+}

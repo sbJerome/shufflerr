@@ -1,7 +1,8 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import EmptyState from '@app/components/Common/EmptyState';
 import PageTitle from '@app/components/Common/PageTitle';
 import defineMessages from '@app/utils/defineMessages';
 import type { Undefinable } from '@app/utils/typeHelpers';
-import { ArrowRightCircleIcon } from '@heroicons/react/24/outline';
 import type { NextPage } from 'next';
 import Link from 'next/link';
 import { useIntl } from 'react-intl';
@@ -10,46 +11,63 @@ interface ErrorProps {
   statusCode?: number;
 }
 
-const messages = defineMessages('pages', {
-  errormessagewithcode: '{statusCode} - {error}',
-  internalservererror: 'Internal Server Error',
-  serviceunavailable: 'Service Unavailable',
-  somethingwentwrong: 'Something Went Wrong',
-  oops: 'Oops',
-  returnHome: 'Return Home',
+const messages = defineMessages('pages.error', {
+  servererror: 'Shufflerr ran into a server error',
+  unavailable: 'Shufflerr is unavailable right now',
+  generic: 'That didn’t load',
+  explainserver:
+    'The server couldn’t finish this request. Reload the page; if it keeps happening, an admin can check Settings, then Logs.',
+  explainunavailable:
+    'The server is starting up or restarting. Wait a moment and reload the page.',
+  explaingeneric:
+    'Something stopped this page from loading. Reload it, or go back to Discover.',
+  reload: 'Reload the page',
+  gotodiscover: 'Go to Discover',
 });
 
 const ErrorPage: NextPage<ErrorProps> = ({ statusCode }) => {
   const intl = useIntl();
 
-  const getErrorMessage = (statusCode?: number) => {
-    switch (statusCode) {
-      case 500:
-        return intl.formatMessage(messages.internalservererror);
-      case 503:
-        return intl.formatMessage(messages.serviceunavailable);
-      default:
-        return statusCode
-          ? intl.formatMessage(messages.somethingwentwrong)
-          : intl.formatMessage(messages.oops);
-    }
-  };
+  const title =
+    statusCode === 503
+      ? intl.formatMessage(messages.unavailable)
+      : statusCode && statusCode >= 500
+        ? intl.formatMessage(messages.servererror)
+        : intl.formatMessage(messages.generic);
+  const explain =
+    statusCode === 503
+      ? intl.formatMessage(messages.explainunavailable)
+      : statusCode && statusCode >= 500
+        ? intl.formatMessage(messages.explainserver)
+        : intl.formatMessage(messages.explaingeneric);
+
   return (
-    <div className="error-message">
-      <PageTitle title={getErrorMessage(statusCode)} />
-      <div className="text-4xl">
-        {statusCode
-          ? intl.formatMessage(messages.errormessagewithcode, {
-              statusCode,
-              error: getErrorMessage(statusCode),
-            })
-          : getErrorMessage(statusCode)}
+    <>
+      <PageTitle title={title} />
+      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4 px-4 py-16">
+        {statusCode && (
+          <p className="m-0 font-mono text-[13px] text-faint">{statusCode}</p>
+        )}
+        <h1 className="text-[32px] font-bold tracking-[-0.02em]">{title}</h1>
+        <EmptyState
+          title={explain}
+          action={
+            <span className="flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                className="sh-btn small primary"
+                onClick={() => window.location.reload()}
+              >
+                {intl.formatMessage(messages.reload)}
+              </button>
+              <Link href="/discover" className="sh-btn small">
+                {intl.formatMessage(messages.gotodiscover)}
+              </Link>
+            </span>
+          }
+        />
       </div>
-      <Link href="/" className="mt-2 flex">
-        {intl.formatMessage(messages.returnHome)}
-        <ArrowRightCircleIcon className="ml-2 h-6 w-6" />
-      </Link>
-    </div>
+    </>
   );
 };
 

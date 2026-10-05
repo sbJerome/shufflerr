@@ -23,7 +23,7 @@ import type { Express } from 'express';
 import express from 'express';
 import session from 'express-session';
 import request from 'supertest';
-import authRoutes from './auth';
+import authRoutes, { AUTH_MESSAGES } from './auth';
 
 const emailMock = mock.method(PreparedEmail.prototype, 'send', async () => {
   return undefined;
@@ -159,6 +159,9 @@ function configureJellyfin() {
   const settings = getSettings();
   settings.main.mediaServerType = MediaServerType.JELLYFIN;
   settings.main.newPlexLogin = true;
+  settings.main.mediaServerLogin = true;
+  settings.jellyfin.loginEnabled = true;
+  settings.jellyfin.newLogin = true;
   settings.jellyfin.ip = 'localhost';
   settings.jellyfin.port = 8096;
   settings.jellyfin.useSsl = false;
@@ -355,9 +358,9 @@ describe('POST /auth/jellyfin/quickconnect/authenticate', () => {
     assert.strictEqual(authenticateQCMock.mock.callCount(), 0);
   });
 
-  it('returns 403 when media server is not configured', async () => {
+  it('returns 403 when Jellyfin is not connected', async () => {
     const settings = getSettings();
-    settings.main.mediaServerType = MediaServerType.NOT_CONFIGURED;
+    settings.jellyfin.ip = '';
 
     const res = await request(app)
       .post('/auth/jellyfin/quickconnect/authenticate')
@@ -453,9 +456,9 @@ describe('POST /auth/jellyfin/quickconnect/authenticate', () => {
     );
   });
 
-  it('creates a new user when newPlexLogin is enabled and user does not exist', async () => {
+  it('creates a new user when new Jellyfin sign-in is enabled and user does not exist', async () => {
     const settings = getSettings();
-    settings.main.newPlexLogin = true;
+    settings.jellyfin.newLogin = true;
 
     authenticateQCMock.mock.mockImplementation(async () => ({
       User: {
@@ -501,7 +504,7 @@ describe('POST /auth/jellyfin/quickconnect/authenticate', () => {
 
   it('applies default permissions to newly created users', async () => {
     const settings = getSettings();
-    settings.main.newPlexLogin = true;
+    settings.jellyfin.newLogin = true;
     settings.main.defaultPermissions = 32;
 
     authenticateQCMock.mock.mockImplementation(async () => ({
@@ -527,9 +530,9 @@ describe('POST /auth/jellyfin/quickconnect/authenticate', () => {
     assert.strictEqual(user.permissions, 32);
   });
 
-  it('returns 403 when newPlexLogin is disabled and user does not exist', async () => {
+  it('returns 403 when new Jellyfin sign-in is disabled and user does not exist', async () => {
     const settings = getSettings();
-    settings.main.newPlexLogin = false;
+    settings.jellyfin.newLogin = false;
 
     authenticateQCMock.mock.mockImplementation(async () => ({
       User: {
@@ -546,7 +549,7 @@ describe('POST /auth/jellyfin/quickconnect/authenticate', () => {
       .send({ secret: 'abc123def456abc123def456' });
 
     assert.strictEqual(res.status, 403);
-    assert.strictEqual(res.body.message, 'Access denied.');
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.jellyfinUnknown);
   });
 
   it('returns error when Jellyfin authenticateQuickConnect fails', async () => {
@@ -665,7 +668,7 @@ describe('POST /auth/local', () => {
       .send({ email: 'admin@shufflerr.test', password: 'wrongpassword' });
 
     assert.strictEqual(res.status, 403);
-    assert.strictEqual(res.body.message, 'Access denied.');
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.localWrongPassword);
   });
 
   it('returns 403 for nonexistent user', async () => {
@@ -674,10 +677,10 @@ describe('POST /auth/local', () => {
       .send({ email: 'nobody@shufflerr.test', password: 'test1234' });
 
     assert.strictEqual(res.status, 403);
-    assert.strictEqual(res.body.message, 'Access denied.');
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.localUnknown);
   });
 
-  it('returns 500 when local login is disabled', async () => {
+  it('returns 403 when local login is disabled', async () => {
     const settings = getSettings();
     settings.main.localLogin = false;
 
@@ -685,26 +688,26 @@ describe('POST /auth/local', () => {
       .post('/auth/local')
       .send({ email: 'admin@shufflerr.test', password: 'test1234' });
 
-    assert.strictEqual(res.status, 500);
-    assert.strictEqual(res.body.error, 'Password sign-in is disabled.');
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.localDisabled);
   });
 
-  it('returns 500 when email is missing', async () => {
+  it('returns 400 when email is missing', async () => {
     const res = await request(app)
       .post('/auth/local')
       .send({ password: 'test1234' });
 
-    assert.strictEqual(res.status, 500);
-    assert.match(res.body.error, /email address and a password/);
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.localEmpty);
   });
 
-  it('returns 500 when password is missing', async () => {
+  it('returns 400 when password is missing', async () => {
     const res = await request(app)
       .post('/auth/local')
       .send({ email: 'admin@shufflerr.test' });
 
-    assert.strictEqual(res.status, 500);
-    assert.match(res.body.error, /email address and a password/);
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.localEmpty);
   });
 
   it('is case-insensitive for email', async () => {
@@ -766,6 +769,7 @@ describe('POST /auth/logout', () => {
 describe('POST /auth/reset-password', () => {
   beforeEach(() => {
     emailMock.resetCalls();
+    getSettings().notifications.agents.email.enabled = true;
   });
 
   it('returns 200 for a valid email', async () => {
@@ -788,11 +792,11 @@ describe('POST /auth/reset-password', () => {
     assert.strictEqual(emailMock.callCount(), 0);
   });
 
-  it('returns 500 when email is missing', async () => {
+  it('returns 400 when email is missing', async () => {
     const res = await request(app).post('/auth/reset-password').send({});
 
-    assert.strictEqual(res.status, 500);
-    assert.strictEqual(res.body.message, 'Email address required.');
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.message, 'Enter your email address.');
     assert.strictEqual(emailMock.callCount(), 0);
   });
 
@@ -853,44 +857,38 @@ describe('POST /auth/reset-password/:guid', () => {
     assert.strictEqual(newLogin.status, 200);
   });
 
-  it('returns 500 for an invalid guid', async () => {
+  it('returns 400 for an invalid guid', async () => {
     const res = await request(app)
       .post('/auth/reset-password/invalid-guid-here')
       .send({ password: 'newpassword123' });
 
-    assert.strictEqual(res.status, 500);
-    assert.strictEqual(res.body.message, 'Invalid password reset link.');
+    assert.strictEqual(res.status, 400);
+    assert.match(res.body.message, /reset link is no longer valid/);
   });
 
-  it('returns 500 when password is too short', async () => {
+  it('returns 400 when password is too short', async () => {
     const guid = await getResetGuid('admin@shufflerr.test');
 
     const res = await request(app)
       .post(`/auth/reset-password/${guid}`)
       .send({ password: 'short' });
 
-    assert.strictEqual(res.status, 500);
-    assert.strictEqual(
-      res.body.message,
-      'Password must be at least 8 characters long.'
-    );
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.passwordTooShort);
   });
 
-  it('returns 500 when password is missing', async () => {
+  it('returns 400 when password is missing', async () => {
     const guid = await getResetGuid('admin@shufflerr.test');
 
     const res = await request(app)
       .post(`/auth/reset-password/${guid}`)
       .send({});
 
-    assert.strictEqual(res.status, 500);
-    assert.strictEqual(
-      res.body.message,
-      'Password must be at least 8 characters long.'
-    );
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.passwordTooShort);
   });
 
-  it('returns 500 for an expired recovery link', async () => {
+  it('returns 400 for an expired recovery link', async () => {
     const guid = await getResetGuid('admin@shufflerr.test');
 
     // Expire the link
@@ -905,8 +903,8 @@ describe('POST /auth/reset-password/:guid', () => {
       .post(`/auth/reset-password/${guid}`)
       .send({ password: 'newpassword123' });
 
-    assert.strictEqual(res.status, 500);
-    assert.strictEqual(res.body.message, 'Invalid password reset link.');
+    assert.strictEqual(res.status, 400);
+    assert.match(res.body.message, /reset link is no longer valid/);
   });
 
   it('cannot reuse a guid after successful reset', async () => {
@@ -922,6 +920,6 @@ describe('POST /auth/reset-password/:guid', () => {
     const second = await request(app)
       .post(`/auth/reset-password/${guid}`)
       .send({ password: 'anotherpassword' });
-    assert.strictEqual(second.status, 500);
+    assert.strictEqual(second.status, 400);
   });
 });

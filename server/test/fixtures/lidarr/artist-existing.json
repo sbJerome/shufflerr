@@ -1,0 +1,26 @@
+[
+  {
+    "id": 5,
+    "status": "continuing",
+    "ended": false,
+    "artistName": "John Summit",
+    "foreignArtistId": "2547c5e3-314c-4332-981d-f18c902a4086",
+    "artistType": "Person",
+    "disambiguation": "EDM DJ & producer",
+    "path": "/mediacatalog/music/John Summit",
+    "qualityProfileId": 3,
+    "metadataProfileId": 1,
+    "monitored": true,
+    "monitorNewItems": "all",
+    "genres": [
+      "Dance",
+      "House",
+      "Progressive House",
+      "Edm"
+    ],
+    "cleanName": "johnsummit",
+    "sortName": "john summit",
+    "tags": [],
+    "added": "2026-10-04T17:54:12Z"
+  }
+]

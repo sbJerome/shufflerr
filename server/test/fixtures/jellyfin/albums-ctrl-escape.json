@@ -1,0 +1,26 @@
+{
+  "Items": [
+    {
+      "Name": "CTRL ESCAPE",
+      "Id": "a3f1c0de5b7a4e6f9d2c1b0a99887766",
+      "Type": "MusicAlbum",
+      "AlbumArtist": "John Summit",
+      "AlbumArtists": [
+        {
+          "Name": "John Summit",
+          "Id": "b7e2d1c0a9f84e3d8c7b6a5544332211"
+        }
+      ],
+      "ProductionYear": 2026,
+      "ChildCount": 13,
+      "DateCreated": "2026-10-04T03:42:15.0000000Z",
+      "ProviderIds": {
+        "MusicBrainzReleaseGroup": "324f381f-ebef-4003-8885-c06659395d8b",
+        "MusicBrainzAlbum": "2555fe96-7bde-4b6d-92ae-9ee09ffe71d4",
+        "MusicBrainzAlbumArtist": "2547c5e3-314c-4332-981d-f18c902a4086"
+      }
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

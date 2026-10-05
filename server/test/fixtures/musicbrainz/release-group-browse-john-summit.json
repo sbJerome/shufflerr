@@ -1,0 +1,206 @@
+{
+ "release-groups": [
+  {
+   "title": "Connected",
+   "artist-credit": [
+    {
+     "artist": {
+      "type": "Person",
+      "name": "John Summit",
+      "country": "US",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "sort-name": "Summit, John",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "disambiguation": "EDM DJ & producer"
+     },
+     "joinphrase": "",
+     "name": "John Summit"
+    }
+   ],
+   "disambiguation": "",
+   "id": "10f83d1f-4489-432d-a970-943ae552b755",
+   "secondary-types": [],
+   "primary-type": "EP",
+   "primary-type-id": "6d0c5bf6-7a33-3420-a519-44fc63eedebf",
+   "secondary-type-ids": [],
+   "first-release-date": "2020-03-06"
+  },
+  {
+   "artist-credit": [
+    {
+     "joinphrase": "",
+     "name": "John Summit",
+     "artist": {
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "disambiguation": "EDM DJ & producer",
+      "country": "US",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "sort-name": "Summit, John",
+      "name": "John Summit",
+      "type": "Person"
+     }
+    }
+   ],
+   "id": "1ae8a2b3-04b5-4987-b62d-fdc5f6982888",
+   "disambiguation": "",
+   "secondary-types": [],
+   "primary-type": "Single",
+   "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+   "title": "Disoriented",
+   "secondary-type-ids": [],
+   "first-release-date": "2018-02-26"
+  },
+  {
+   "first-release-date": "2017-04-24",
+   "secondary-type-ids": [],
+   "title": "Girl",
+   "primary-type-id": "d6038452-8ee0-3f68-affc-2de9a1ede0b9",
+   "primary-type": "Single",
+   "disambiguation": "",
+   "id": "27e61cc5-0146-4a19-8bfc-f8f348b0612c",
+   "secondary-types": [],
+   "artist-credit": [
+    {
+     "artist": {
+      "name": "John Summit",
+      "type": "Person",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "disambiguation": "EDM DJ & producer",
+      "country": "US",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "sort-name": "Summit, John"
+     },
+     "joinphrase": "",
+     "name": "John Summit"
+    }
+   ]
+  },
+  {
+   "secondary-types": [],
+   "id": "2b8b5c60-4d7b-488b-9a10-43948781aa98",
+   "disambiguation": "",
+   "artist-credit": [
+    {
+     "artist": {
+      "name": "John Summit",
+      "type": "Person",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "disambiguation": "EDM DJ & producer",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "country": "US",
+      "sort-name": "Summit, John"
+     },
+     "joinphrase": "",
+     "name": "John Summit"
+    }
+   ],
+   "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+   "primary-type": "Album",
+   "title": "Comfort in Chaos",
+   "secondary-type-ids": [],
+   "first-release-date": "2024-07-12"
+  },
+  {
+   "secondary-type-ids": [],
+   "first-release-date": "2026-04-15",
+   "title": "CTRL ESCAPE",
+   "artist-credit": [
+    {
+     "artist": {
+      "disambiguation": "EDM DJ & producer",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "sort-name": "Summit, John",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "country": "US",
+      "type": "Person",
+      "name": "John Summit"
+     },
+     "name": "John Summit",
+     "joinphrase": ""
+    }
+   ],
+   "id": "324f381f-ebef-4003-8885-c06659395d8b",
+   "secondary-types": [],
+   "disambiguation": "",
+   "primary-type": "Album",
+   "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc"
+  },
+  {
+   "artist-credit": [
+    {
+     "artist": {
+      "type": "Person",
+      "name": "John Summit",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "country": "US",
+      "sort-name": "Summit, John",
+      "disambiguation": "EDM DJ & producer",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086"
+     },
+     "joinphrase": "",
+     "name": "John Summit"
+    }
+   ],
+   "id": "419cb26a-c10e-4667-8c59-e37fb73def5f",
+   "disambiguation": "",
+   "secondary-types": [],
+   "primary-type": "EP",
+   "primary-type-id": "6d0c5bf6-7a33-3420-a519-44fc63eedebf",
+   "title": "Afterhours / Addiction",
+   "secondary-type-ids": [],
+   "first-release-date": "2019-07-19"
+  },
+  {
+   "secondary-type-ids": [],
+   "first-release-date": "2019-12-13",
+   "secondary-types": [],
+   "id": "7f5d55ad-7574-4bcc-8523-54157acdfe98",
+   "disambiguation": "",
+   "artist-credit": [
+    {
+     "artist": {
+      "type": "Person",
+      "name": "John Summit",
+      "disambiguation": "EDM DJ & producer",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "country": "US",
+      "sort-name": "Summit, John"
+     },
+     "joinphrase": "",
+     "name": "John Summit"
+    }
+   ],
+   "primary-type-id": "6d0c5bf6-7a33-3420-a519-44fc63eedebf",
+   "primary-type": "EP",
+   "title": "Stimulate EP"
+  },
+  {
+   "first-release-date": "2025-10-09",
+   "secondary-type-ids": [],
+   "title": "Playa Package",
+   "primary-type-id": "6d0c5bf6-7a33-3420-a519-44fc63eedebf",
+   "primary-type": "EP",
+   "disambiguation": "",
+   "id": "e67dd662-9ef7-4c06-a00a-47c03f1f9f0f",
+   "secondary-types": [],
+   "artist-credit": [
+    {
+     "artist": {
+      "country": "US",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "sort-name": "Summit, John",
+      "disambiguation": "EDM DJ & producer",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "type": "Person",
+      "name": "John Summit"
+     },
+     "name": "John Summit",
+     "joinphrase": ""
+    }
+   ]
+  }
+ ],
+ "release-group-offset": 0,
+ "release-group-count": 78
+}

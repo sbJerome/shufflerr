@@ -1,0 +1,14 @@
+{
+  "artist": {
+    "name": "John Summit",
+    "mbid": "2547c5e3-314c-4332-981d-f18c902a4086",
+    "url": "https://www.last.fm/music/John+Summit",
+    "stats": { "listeners": "100", "playcount": "1000" },
+    "tags": { "tag": [{ "name": "house", "url": "https://www.last.fm/tag/house" }] },
+    "bio": {
+      "published": "01 Jan 2020, 00:00",
+      "summary": "John Summit is a DJ and producer from Chicago. <a href=\"https://www.last.fm/music/John+Summit\">Read more on Last.fm</a>",
+      "content": "John Summit is a DJ and producer from Chicago."
+    }
+  }
+}

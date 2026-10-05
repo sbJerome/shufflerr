@@ -1,152 +1,108 @@
-import BlocklistedTagsBadge from '@app/components/BlocklistedTagsBadge';
-import Badge from '@app/components/Common/Badge';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Button from '@app/components/Common/Button';
-import LoadingSpinner from '@app/components/Common/LoadingSpinner';
-import Tooltip from '@app/components/Common/Tooltip';
-import useToasts from '@app/hooks/useToasts';
-import { useUser } from '@app/hooks/useUser';
-import globalMessages from '@app/i18n/globalMessages';
+import StatusDot from '@app/components/Common/StatusDot';
+import { useToasts } from '@app/hooks/useToasts';
+import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import { CalendarIcon, TrashIcon, UserIcon } from '@heroicons/react/24/solid';
-import type { MediaType } from '@server/constants/media';
-import type { Blocklist } from '@server/entity/Blocklist';
+import type { BlocklistItem } from '@server/interfaces/api/blocklistInterfaces';
 import axios from 'axios';
-import Link from 'next/link';
 import { useState } from 'react';
-import { useIntl } from 'react-intl';
-import useSWR from 'swr';
+import { FormattedDate, useIntl } from 'react-intl';
+import useSWR, { mutate as globalMutate } from 'swr';
 
-const messages = defineMessages('component.BlocklistBlock', {
-  blocklistedby: 'Blocklisted By',
-  blocklistdate: 'Blocklisted date',
+const messages = defineMessages('components.BlocklistBlock', {
+  blocked: 'Blocked',
+  blockedBy: 'Blocked by {name} on {date}',
+  blockedOn: 'Blocked on {date}',
+  unblock: 'Unblock',
+  unblocking: 'Unblocking…',
+  unblocked: 'Unblocked {title}.',
+  unblockedUnnamed: 'Unblocked.',
+  failed: 'It was not unblocked. Try again in a moment.',
 });
 
 interface BlocklistBlockProps {
-  tmdbId: number;
-  mediaType: MediaType;
-  onUpdate?: () => void;
-  onDelete?: () => void;
+  mediaType: 'artist' | 'release-group';
+  mbid: string;
+  title?: string;
+  /** Called after the block was removed. */
+  onUnblock?: () => void;
 }
 
+/** Who blocked an item and when, with Unblock. Needs MANAGE_BLOCKLIST. */
 const BlocklistBlock = ({
-  tmdbId,
   mediaType,
-  onUpdate,
-  onDelete,
+  mbid,
+  title,
+  onUnblock,
 }: BlocklistBlockProps) => {
-  const { user } = useUser();
   const intl = useIntl();
-  const [isUpdating, setIsUpdating] = useState(false);
   const { addToast } = useToasts();
-  const { data } = useSWR<Blocklist>(
-    `/api/v1/blocklist/${tmdbId}?mediaType=${mediaType}`
+  const { hasPermission } = useUser();
+  const canManage = hasPermission(Permission.MANAGE_BLOCKLIST);
+  const { data } = useSWR<BlocklistItem>(
+    canManage ? `/api/v1/blocklist/${mbid}?mediaType=${mediaType}` : null
   );
+  const [busy, setBusy] = useState(false);
 
-  const removeFromBlocklist = async (tmdbId: number, title?: string) => {
-    setIsUpdating(true);
-
+  const unblock = async () => {
+    setBusy(true);
     try {
-      await axios.delete(`/api/v1/blocklist/${tmdbId}?mediaType=${mediaType}`);
-
+      await axios.delete(`/api/v1/blocklist/${mbid}?mediaType=${mediaType}`);
       addToast(
-        <span>
-          {intl.formatMessage(globalMessages.removeFromBlocklistSuccess, {
-            title,
-            strong: (msg: React.ReactNode) => <strong>{msg}</strong>,
-          })}
-        </span>,
-        { appearance: 'success', autoDismiss: true }
+        title
+          ? intl.formatMessage(messages.unblocked, { title })
+          : intl.formatMessage(messages.unblockedUnnamed),
+        { appearance: 'success' }
       );
+      globalMutate(
+        `/api/v1/${mediaType === 'artist' ? 'artist' : 'album'}/${mbid}`
+      );
+      onUnblock?.();
     } catch {
-      addToast(intl.formatMessage(globalMessages.blocklistError), {
-        appearance: 'error',
-        autoDismiss: true,
-      });
+      addToast(intl.formatMessage(messages.failed), { appearance: 'error' });
+    } finally {
+      setBusy(false);
     }
-
-    onUpdate?.();
-    onDelete?.();
-
-    setIsUpdating(false);
   };
 
-  if (!data) {
-    return (
-      <>
-        <LoadingSpinner />
-      </>
-    );
-  }
+  const date = data?.createdAt ? (
+    <FormattedDate
+      value={data.createdAt}
+      year="numeric"
+      month="long"
+      day="numeric"
+    />
+  ) : null;
 
   return (
-    <div className="px-4 py-3 text-gray-300">
-      <div className="flex items-center justify-between">
-        <div className="mr-6 min-w-0 flex-1 flex-col items-center text-sm leading-5">
-          <div className="white mb-1 flex flex-nowrap">
-            {data.user ? (
-              <>
-                <Tooltip content={intl.formatMessage(messages.blocklistedby)}>
-                  <UserIcon className="mr-1.5 h-5 w-5 min-w-0 flex-shrink-0" />
-                </Tooltip>
-                <span className="w-40 truncate md:w-auto">
-                  <Link
-                    href={
-                      data.user.id === user?.id
-                        ? '/profile'
-                        : `/users/${data.user.id}`
-                    }
-                  >
-                    <span className="font-semibold text-gray-100 transition duration-300 hover:text-white hover:underline">
-                      {data.user.displayName}
-                    </span>
-                  </Link>
-                </span>
-              </>
-            ) : data.blocklistedTags ? (
-              <>
-                <span className="w-40 truncate md:w-auto">
-                  {intl.formatMessage(messages.blocklistedby)}:&nbsp;
-                </span>
-                <BlocklistedTagsBadge data={data} />
-              </>
-            ) : null}
+    <div className="sh-box">
+      <ul className="sh-list">
+        <li>
+          <div className="grow">
+            <StatusDot tone="declined">
+              {intl.formatMessage(messages.blocked)}
+            </StatusDot>
+            {date && (
+              <div className="text-muted">
+                {data?.user
+                  ? intl.formatMessage(messages.blockedBy, {
+                      name: data.user.displayName,
+                      date,
+                    })
+                  : intl.formatMessage(messages.blockedOn, { date })}
+              </div>
+            )}
           </div>
-        </div>
-        <div className="ml-2 flex flex-shrink-0 flex-wrap">
-          <Tooltip
-            content={intl.formatMessage(globalMessages.removefromBlocklist)}
-          >
-            <Button
-              buttonType="danger"
-              onClick={() => removeFromBlocklist(data.tmdbId, data.title)}
-              disabled={isUpdating}
-            >
-              <TrashIcon className="icon-sm" />
+          {canManage && (
+            <Button buttonSize="sm" disabled={busy} onClick={unblock}>
+              {intl.formatMessage(
+                busy ? messages.unblocking : messages.unblock
+              )}
             </Button>
-          </Tooltip>
-        </div>
-      </div>
-      <div className="mt-2 sm:flex sm:justify-between">
-        <div className="sm:flex">
-          <div className="mr-6 flex items-center text-sm leading-5">
-            <Badge badgeType="danger">
-              {intl.formatMessage(globalMessages.blocklisted)}
-            </Badge>
-          </div>
-        </div>
-        <div className="mt-2 flex items-center text-sm leading-5 sm:mt-0">
-          <Tooltip content={intl.formatMessage(messages.blocklistdate)}>
-            <CalendarIcon className="mr-1.5 h-5 w-5 flex-shrink-0" />
-          </Tooltip>
-          <span>
-            {intl.formatDate(data.createdAt, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
-        </div>
-      </div>
+          )}
+        </li>
+      </ul>
     </div>
   );
 };

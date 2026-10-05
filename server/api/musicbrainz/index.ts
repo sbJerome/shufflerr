@@ -35,6 +35,35 @@ const LUCENE_SPECIAL = /([+\-!(){}[\]^"~*?:\\/]|&&|\|\|)/g;
 export const escapeLucene = (input: string): string =>
   input.replace(LUCENE_SPECIAL, '\\$1').trim();
 
+/**
+ * A query where every word has to match one of `fields` ("john summit ctrl
+ * escape" finds the album by artist + title, not only titles containing all
+ * four words). MusicBrainz searches a single default field otherwise.
+ */
+export const crossFieldQuery = (
+  input: string,
+  fields: string[],
+  boost?: string
+): string => {
+  const terms = input
+    .split(/\s+/)
+    .map((t) => escapeLucene(t))
+    .filter(Boolean)
+    .slice(0, 10);
+  if (terms.length === 0) {
+    return '';
+  }
+  const perTerm = terms.map(
+    (t) => `(${fields.map((f) => `${f}:${t}`).join(' OR ')})`
+  );
+  const phrase = `"${input.replace(/["\\]/g, ' ').trim()}"`;
+  // exact phrase in the main field ranks first
+  const all = `(${perTerm.join(' AND ')})`;
+  return `${all} OR ${fields[0]}:${phrase}^3${
+    boost ? ` OR (${all} AND ${boost})^2` : ''
+  }`;
+};
+
 /** `Shufflerr/<version> ( <contact> )` — MusicBrainz asks for a contact in the User-Agent. */
 export const musicBrainzUserAgent = (contact?: string): string => {
   const settings = getSettings();
@@ -151,7 +180,11 @@ class MusicBrainz extends ExternalAPI {
   ): Promise<MbReleaseGroupSearch> {
     return this.fetch<MbReleaseGroupSearch>(
       '/release-group',
-      { query: escapeLucene(query), limit, offset },
+      {
+        query: crossFieldQuery(query, ['releasegroup', 'artistname']),
+        limit,
+        offset,
+      },
       SEARCH_TTL
     );
   }
@@ -162,7 +195,11 @@ class MusicBrainz extends ExternalAPI {
   ): Promise<MbRecordingSearch> {
     return this.fetch<MbRecordingSearch>(
       '/recording',
-      { query: escapeLucene(query), limit, offset },
+      {
+        query: crossFieldQuery(query, ['recording', 'artistname', 'release']),
+        limit,
+        offset,
+      },
       SEARCH_TTL
     );
   }
@@ -213,7 +250,7 @@ class MusicBrainz extends ExternalAPI {
   ): Promise<MbArtist> {
     return this.fetch<MbArtist>(
       `/artist/${mbid}`,
-      { inc: inc.join('+') },
+      { inc: inc.join(' ') },
       LOOKUP_TTL
     );
   }
@@ -225,7 +262,7 @@ class MusicBrainz extends ExternalAPI {
   ): Promise<MbReleaseGroup> {
     return this.fetch<MbReleaseGroup>(
       `/release-group/${mbid}`,
-      { inc: inc.join('+') },
+      { inc: inc.join(' ') },
       LOOKUP_TTL
     );
   }
@@ -237,7 +274,7 @@ class MusicBrainz extends ExternalAPI {
   ): Promise<MbRelease> {
     return this.fetch<MbRelease>(
       `/release/${mbid}`,
-      { inc: inc.join('+') },
+      { inc: inc.join(' ') },
       LOOKUP_TTL
     );
   }
@@ -248,7 +285,7 @@ class MusicBrainz extends ExternalAPI {
   ): Promise<MbRecording> {
     return this.fetch<MbRecording>(
       `/recording/${mbid}`,
-      { inc: inc.join('+') },
+      { inc: inc.join(' ') },
       LOOKUP_TTL
     );
   }
@@ -294,7 +331,8 @@ class MusicBrainz extends ExternalAPI {
       if (all.length >= (data['release-group-count'] ?? 0)) {
         break;
       }
-      if ((data['release-groups'] ?? []).length === 0) {
+      // a short page is the last one, whatever the reported total says
+      if ((data['release-groups'] ?? []).length < 100) {
         break;
       }
     }

@@ -1,7 +1,6 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-// STREAM(SV5): reword for music (types, copy, payload variables).
 import { IssueType, IssueTypeName } from '@server/constants/issue';
-import { MediaRequestStatus, MediaType } from '@server/constants/media';
+import { MediaRequestStatus } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import MediaRequest from '@server/entity/MediaRequest';
 import { User } from '@server/entity/User';
@@ -18,21 +17,19 @@ import type { NotificationAgent, NotificationPayload } from './agent';
 import { BaseAgent, mediaPath } from './agent';
 
 const messages = defineMessages('notifications.agents.webpush', {
-  autoRequested: 'Automatically submitted a new {quality}{mediaType} request.',
-  approved: 'Your {quality}{mediaType} request has been approved.',
-  autoApproved:
-    'Automatically approved a new {quality}{mediaType} request from {userName}.',
-  available: 'Your {quality}{mediaType} request is now available!',
-  declined: 'Your {quality}{mediaType} request was declined.',
-  failed: 'Failed to process {quality}{mediaType} request.',
-  pending:
-    'Approval required for a new {quality}{mediaType} request from {userName}.',
+  requestAutoRequested: 'Requested automatically.',
+  requestApproved: 'Your request was approved and sent to Lidarr.',
+  requestAutoApproved: 'Approved automatically for {userName}.',
+  requestAvailable: 'Your music is available.',
+  requestDeclined: 'Your request was declined.',
+  requestFailed: 'This request failed to download.',
+  requestPending: '{userName} is waiting for approval.',
   issueCreated: 'A new {issueType} was reported by {userName}.',
   issueComment: '{userName} commented on the {issueType}.',
   issueResolved: 'The {issueType} was marked as resolved by {userName}!',
   issueReopened: 'The {issueType} was reopened by {userName}.',
-  viewIssue: 'View Issue',
-  viewMedia: 'View Media',
+  viewIssue: 'View issue',
+  openAlbum: 'Open',
 });
 
 interface PushNotificationPayload {
@@ -78,14 +75,6 @@ class WebPushAgent
     const intl = getIntl(locale);
     const { embedPoster } = getSettings().notifications.agents.webpush;
 
-    const mediaType = payload.media
-      ? payload.media.mediaType === MediaType.RELEASE_GROUP
-        ? intl.formatMessage(globalMessages.movie)
-        : intl.formatMessage(globalMessages.series)
-      : undefined;
-    const is4k = false as boolean;
-    const quality = is4k ? '4K ' : '';
-
     const issueType = payload.issue
       ? payload.issue.issueType !== IssueType.OTHER
         ? intl.formatMessage(globalMessages.issueTypeName, {
@@ -100,46 +89,27 @@ class WebPushAgent
         message = payload.message;
         break;
       case Notification.MEDIA_AUTO_REQUESTED:
-        message = intl.formatMessage(messages.autoRequested, {
-          quality,
-          mediaType,
-        });
+        message = intl.formatMessage(messages.requestAutoRequested);
         break;
       case Notification.MEDIA_APPROVED:
-        message = intl.formatMessage(messages.approved, {
-          quality,
-          mediaType,
-        });
+        message = intl.formatMessage(messages.requestApproved);
         break;
       case Notification.MEDIA_AUTO_APPROVED:
-        message = intl.formatMessage(messages.autoApproved, {
-          quality,
-          mediaType,
+        message = intl.formatMessage(messages.requestAutoApproved, {
           userName: payload.request?.requestedBy.displayName,
         });
         break;
       case Notification.MEDIA_AVAILABLE:
-        message = intl.formatMessage(messages.available, {
-          quality,
-          mediaType,
-        });
+        message = intl.formatMessage(messages.requestAvailable);
         break;
       case Notification.MEDIA_DECLINED:
-        message = intl.formatMessage(messages.declined, {
-          quality,
-          mediaType,
-        });
+        message = intl.formatMessage(messages.requestDeclined);
         break;
       case Notification.MEDIA_FAILED:
-        message = intl.formatMessage(messages.failed, {
-          quality,
-          mediaType,
-        });
+        message = intl.formatMessage(messages.requestFailed);
         break;
       case Notification.MEDIA_PENDING:
-        message = intl.formatMessage(messages.pending, {
-          quality,
-          mediaType,
+        message = intl.formatMessage(messages.requestPending, {
           userName: payload.request?.requestedBy.displayName,
         });
         break;
@@ -182,7 +152,7 @@ class WebPushAgent
 
     const actionUrlTitle = actionUrl
       ? intl.formatMessage(
-          payload.issue ? messages.viewIssue : messages.viewMedia
+          payload.issue ? messages.viewIssue : messages.openAlbum
         )
       : undefined;
 

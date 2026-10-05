@@ -1,3 +1,9 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+//
+// Entry point for every notification: `notificationManager.sendNotification(type, payload)`.
+// Request events are built and sent with `notifyRequest()` from ./music (the
+// payload shape is `MusicNotificationPayload` there); types are Seerr's bitmask,
+// string keys for the API live in ./types.
 import type { User } from '@server/entity/User';
 import { Permission } from '@server/lib/permissions';
 import logger from '@server/logger';
@@ -108,7 +114,14 @@ class NotificationManager {
 
     this.activeAgents.forEach((agent) => {
       if (agent.shouldSend()) {
-        agent.send(type, payload);
+        // Agents log their own failures; never let one reject unhandled.
+        agent.send(type, payload).catch((e) => {
+          logger.error('A notification agent failed unexpectedly', {
+            label: 'Notifications',
+            type: Notification[type],
+            errorMessage: e?.message,
+          });
+        });
       }
     });
   }

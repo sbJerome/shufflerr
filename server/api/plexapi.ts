@@ -13,27 +13,75 @@ interface PlexStatusResponse {
   };
 }
 
-export interface PlexLibraryItem {
+interface PlexGuid {
+  id: string;
+}
+
+export interface PlexPart {
+  id: number;
+  key: string;
+  file?: string;
+  size?: number;
+  container?: string;
+}
+
+export interface PlexAudioMedia {
+  id: number;
+  duration?: number;
+  bitrate?: number;
+  audioChannels?: number;
+  audioCodec?: string;
+  container?: string;
+  Part?: PlexPart[];
+}
+
+/** An album (Plex type 9) in a music section. */
+export interface PlexAlbum {
+  ratingKey: string;
+  /** Artist rating key */
+  parentRatingKey?: string;
+  title: string;
+  /** Album artist */
+  parentTitle?: string;
+  guid: string;
+  parentGuid?: string;
+  year?: number;
+  originallyAvailableAt?: string;
+  leafCount?: number;
+  addedAt: number;
+  updatedAt?: number;
+  thumb?: string;
+  Guid?: PlexGuid[];
+  type: 'album';
+}
+
+/** A track (Plex type 10). */
+export interface PlexTrack {
   ratingKey: string;
   parentRatingKey?: string;
   grandparentRatingKey?: string;
   title: string;
+  /** Track artist when it differs from the album artist */
+  originalTitle?: string;
+  grandparentTitle?: string;
   guid: string;
-  parentGuid?: string;
-  grandparentGuid?: string;
-  addedAt: number;
-  updatedAt: number;
-  Guid?: {
-    id: string;
-  }[];
-  type: 'movie' | 'show' | 'season' | 'episode';
-  Media: Media[];
+  /** Track number */
+  index?: number;
+  /** Disc number */
+  parentIndex?: number;
+  duration?: number;
+  addedAt?: number;
+  updatedAt?: number;
+  Guid?: PlexGuid[];
+  Media?: PlexAudioMedia[];
+  type: 'track';
 }
 
-interface PlexLibraryResponse {
+interface PlexContainer<T> {
   MediaContainer: {
-    totalSize: number;
-    Metadata: PlexLibraryItem[];
+    totalSize?: number;
+    size?: number;
+    Metadata?: T[];
   };
 }
 
@@ -47,50 +95,6 @@ export interface PlexLibrary {
 interface PlexLibrariesResponse {
   MediaContainer: {
     Directory: PlexLibrary[];
-  };
-}
-
-export interface PlexMetadata {
-  ratingKey: string;
-  parentRatingKey?: string;
-  guid: string;
-  type: 'movie' | 'show' | 'season';
-  title: string;
-  Guid: {
-    id: string;
-  }[];
-  Children?: {
-    size: 12;
-    Metadata: PlexMetadata[];
-  };
-  index: number;
-  parentIndex?: number;
-  leafCount: number;
-  viewedLeafCount: number;
-  addedAt: number;
-  updatedAt: number;
-  Media: Media[];
-}
-
-interface Media {
-  id: number;
-  duration: number;
-  bitrate: number;
-  width: number;
-  height: number;
-  aspectRatio: number;
-  audioChannels: number;
-  audioCodec: string;
-  videoCodec: string;
-  videoResolution: string;
-  container: string;
-  videoFrameRate: string;
-  videoProfile: string;
-}
-
-interface PlexMetadataResponse {
-  MediaContainer: {
-    Metadata: PlexMetadata[];
   };
 }
 
@@ -176,68 +180,61 @@ class PlexAPI extends ExternalAPI {
     await settings.save();
   }
 
-  public async getLibraryContents(
-    id: string,
-    { offset = 0, size = 50 }: { offset?: number; size?: number } = {}
-  ): Promise<{ totalSize: number; items: PlexLibraryItem[] }> {
-    const response = await this.get<PlexLibraryResponse>(
-      `/library/sections/${id}/all?includeGuids=1`,
+  /** Albums of a music section, paged. `addedSince` (epoch ms) limits to recently added. */
+  public async getAlbums(
+    sectionId: string,
+    {
+      offset = 0,
+      size = 100,
+      addedSince,
+    }: { offset?: number; size?: number; addedSince?: number } = {}
+  ): Promise<{ totalSize: number; items: PlexAlbum[] }> {
+    const response = await this.get<PlexContainer<PlexAlbum>>(
+      `/library/sections/${sectionId}/all?type=9&includeGuids=1&sort=addedAt%3Adesc${
+        addedSince ? `&addedAt>>=${Math.floor(addedSince / 1000)}` : ''
+      }`,
       {
         headers: {
           'X-Plex-Container-Start': `${offset}`,
           'X-Plex-Container-Size': `${size}`,
         },
-      }
+      },
+      0
     );
+    const items = response.MediaContainer.Metadata ?? [];
 
     return {
-      totalSize: response.MediaContainer.totalSize,
-      items: response.MediaContainer.Metadata ?? [],
+      totalSize: response.MediaContainer.totalSize ?? items.length,
+      items,
     };
   }
 
-  public async getMetadata(
-    key: string,
-    options: { includeChildren?: boolean } = {}
-  ): Promise<PlexMetadata> {
-    const response = await this.get<PlexMetadataResponse>(
-      `/library/metadata/${key}${
-        options.includeChildren ? '?includeChildren=1' : ''
-      }`
+  /** Tracks of an album with their GUIDs and media parts. */
+  public async getAlbumTracks(albumRatingKey: string): Promise<PlexTrack[]> {
+    const response = await this.get<PlexContainer<PlexTrack>>(
+      `/library/metadata/${albumRatingKey}/children?includeGuids=1`,
+      undefined,
+      0
     );
 
-    return response.MediaContainer.Metadata[0];
+    return response.MediaContainer.Metadata ?? [];
   }
 
-  public async getChildrenMetadata(key: string): Promise<PlexMetadata[]> {
-    const response = await this.get<PlexMetadataResponse>(
-      `/library/metadata/${key}/children`
+  public async getTrack(ratingKey: string): Promise<PlexTrack | undefined> {
+    const response = await this.get<PlexContainer<PlexTrack>>(
+      `/library/metadata/${ratingKey}`,
+      undefined,
+      0
     );
 
-    return response.MediaContainer.Metadata;
+    return response.MediaContainer.Metadata?.[0];
   }
 
-  public async getRecentlyAdded(
-    id: string,
-    options: { addedAt: number } = {
-      addedAt: Date.now() - 1000 * 60 * 60,
-    },
-    mediaType: 'movie' | 'show'
-  ): Promise<PlexLibraryItem[]> {
-    const response = await this.get<PlexLibraryResponse>(
-      `/library/sections/${id}/all?type=${mediaType === 'show' ? '4' : '1'}${
-        // Shows are queried as episodes, whose guids the scanner never reads.
-        mediaType === 'movie' ? '&includeGuids=1' : ''
-      }&sort=addedAt%3Adesc&addedAt>>=${Math.floor(options.addedAt / 1000)}`,
-      {
-        headers: {
-          'X-Plex-Container-Start': '0',
-          'X-Plex-Container-Size': '500',
-        },
-      }
-    );
+  /** The Part key (`/library/parts/...`) used to stream a track's original file. */
+  public async getTrackPartKey(ratingKey: string): Promise<string | undefined> {
+    const track = await this.getTrack(ratingKey);
 
-    return response.MediaContainer.Metadata;
+    return track?.Media?.[0]?.Part?.[0]?.key;
   }
 }
 

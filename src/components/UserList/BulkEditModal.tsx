@@ -1,109 +1,85 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Modal from '@app/components/Common/Modal';
 import PermissionEdit from '@app/components/PermissionEdit';
-import useToasts from '@app/hooks/useToasts';
+import { apiErrorMessage } from '@app/components/UserProfile/shared';
 import type { User } from '@app/hooks/useUser';
-import { Permission, useUser } from '@app/hooks/useUser';
-import globalMessages from '@app/i18n/globalMessages';
+import { useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import { hasPermission } from '@server/lib/permissions';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useIntl } from 'react-intl';
 
-interface BulkEditProps {
-  selectedUserIds: number[];
-  users?: User[];
-  onCancel?: () => void;
-  onComplete?: (updatedUsers: User[]) => void;
-  onSaving?: (isSaving: boolean) => void;
-}
-
-const messages = defineMessages('components.UserList', {
-  userssaved: 'User permissions saved successfully!',
-  userfail: 'Something went wrong while saving user permissions.',
-  edituser: 'Edit User Permissions',
+const messages = defineMessages('components.UserList.BulkEditModal', {
+  title: 'Edit permissions for {count, plural, one {# user} other {# users}}',
+  replaces: 'Replaces the permissions of: {names}.',
+  save: 'Save permissions',
+  saving: 'Saving…',
+  cancel: 'Cancel',
+  error: 'The permissions weren’t saved. Try again.',
 });
 
-const BulkEditModal = ({
-  selectedUserIds,
-  users,
-  onCancel,
-  onComplete,
-  onSaving,
-}: BulkEditProps) => {
-  const { user: currentUser } = useUser();
+interface BulkEditModalProps {
+  /** Selected users (the owner is never included). */
+  users: User[];
+  onClose: () => void;
+  onSaved: (count: number) => void;
+}
+
+const BulkEditModal = ({ users, onClose, onSaved }: BulkEditModalProps) => {
   const intl = useIntl();
-  const { addToast } = useToasts();
-  const [currentPermission, setCurrentPermission] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
+  const { user: currentUser } = useUser();
+  const targets = users.filter((u) => u.id !== 1);
+  // Pre-fill with what every selected user already has (bitwise AND).
+  const [permissions, setPermissions] = useState(() =>
+    targets.length
+      ? targets.map((u) => u.permissions).reduce((a, b) => a & b)
+      : 0
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (onSaving) {
-      onSaving(isSaving);
-    }
-  }, [isSaving, onSaving]);
-
-  const updateUsers = async () => {
+  const submit = async () => {
+    setSaving(true);
+    setError(null);
     try {
-      setIsSaving(true);
-      const { data: updated } = await axios.put<User[]>(`/api/v1/user`, {
-        ids: selectedUserIds,
-        permissions: currentPermission,
+      await axios.put('/api/v1/user', {
+        ids: targets.map((u) => u.id),
+        permissions,
       });
-      if (onComplete) {
-        onComplete(updated);
-      }
-      addToast(intl.formatMessage(messages.userssaved), {
-        appearance: 'success',
-        autoDismiss: true,
-      });
-    } catch {
-      addToast(intl.formatMessage(messages.userfail), {
-        appearance: 'error',
-        autoDismiss: true,
-      });
+      onSaved(targets.length);
+    } catch (e) {
+      setError(apiErrorMessage(e, intl.formatMessage(messages.error)));
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
-  useEffect(() => {
-    if (users) {
-      const selectedUsers = users.filter((u) => selectedUserIds.includes(u.id));
-      const { permissions: allPermissionsEqual } = selectedUsers.reduce(
-        ({ permissions: aPerms }, { permissions: bPerms }) => {
-          return {
-            permissions:
-              aPerms === bPerms || hasPermission(Permission.ADMIN, aPerms)
-                ? aPerms
-                : NaN,
-          };
-        },
-        { permissions: selectedUsers[0].permissions }
-      );
-      if (allPermissionsEqual) {
-        setCurrentPermission(allPermissionsEqual);
-      }
-    }
-  }, [users, selectedUserIds]);
-
   return (
     <Modal
-      title={intl.formatMessage(messages.edituser)}
-      onOk={() => {
-        updateUsers();
-      }}
-      okDisabled={isSaving}
-      okText={intl.formatMessage(globalMessages.save)}
-      onCancel={onCancel}
+      title={intl.formatMessage(messages.title, { count: targets.length })}
+      onCancel={onClose}
+      cancelText={intl.formatMessage(messages.cancel)}
+      onOk={submit}
+      okText={intl.formatMessage(saving ? messages.saving : messages.save)}
+      okButtonType="primary"
+      okDisabled={saving || targets.length === 0}
+      dialogClass="!max-w-[760px]"
     >
-      <div className="mb-6">
-        <PermissionEdit
-          actingUser={currentUser}
-          currentPermission={currentPermission}
-          onUpdate={(newPermission) => setCurrentPermission(newPermission)}
-        />
-      </div>
+      <p className="sh-sub m-0">
+        {intl.formatMessage(messages.replaces, {
+          names: targets.map((u) => u.displayName).join(', '),
+        })}
+      </p>
+      <PermissionEdit
+        actingUser={currentUser}
+        currentPermission={permissions}
+        onUpdate={setPermissions}
+      />
+      {error && (
+        <p role="alert" className="m-0 text-sm text-st-declined">
+          {error}
+        </p>
+      )}
     </Modal>
   );
 };

@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import { IssueStatus, IssueType } from '@server/constants/issue';
 import { MediaStatus } from '@server/constants/media';
 import type { NotificationAgentWebhook } from '@server/lib/settings';
@@ -6,6 +7,7 @@ import logger from '@server/logger';
 import axios from 'axios';
 import { get } from 'lodash';
 import { Notification, hasNotificationType } from '..';
+import { maskToTypes } from '@server/lib/notifications/types';
 import type { NotificationAgent, NotificationPayload } from './agent';
 import { BaseAgent } from './agent';
 
@@ -14,8 +16,19 @@ type KeyMapFunction = (
   type: Notification
 ) => string;
 
-const KeyMap: Record<string, string | KeyMapFunction> = {
+/**
+ * Template variables (docs/ADMIN_PAGES.md §Notifications). `{{name}}` inside any
+ * string of the JSON payload is replaced; the special keys `{{media}}`,
+ * `{{request}}`, `{{issue}}`, `{{comment}}` keep their object only when that
+ * entity is part of the event, and `{{extra}}` becomes `[{name, value}]`.
+ */
+export const KeyMap: Record<string, string | KeyMapFunction> = {
   notification_type: (_payload, type) => Notification[type],
+  // The same event as the settings key: pending, approved, available, …
+  notification_key: (_payload, type) =>
+    type === Notification.TEST_NOTIFICATION
+      ? 'test'
+      : (maskToTypes(type)[0] ?? ''),
   event: 'event',
   subject: 'subject',
   message: 'message',
@@ -121,12 +134,13 @@ class WebhookAgent
       if (typeof finalPayload[key] === 'string') {
         Object.keys(KeyMap).forEach((keymapKey) => {
           const keymapValue = KeyMap[keymapKey as keyof typeof KeyMap];
-          finalPayload[key] = (finalPayload[key] as string).replace(
-            `{{${keymapKey}}}`,
+          const value =
             typeof keymapValue === 'function'
               ? keymapValue(payload, type)
-              : (get(payload, keymapValue) ?? '')
-          );
+              : (get(payload, keymapValue) ?? '');
+          finalPayload[key] = (finalPayload[key] as string)
+            .split(`{{${keymapKey}}}`)
+            .join(String(value));
         });
       } else if (finalPayload[key] && typeof finalPayload[key] === 'object') {
         finalPayload[key] = this.parseKeys(
@@ -140,7 +154,7 @@ class WebhookAgent
     return finalPayload;
   }
 
-  private buildPayload(type: Notification, payload: NotificationPayload) {
+  public buildPayload(type: Notification, payload: NotificationPayload) {
     const payloadString = Buffer.from(
       this.getSettings().options.jsonPayload,
       'base64'

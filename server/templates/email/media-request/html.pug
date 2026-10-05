@@ -15,8 +15,8 @@ head
     width: 100% !important;
     }
     }
-div(style='display: block; background-color: #111827; padding: 2.5rem 0;')
-  table(style='margin: 0 auto; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif; color: #fff; font-size: 16px; width: 26rem;')
+div(style='display: block; background-color: #0C101B; padding: 2.5rem 0;')
+  table(style='margin: 0 auto; font-family: "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif; color: #fff; font-size: 16px; width: 26rem;')
     tr
       td(style="text-align: center;")
         if logoUrl
@@ -37,9 +37,14 @@ div(style='display: block; background-color: #111827; padding: 2.5rem 0;')
       td(style='text-align: center;')
         div(style='margin: 1rem 0 0; font-size: 1.25em;')
           | #{body}
+    if message
+      tr
+        td(style='text-align: center;')
+          div(style='margin: .75rem 0 0; font-size: 1em; color: #9CA8B0;')
+            | #{message}
     tr
       td
-        div(style='box-sizing: border-box; margin: 1.5rem 0 0; width: 100%; color: #fff; border-radius: .75rem; padding: 1rem; border: 1px solid rgb(100,100,100); background: linear-gradient(135deg, rgba(17,24,39,0.47) 0%, rgb(17,24,39) 75%), url(' + imageUrl + ') center 25%/cover')
+        div(style='box-sizing: border-box; margin: 1.5rem 0 0; width: 100%; color: #fff; border-radius: .75rem; padding: 1rem; border: 1px solid rgb(100,100,100); background: linear-gradient(135deg, rgba(12,16,27,0.47) 0%, rgb(12,16,27) 75%), url(' + imageUrl + ') center 25%/cover')
           table(style='color: #fff; width: 100%;')
             tr
               td(style='vertical-align: top;')
@@ -48,7 +53,7 @@ div(style='display: block; background-color: #111827; padding: 2.5rem 0;')
                 div(style='overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d1d5db; font-size: .975em; line-height: 1.45em; padding-top: .25rem; padding-bottom: .25rem;')
                   span(style='display: block;')
                     b(style='color: #9ca3af; font-weight: 700;')
-                      | Requested By&nbsp;
+                      | #{requestedByLabel}&nbsp;
                     | #{requestedBy.replace(/\.|@/g, ((x) => x + '\ufeff'))}
                   each extra in mediaExtra
                     span(style='display: block;')
@@ -68,5 +73,5 @@ div(style='display: block; background-color: #111827; padding: 2.5rem 0;')
       tr
         td
           a(href=actionUrl style='display: block; margin: 1.5rem 3rem 0; text-decoration: none; font-size: 1.0em; line-height: 2.25em;')
-            span(style='padding: 0.2rem; font-weight: 500; text-align: center; border-radius: 10px; background-color: rgb(99,102,241); color: #fff; display: block; border: 1px solid rgba(255,255,255,0.2);')
-              | View Media in #{applicationTitle}
+            span(style='padding: 0.2rem; font-weight: 500; text-align: center; border-radius: 10px; background-color: #FF1744; color: #0C101B; font-weight: 600; display: block; border: 1px solid rgba(255,255,255,0.2);')
+              | #{actionLabel}

@@ -1,25 +1,29 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-// STREAM(SV4): adapt per docs/USER_SYSTEM.md + docs/API_CONTRACT.md §SV4.
 import JellyfinAPI from '@server/api/jellyfin';
 import PlexTvAPI from '@server/api/plextv';
 import { MediaServerType } from '@server/constants/server';
 import { UserType } from '@server/constants/user';
 import dataSource, { getRepository } from '@server/datasource';
 import { MediaRequest } from '@server/entity/MediaRequest';
+import ScrobbleQueue from '@server/entity/ScrobbleQueue';
+import Track from '@server/entity/Track';
 import { User } from '@server/entity/User';
 import { UserPushSubscription } from '@server/entity/UserPushSubscription';
 import { Watchlist } from '@server/entity/Watchlist';
 import type { WatchlistResponse } from '@server/interfaces/api/discoverInterfaces';
 import type {
+  CreateUserBody,
   QuotaResponse,
+  UserRecentlyPlayedResponse,
   UserRequestsResponse,
   UserResultsResponse,
 } from '@server/interfaces/api/userInterfaces';
+import { getLinkedAccounts } from '@server/lib/auth/linkedAccounts';
+import { coverUrlFor } from '@server/lib/metadata';
 import { Permission, hasPermission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
-import { notImplemented } from '@server/routes/_stub';
 import { getHostname } from '@server/utils/getHostname';
 import { normalizeJellyfinGuid } from '@server/utils/jellyfin';
 import { isOwnProfileOrAdmin } from '@server/utils/profileMiddleware';
@@ -27,75 +31,84 @@ import { Router } from 'express';
 import gravatarUrl from 'gravatar-url';
 import type { EntityManager } from 'typeorm';
 import { In, Not } from 'typeorm';
+import validator from 'validator';
 import userSettingsRoutes from './usersettings';
 
 const router = Router();
 
-router.get('/', async (req, res, next) => {
-  try {
-    const includeIds = [
-      ...new Set(
-        req.query.includeIds ? req.query.includeIds.toString().split(',') : []
-      ),
-    ];
-    const pageSize = req.query.take
-      ? Number(req.query.take)
-      : Math.max(10, includeIds.length);
-    const skip = req.query.skip ? Number(req.query.skip) : 0;
-    const q = req.query.q ? req.query.q.toString().toLowerCase() : '';
-    const sortParam = req.query.sort ? req.query.sort.toString() : undefined;
-    const sortDirectionQuery = req.query.sortDirection
-      ? req.query.sortDirection.toString().toLowerCase()
-      : undefined;
+// The user list is for people who manage users; request managers also need it
+// to pick a requester. Everyone else gets 403.
+router.get(
+  '/',
+  isAuthenticated([Permission.MANAGE_USERS, Permission.MANAGE_REQUESTS], {
+    type: 'or',
+  }),
+  async (req, res, next) => {
+    try {
+      const includeIds = [
+        ...new Set(
+          req.query.includeIds ? req.query.includeIds.toString().split(',') : []
+        ),
+      ];
+      const pageSize = req.query.take
+        ? Number(req.query.take)
+        : Math.max(10, includeIds.length);
+      const skip = req.query.skip ? Number(req.query.skip) : 0;
+      const q = req.query.q ? req.query.q.toString().toLowerCase() : '';
+      const sortParam = req.query.sort ? req.query.sort.toString() : undefined;
+      const sortDirectionQuery = req.query.sortDirection
+        ? req.query.sortDirection.toString().toLowerCase()
+        : undefined;
 
-    let sortDirection: 'ASC' | 'DESC';
-    if (sortDirectionQuery === 'asc') {
-      sortDirection = 'ASC';
-    } else if (sortDirectionQuery === 'desc') {
-      sortDirection = 'DESC';
-    } else {
-      switch (sortParam) {
-        case 'displayname':
-          sortDirection = 'ASC';
-          break;
-        case 'requests':
-        case 'updated':
-          sortDirection = 'DESC';
-          break;
-        case 'created':
-        case 'usertype':
-        case 'role':
-        case undefined:
-        default:
-          sortDirection = 'ASC';
-          break;
+      let sortDirection: 'ASC' | 'DESC';
+      if (sortDirectionQuery === 'asc') {
+        sortDirection = 'ASC';
+      } else if (sortDirectionQuery === 'desc') {
+        sortDirection = 'DESC';
+      } else {
+        switch (sortParam) {
+          case 'displayname':
+            sortDirection = 'ASC';
+            break;
+          case 'requests':
+          case 'updated':
+          case 'created':
+            // newest members first ("date joined" is the default sort)
+            sortDirection = 'DESC';
+            break;
+          case 'usertype':
+          case 'role':
+          case undefined:
+          default:
+            sortDirection = 'ASC';
+            break;
+        }
       }
-    }
 
-    let query = getRepository(User).createQueryBuilder('user');
+      let query = getRepository(User).createQueryBuilder('user');
 
-    if (q) {
-      query = query.where(
-        'LOWER(user.username) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(user.plexUsername) LIKE :q OR LOWER(user.jellyfinUsername) LIKE :q',
-        { q: `%${q}%` }
-      );
-    }
+      if (q) {
+        query = query.where(
+          'LOWER(user.username) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(user.plexUsername) LIKE :q OR LOWER(user.jellyfinUsername) LIKE :q',
+          { q: `%${q}%` }
+        );
+      }
 
-    if (includeIds.length > 0) {
-      query.andWhereInIds(includeIds);
-    }
+      if (includeIds.length > 0) {
+        query.andWhereInIds(includeIds);
+      }
 
-    switch (sortParam) {
-      case 'created':
-        query = query.orderBy('user.createdAt', sortDirection);
-        break;
-      case 'updated':
-        query = query.orderBy('user.updatedAt', sortDirection);
-        break;
-      case 'displayname':
-        query = query
-          .addSelect(
-            `CASE WHEN (user.username IS NULL OR user.username = '') THEN (
+      switch (sortParam) {
+        case 'created':
+          query = query.orderBy('user.createdAt', sortDirection);
+          break;
+        case 'updated':
+          query = query.orderBy('user.updatedAt', sortDirection);
+          break;
+        case 'displayname':
+          query = query
+            .addSelect(
+              `CASE WHEN (user.username IS NULL OR user.username = '') THEN (
                 CASE WHEN (user.plexUsername IS NULL OR user.plexUsername = '') THEN (
                   CASE WHEN (user.jellyfinUsername IS NULL OR user.jellyfinUsername = '') THEN
                     "user"."email"
@@ -108,117 +121,161 @@ router.get('/', async (req, res, next) => {
               ELSE
                 LOWER(user.username)
               END`,
-            'displayname_sort_key'
-          )
-          .orderBy('displayname_sort_key', sortDirection);
-        break;
-      case 'requests':
-        query = query
-          .addSelect((subQuery) => {
-            return subQuery
-              .select('COUNT(request.id)', 'request_count')
-              .from(MediaRequest, 'request')
-              .where('request.requestedBy.id = user.id');
-          }, 'request_count')
-          .orderBy('request_count', sortDirection);
-        break;
-      case 'usertype':
-        query = query.orderBy('user.userType', sortDirection);
-        break;
-      case 'role':
-        query = query
-          .addSelect(
-            `CASE
+              'displayname_sort_key'
+            )
+            .orderBy('displayname_sort_key', sortDirection);
+          break;
+        case 'requests':
+          query = query
+            .addSelect((subQuery) => {
+              return subQuery
+                .select('COUNT(request.id)', 'request_count')
+                .from(MediaRequest, 'request')
+                .where('request.requestedBy.id = user.id');
+            }, 'request_count')
+            .orderBy('request_count', sortDirection);
+          break;
+        case 'usertype':
+          query = query.orderBy('user.userType', sortDirection);
+          break;
+        case 'role':
+          query = query
+            .addSelect(
+              `CASE
               WHEN user.id = 1 THEN 0
               WHEN (user.permissions & ${Permission.ADMIN}) != 0 THEN 1
               ELSE 2
             END`,
-            'role_sort_key'
-          )
-          .orderBy('role_sort_key', sortDirection);
-        break;
-      default:
-        query = query.orderBy('user.id', sortDirection);
-        break;
+              'role_sort_key'
+            )
+            .orderBy('role_sort_key', sortDirection);
+          break;
+        default:
+          query = query.orderBy('user.id', sortDirection);
+          break;
+      }
+      // stable order for rows that tie on the sort key
+      if (sortParam && sortParam !== 'created') {
+        query = query.addOrderBy('user.id', 'ASC');
+      }
+
+      const [users, userCount] = await query
+        .take(pageSize)
+        .skip(skip)
+        .distinct(true)
+        .getManyAndCount();
+
+      return res.status(200).json({
+        pageInfo: {
+          pages: Math.ceil(userCount / pageSize),
+          pageSize,
+          results: userCount,
+          page: Math.ceil(skip / pageSize) + 1,
+        },
+        results: User.filterMany(
+          users,
+          req.user?.hasPermission(Permission.MANAGE_USERS)
+        ),
+      } as UserResultsResponse);
+    } catch (e) {
+      next({ status: 500, message: e.message });
     }
-
-    const [users, userCount] = await query
-      .take(pageSize)
-      .skip(skip)
-      .distinct(true)
-      .getManyAndCount();
-
-    return res.status(200).json({
-      pageInfo: {
-        pages: Math.ceil(userCount / pageSize),
-        pageSize,
-        results: userCount,
-        page: Math.ceil(skip / pageSize) + 1,
-      },
-      results: User.filterMany(
-        users,
-        req.user?.hasPermission(Permission.MANAGE_USERS)
-      ),
-    } as UserResultsResponse);
-  } catch (e) {
-    next({ status: 500, message: e.message });
   }
-});
+);
 
-router.post(
+export const USER_MESSAGES = {
+  usernameRequired: 'Enter a username.',
+  emailInvalid: 'Enter a valid email address.',
+  emailTaken: 'That email address is already used.',
+  passwordTooShort: 'The password needs at least 8 characters.',
+  passwordNeeded:
+    "Email notifications are off, so a generated password can't be sent. Set a password for this user.",
+  localLoginOff:
+    'Shufflerr accounts are turned off. Turn them on in Settings → Users first.',
+} as const;
+
+router.post<Record<string, never>, unknown, CreateUserBody>(
   '/',
   isAuthenticated(Permission.MANAGE_USERS),
   async (req, res, next) => {
     try {
       const settings = getSettings();
-
-      const body = req.body;
-      const email = body.email || body.username;
       const userRepository = getRepository(User);
+
+      const username = (req.body.username ?? '').trim();
+      const email = (req.body.email ?? '').trim().toLowerCase();
+      const password = req.body.password ?? '';
+
+      if (!settings.main.localLogin) {
+        return next({ status: 400, message: USER_MESSAGES.localLoginOff });
+      }
+      if (!username) {
+        return next({
+          status: 400,
+          message: USER_MESSAGES.usernameRequired,
+          errors: ['username'],
+        });
+      }
+      if (!validator.isEmail(email, { require_tld: false })) {
+        return next({
+          status: 400,
+          message: USER_MESSAGES.emailInvalid,
+          errors: ['email'],
+        });
+      }
 
       const existingUser = await userRepository
         .createQueryBuilder('user')
-        .where('user.email = :email', {
-          email: email.toLowerCase(),
-        })
+        .where('user.email = :email', { email })
         .getOne();
 
       if (existingUser) {
         return next({
           status: 409,
-          message: 'User already exists with submitted email.',
-          errors: ['USER_EXISTS'],
+          message: USER_MESSAGES.emailTaken,
+          errors: ['email', 'USER_EXISTS'],
         });
       }
 
-      const passedExplicitPassword = body.password && body.password.length > 0;
-      const avatar = gravatarUrl(email, { default: 'mm', size: 200 });
-
-      if (
-        !passedExplicitPassword &&
-        !settings.notifications.agents.email.enabled
-      ) {
-        throw new Error('Email notifications must be enabled');
+      const emailEnabled = settings.notifications.agents.email.enabled;
+      if (password) {
+        if (password.length < 8) {
+          return next({
+            status: 400,
+            message: USER_MESSAGES.passwordTooShort,
+            errors: ['password'],
+          });
+        }
+      } else if (!emailEnabled) {
+        return next({
+          status: 400,
+          message: USER_MESSAGES.passwordNeeded,
+          errors: ['password'],
+        });
       }
 
       const user = new User({
         email,
-        avatar: body.avatar ?? avatar,
-        username: body.username,
-        password: body.password,
+        avatar: gravatarUrl(email, { default: 'mm', size: 200 }),
+        username,
         permissions: settings.main.defaultPermissions,
         plexToken: '',
         userType: UserType.LOCAL,
       });
 
-      if (passedExplicitPassword) {
-        await user?.setPassword(body.password);
+      if (password) {
+        await user.setPassword(password);
       } else {
-        await user?.generatePassword();
+        await user.generatePassword();
       }
 
       await userRepository.save(user);
-      return res.status(201).json(user.filter());
+      // The creator manages users, so they get the full record (incl. email).
+      // Reload it: the in-memory object still carries the password hash.
+      const created = await userRepository.findOneOrFail({
+        where: { id: user.id },
+      });
+      return res.status(201).json(created.filter(true));
     } catch (e) {
       next({ status: 500, message: e.message });
     }
@@ -511,10 +568,14 @@ export const canMakePermissionsChange = (
 router.put<
   Record<string, never>,
   Partial<User>[],
-  { ids: string[]; permissions: number }
+  { ids: (string | number)[]; permissions: number }
 >('/', isAuthenticated(Permission.MANAGE_USERS), async (req, res, next) => {
   try {
     const isOwner = req.user?.id === 1;
+
+    if (!Number.isInteger(req.body.permissions) || req.body.permissions < 0) {
+      return next({ status: 400, message: 'Choose the permissions to save.' });
+    }
 
     if (!canMakePermissionsChange(req.body.permissions, req.user)) {
       return next({
@@ -525,24 +586,31 @@ router.put<
 
     const userRepository = getRepository(User);
 
-    const users: User[] = await userRepository.find({
-      where: {
-        id: In(
-          isOwner ? req.body.ids : req.body.ids.filter((id) => Number(id) !== 1)
-        ),
-      },
-    });
-
-    const updatedUsers = await Promise.all(
-      users.map(async (user) => {
-        return userRepository.save(<User>{
-          ...user,
-          ...{ permissions: req.body.permissions },
-        });
-      })
+    // Bulk edits never touch the owner, whoever sends them.
+    const ids = (req.body.ids ?? [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id !== 1);
+    // Nobody but the owner changes another admin's permissions.
+    const users: User[] = (
+      await userRepository.find({ where: { id: In(ids) } })
+    ).filter(
+      (user) =>
+        isOwner ||
+        !user.hasPermission(Permission.ADMIN) ||
+        user.id === req.user?.id
     );
 
-    return res.status(200).json(updatedUsers);
+    const updatedUsers: User[] = [];
+    for (const user of users) {
+      // A user can't change their own permissions (the owner isn't in the list).
+      if (user.id === req.user?.id) {
+        continue;
+      }
+      user.permissions = req.body.permissions;
+      updatedUsers.push(await userRepository.save(user));
+    }
+
+    return res.status(200).json(User.filterMany(updatedUsers, true));
   } catch (e) {
     next({ status: 500, message: e.message });
   }
@@ -567,16 +635,28 @@ router.put<{ id: string }>(
         });
       }
 
-      if (!canMakePermissionsChange(req.body.permissions, req.user)) {
+      if (
+        !canMakePermissionsChange(req.body.permissions ?? 0, req.user) ||
+        (user.hasPermission(Permission.ADMIN) &&
+          req.user?.id !== 1 &&
+          user.id !== req.user?.id)
+      ) {
         return next({
           status: 403,
           message: 'You do not have permission to grant this level of access',
         });
       }
 
+      // Users can't change their own permissions unless they're the owner
+      // (whose permissions are fixed anyway).
+      const permissions =
+        user.id === 1 || user.id === req.user?.id
+          ? user.permissions
+          : (req.body.permissions ?? user.permissions);
+
       Object.assign(user, {
-        username: req.body.username,
-        permissions: req.body.permissions,
+        username: req.body.username ?? user.username,
+        permissions,
       });
 
       await userRepository.save(user);
@@ -607,14 +687,21 @@ router.delete<{ id: string }>(
       if (user.id === 1) {
         return next({
           status: 405,
-          message: 'This account cannot be deleted.',
+          message: "The owner's account can't be deleted.",
+        });
+      }
+
+      if (user.id === req.user?.id) {
+        return next({
+          status: 405,
+          message: "You can't delete your own account.",
         });
       }
 
       if (user.hasPermission(Permission.ADMIN) && req.user?.id !== 1) {
         return next({
           status: 405,
-          message: 'You cannot delete users with administrative privileges.',
+          message: 'Only the owner can delete an admin.',
         });
       }
 
@@ -633,7 +720,7 @@ router.delete<{ id: string }>(
          * Necessary for users with >1000 requests, else an SQLite 'Expression tree is too large' error occurs.
          * https://typeorm.io/repository-api#additional-options
          */
-        chunk: user.requests.length / 1000,
+        chunk: Math.max(1, Math.ceil(user.requests.length / 1000)),
       });
 
       await userRepository.delete(user.id);
@@ -659,18 +746,25 @@ router.post(
     try {
       const settings = getSettings();
       const userRepository = getRepository(User);
-      const body = req.body as { plexIds: string[] } | undefined;
+      const body = req.body as { plexIds?: (string | number)[] } | undefined;
+      const wanted = body?.plexIds?.map((id) => String(id));
 
       // taken from auth.ts
       const mainUser = await userRepository.findOneOrFail({
         select: { id: true, plexToken: true },
         where: { id: 1 },
       });
-      const mainPlexTv = new PlexTvAPI(mainUser.plexToken ?? '');
+      if (!mainUser.plexToken) {
+        return next({
+          status: 400,
+          message:
+            'Link the owner account to Plex first. Shufflerr uses it to see who has access to the server.',
+        });
+      }
+      const mainPlexTv = new PlexTvAPI(mainUser.plexToken);
 
       const plexUsersResponse = await mainPlexTv.getUsers();
       const createdUsers: User[] = [];
-      let refreshedUsers = 0;
       for (const rawUser of plexUsersResponse.MediaContainer.User) {
         const account = rawUser.$;
 
@@ -695,8 +789,7 @@ router.post(
               user.plexId = parseInt(account.id);
             }
             await userRepository.save(user);
-            refreshedUsers += 1;
-          } else if (!body || body.plexIds.includes(account.id)) {
+          } else if (!wanted || wanted.includes(String(account.id))) {
             if (await mainPlexTv.checkUserAccess(parseInt(account.id))) {
               const newUser = new User({
                 plexUsername: account.username,
@@ -714,10 +807,7 @@ router.post(
         }
       }
 
-      return res.status(201).json({
-        createdUsers: User.filterMany(createdUsers),
-        refreshedUsers,
-      });
+      return res.status(201).json(User.filterMany(createdUsers, true));
     } catch (e) {
       next({ status: 500, message: e.message });
     }
@@ -731,7 +821,13 @@ router.post(
     try {
       const settings = getSettings();
       const userRepository = getRepository(User);
-      const body = req.body as { jellyfinUserIds: string[] };
+      const body = req.body as { jellyfinUserIds?: string[] };
+      if (!settings.jellyfin.ip || !settings.jellyfin.apiKey) {
+        return next({
+          status: 400,
+          message: 'Connect Jellyfin in Settings before importing its users.',
+        });
+      }
 
       // taken from auth.ts
       const admin = await userRepository.findOneOrFail({
@@ -761,13 +857,16 @@ router.post(
         ])
       );
 
-      for (const rawJellyfinUserId of body.jellyfinUserIds) {
+      for (const rawJellyfinUserId of body.jellyfinUserIds ?? []) {
         const jellyfinUserId = normalizeJellyfinGuid(rawJellyfinUserId);
         if (!jellyfinUserId) {
           continue;
         }
 
         const jellyfinUser = jellyfinUsersById.get(jellyfinUserId);
+        if (!jellyfinUser) {
+          continue;
+        }
 
         const user = await userRepository.findOne({
           select: ['id', 'jellyfinUserId'],
@@ -785,16 +884,16 @@ router.post(
             permissions: settings.main.defaultPermissions,
             avatar: `/avatarproxy/${jellyfinUser?.Id}`,
             userType:
-              settings.main.mediaServerType === MediaServerType.JELLYFIN
-                ? UserType.JELLYFIN
-                : UserType.EMBY,
+              settings.main.mediaServerType === MediaServerType.EMBY
+                ? UserType.EMBY
+                : UserType.JELLYFIN,
           });
 
           await userRepository.save(newUser);
           createdUsers.push(newUser);
         }
       }
-      return res.status(201).json(User.filterMany(createdUsers));
+      return res.status(201).json(User.filterMany(createdUsers, true));
     } catch (e) {
       next({ status: 500, message: e.message });
     }
@@ -811,7 +910,7 @@ router.get<{ id: string }, QuotaResponse>(
         Number(req.params.id) !== req.user?.id &&
         !req.user?.hasPermission(
           [Permission.MANAGE_USERS, Permission.MANAGE_REQUESTS],
-          { type: 'and' }
+          { type: 'or' }
         )
       ) {
         return next({
@@ -834,12 +933,128 @@ router.get<{ id: string }, QuotaResponse>(
   }
 );
 
-// STREAM(SV4): GET /:id/recently-played → UserRecentlyPlayedResponse (from
-// ScrobbleQueue + media-server history).
-router.get<{ id: string }>(
+// "Recently played" on the profile: the user's real play history. Plays are
+// recorded by the scrobble pipeline (web player, connected apps, media-server
+// webhooks); the list stays empty until something has been played.
+router.get<{ id: string }, UserRecentlyPlayedResponse>(
   '/:id/recently-played',
   isOwnProfileOrAdmin(),
-  notImplemented('SV4')
+  async (req, res, next) => {
+    try {
+      const settings = getSettings();
+      const userId = Number(req.params.id);
+      const take = Math.min(
+        50,
+        Math.max(1, req.query.take ? Number(req.query.take) || 12 : 12)
+      );
+
+      const user = await getRepository(User).findOne({
+        where: { id: userId },
+      });
+      if (!user) {
+        return next({ status: 404, message: 'User not found.' });
+      }
+
+      // Over-fetch a little: the same track played twice in a row shows once.
+      const plays = await getRepository(ScrobbleQueue)
+        .createQueryBuilder('play')
+        .where('play.userId = :userId', { userId })
+        .orderBy('play.playedAt', 'DESC')
+        .addOrderBy('play.id', 'DESC')
+        .take(take * 3)
+        .getMany();
+
+      const trackIds = [
+        ...new Set(
+          plays.map((p) => p.trackId).filter((id): id is number => !!id)
+        ),
+      ];
+      const tracks = trackIds.length
+        ? await getRepository(Track).find({
+            where: { id: In(trackIds) },
+            relations: { media: true },
+          })
+        : [];
+      const tracksById = new Map(tracks.map((t) => [t.id, t]));
+
+      const results: UserRecentlyPlayedResponse['results'] = [];
+      let lastKey = '';
+      for (const play of plays) {
+        const key = `${play.trackId ?? ''}|${play.artist}|${play.track}`;
+        if (key === lastKey) {
+          continue;
+        }
+        lastKey = key;
+
+        const track = play.trackId ? tracksById.get(play.trackId) : undefined;
+        const albumMbid = play.releaseGroupMbid ?? track?.media?.mbid ?? null;
+        results.push({
+          id: play.id,
+          playedAt: new Date(play.playedAt).toISOString(),
+          source: play.source,
+          title: play.track,
+          artistName: play.artist,
+          albumTitle: play.album ?? track?.media?.title ?? null,
+          albumMbid,
+          coverUrl:
+            albumMbid && settings.metadata.coverArtArchive.enabled
+              ? coverUrlFor(albumMbid, 250)
+              : null,
+          trackId: track?.id ?? null,
+          playable: !!track,
+        });
+        if (results.length >= take) {
+          break;
+        }
+      }
+
+      const sourceSwitches = settings.scrobble.sources;
+      const integrations = settings.integrations;
+      const sources = (
+        [
+          ['plex', integrations.plex && sourceSwitches.plex],
+          ['jellyfin', integrations.jellyfin && sourceSwitches.jellyfin],
+          ['navidrome', integrations.navidrome && sourceSwitches.navidrome],
+          [
+            'apps',
+            (integrations.openSubsonic || integrations.jellyfinApi) &&
+              sourceSwitches.apps,
+          ],
+          ['web', sourceSwitches.web],
+        ] as const
+      )
+        .filter(([, on]) => on)
+        .map(([name]) => name);
+
+      const linked = new Set(
+        (await getLinkedAccounts(userId)).map((a) => a.provider)
+      );
+      const scrobbleOn = user.settings?.scrobbleEnabled ?? true;
+      const scrobblingTo: UserRecentlyPlayedResponse['scrobblingTo'] = [];
+      if (
+        scrobbleOn &&
+        integrations.listenbrainz &&
+        linked.has('listenbrainz')
+      ) {
+        scrobblingTo.push('listenbrainz');
+      }
+      if (scrobbleOn && integrations.lastfmScrobble && linked.has('lastfm')) {
+        scrobblingTo.push('lastfm');
+      }
+
+      return res.status(200).json({
+        enabled: sources.length > 0,
+        reason: sources.length
+          ? undefined
+          : 'No play source is turned on in Settings → Scrobbling.',
+        results,
+        sources: [...sources],
+        scrobblingTo,
+      });
+    } catch (e) {
+      next({ status: 500, message: e.message });
+    }
+  }
 );
 
 router.get<{ id: string }, WatchlistResponse>(

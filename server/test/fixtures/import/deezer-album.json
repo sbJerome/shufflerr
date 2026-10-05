@@ -1,0 +1,33 @@
+{
+ "id": 6575789,
+ "title": "Random Access Memories",
+ "upc": "886443927087",
+ "cover_medium": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/250x250-000000-80-0-0.jpg",
+ "cover_big": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/500x500-000000-80-0-0.jpg",
+ "nb_tracks": 13,
+ "record_type": "album",
+ "release_date": "2013-05-17",
+ "artist": {
+  "id": 27,
+  "name": "Daft Punk"
+ },
+ "tracks": {
+  "data": [
+   {
+    "id": 67238728,
+    "title": "Give Life Back to Music",
+    "duration": 274
+   },
+   {
+    "id": 67238729,
+    "title": "The Game of Love",
+    "duration": 321
+   },
+   {
+    "id": 67238730,
+    "title": "Giorgio by Moroder",
+    "duration": 544
+   }
+  ]
+ }
+}

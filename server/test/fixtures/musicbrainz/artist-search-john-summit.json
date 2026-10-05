@@ -1,0 +1,742 @@
+{
+ "created": "2026-10-05T09:06:15.238Z",
+ "count": 28069,
+ "offset": 0,
+ "artists": [
+  {
+   "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+   "type": "Person",
+   "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+   "score": 100,
+   "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+   "name": "John Summit",
+   "sort-name": "Summit, John",
+   "gender": "male",
+   "area": {
+    "id": "29a709d8-0320-493e-8d0c-f2c386662b7f",
+    "type": "City",
+    "type-id": "6fd8f29a-3d0a-32fc-980d-ea697b69da78",
+    "name": "Chicago",
+    "sort-name": "Chicago",
+    "life-span": {
+     "ended": null
+    }
+   },
+   "disambiguation": "EDM DJ & producer",
+   "life-span": {
+    "ended": null
+   },
+   "aliases": [
+    {
+     "sort-name": "Schuster, John",
+     "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+     "name": "John Schuster",
+     "locale": null,
+     "type": "Legal name",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Schuster, John Walter",
+     "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+     "name": "John Walter Schuster",
+     "locale": null,
+     "type": "Legal name",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    }
+   ],
+   "tags": [
+    {
+     "count": 1,
+     "name": "dance"
+    },
+    {
+     "count": 1,
+     "name": "house"
+    },
+    {
+     "count": 1,
+     "name": "progressive house"
+    },
+    {
+     "count": 1,
+     "name": "edm"
+    }
+   ]
+  },
+  {
+   "id": "53b106e7-0cc6-42cc-ac95-ed8d30a3a98e",
+   "type": "Person",
+   "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+   "score": 55,
+   "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+   "name": "John Williams",
+   "sort-name": "Williams, John",
+   "gender": "male",
+   "country": "US",
+   "area": {
+    "id": "489ce91b-6658-3307-9877-795b68554c98",
+    "type": "Country",
+    "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+    "name": "United States",
+    "sort-name": "United States",
+    "life-span": {
+     "ended": null
+    }
+   },
+   "begin-area": {
+    "id": "e0975da0-78e8-441a-b737-e2104773cb7a",
+    "type": "City",
+    "type-id": "6fd8f29a-3d0a-32fc-980d-ea697b69da78",
+    "name": "Flushing",
+    "sort-name": "Flushing",
+    "life-span": {
+     "ended": null
+    }
+   },
+   "disambiguation": "American score composer and conductor",
+   "ipis": [
+    "00032981579"
+   ],
+   "isnis": [
+    "0000000123479198"
+   ],
+   "life-span": {
+    "begin": "1932-02-08",
+    "ended": null
+   },
+   "aliases": [
+    {
+     "sort-name": "Towner",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Towner",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Williams, John",
+     "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+     "name": "John Williams",
+     "locale": null,
+     "type": "Artist name",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John Towner",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John Towner",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Williams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Williams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John Willams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John Willams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Williams, Johnny",
+     "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+     "name": "Johnny Williams",
+     "locale": null,
+     "type": "Artist name",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John T. Williams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John T. Williams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John William",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John William",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "ジョン ウィリアムズ",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "ジョン ウィリアムズ",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "ジョン・ウィリアムズ",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "ジョン・ウィリアムズ",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "J. Williams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "J. Williams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Jhon Williams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Jhon Williams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John Wiliams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John Wiliams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Towner Williams, John",
+     "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+     "name": "John Towner Williams",
+     "locale": null,
+     "type": "Legal name",
+     "primary": null,
+     "begin-date": "1932-02-08",
+     "end-date": null
+    },
+    {
+     "sort-name": "Towner Williams",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Towner Williams",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John Williems",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John Williems",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    }
+   ],
+   "tags": [
+    {
+     "count": 13,
+     "name": "soundtrack"
+    },
+    {
+     "count": 9,
+     "name": "classical"
+    },
+    {
+     "count": 1,
+     "name": "jazz"
+    },
+    {
+     "count": 1,
+     "name": "american"
+    },
+    {
+     "count": 4,
+     "name": "orchestral"
+    },
+    {
+     "count": 1,
+     "name": "game"
+    },
+    {
+     "count": 3,
+     "name": "conductor"
+    },
+    {
+     "count": 1,
+     "name": "video game"
+    },
+    {
+     "count": 3,
+     "name": "score"
+    },
+    {
+     "count": 1,
+     "name": "pianist"
+    },
+    {
+     "count": 6,
+     "name": "composer"
+    },
+    {
+     "count": 1,
+     "name": "film score"
+    },
+    {
+     "count": 2,
+     "name": "contemporary classical"
+    },
+    {
+     "count": 1,
+     "name": "film"
+    },
+    {
+     "count": 1,
+     "name": "vgm"
+    },
+    {
+     "count": 1,
+     "name": "american composer"
+    },
+    {
+     "count": 1,
+     "name": "film soundtrack"
+    },
+    {
+     "count": 1,
+     "name": "easy listening soundtracks and musicals"
+    },
+    {
+     "count": 5,
+     "name": "film composer"
+    },
+    {
+     "count": 1,
+     "name": "soundtracks"
+    },
+    {
+     "count": 2,
+     "name": "modern classical"
+    },
+    {
+     "count": 1,
+     "name": "original score"
+    },
+    {
+     "count": 1,
+     "name": "star wars"
+    },
+    {
+     "count": 1,
+     "name": "grammy winner"
+    },
+    {
+     "count": 1,
+     "name": "saga"
+    },
+    {
+     "count": 1,
+     "name": "suboptimal credits"
+    },
+    {
+     "count": 1,
+     "name": "academy award winner"
+    },
+    {
+     "count": 1,
+     "name": "western classical"
+    },
+    {
+     "count": 1,
+     "name": "server name"
+    },
+    {
+     "count": 1,
+     "name": "cinematic classical"
+    },
+    {
+     "count": 1,
+     "name": "2008 universal fire victim"
+    }
+   ]
+  },
+  {
+   "id": "b83bc61f-8451-4a5d-8b8e-7e9ed295e822",
+   "type": "Person",
+   "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+   "score": 54,
+   "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+   "name": "Elton John",
+   "sort-name": "John, Elton",
+   "gender": "male",
+   "country": "GB",
+   "area": {
+    "id": "8a754a16-0027-3a29-b6d7-2b40ea0481ed",
+    "type": "Country",
+    "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+    "name": "United Kingdom",
+    "sort-name": "United Kingdom",
+    "life-span": {
+     "ended": null
+    }
+   },
+   "begin-area": {
+    "id": "a4ae8fa8-2332-49b6-b374-41a2dbfa9224",
+    "type": "District",
+    "type-id": "84039871-5e47-38ca-a66a-45e512c8290f",
+    "name": "Pinner",
+    "sort-name": "Pinner",
+    "life-span": {
+     "ended": null
+    }
+   },
+   "disambiguation": "English singer, songwriter, pianist, and composer",
+   "ipis": [
+    "00042308022"
+   ],
+   "isnis": [
+    "0000000109201181",
+    "0000000368558134"
+   ],
+   "life-span": {
+    "begin": "1947-03-25",
+    "ended": null
+   },
+   "aliases": [
+    {
+     "sort-name": "Reg Dwight",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Reg Dwight",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John, Elton",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John, Elton",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "E. John",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "E. John",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Elthon John",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Elthon John",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John, Elton Hercules",
+     "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+     "name": "Elton Hercules John",
+     "locale": null,
+     "type": "Legal name",
+     "primary": null,
+     "begin-date": "1972-01-07",
+     "end-date": null
+    },
+    {
+     "sort-name": "Džonas, Eltonas",
+     "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+     "name": "Eltonas Džonas",
+     "locale": "lt",
+     "type": "Artist name",
+     "primary": true,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Džonas, Seras Eltonas",
+     "name": "Seras Eltonas Džonas",
+     "locale": "lt",
+     "type": null,
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Dwight, Reginald Kenneth",
+     "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+     "name": "Reginald Kenneth Dwight",
+     "locale": null,
+     "type": "Legal name",
+     "primary": null,
+     "begin-date": "1947-03-25",
+     "end-date": "1972-01-07"
+    },
+    {
+     "sort-name": "エルトン・ジョン",
+     "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+     "name": "エルトン・ジョン",
+     "locale": "ja",
+     "type": "Artist name",
+     "primary": true,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Dwight, Reginald",
+     "name": "Reginald Dwight",
+     "locale": null,
+     "type": null,
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Orson, Ann",
+     "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+     "name": "Ann Orson",
+     "locale": null,
+     "type": "Artist name",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Sir Elton John",
+     "name": "Sir Elton John",
+     "locale": null,
+     "type": null,
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Elton Jphn",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "Elton Jphn",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "Sir Elton Hercules John",
+     "name": "Sir Elton Hercules John",
+     "locale": null,
+     "type": null,
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    },
+    {
+     "sort-name": "John Elton",
+     "type-id": "1937e404-b981-3cb7-8151-4c86ebfc8d8e",
+     "name": "John Elton",
+     "locale": null,
+     "type": "Search hint",
+     "primary": null,
+     "begin-date": null,
+     "end-date": null
+    }
+   ],
+   "tags": [
+    {
+     "count": 10,
+     "name": "rock"
+    },
+    {
+     "count": 18,
+     "name": "pop"
+    },
+    {
+     "count": 1,
+     "name": "progressive rock"
+    },
+    {
+     "count": 1,
+     "name": "dance"
+    },
+    {
+     "count": 1,
+     "name": "house"
+    },
+    {
+     "count": 2,
+     "name": "british"
+    },
+    {
+     "count": 6,
+     "name": "singer-songwriter"
+    },
+    {
+     "count": 1,
+     "name": "hip hop"
+    },
+    {
+     "count": 1,
+     "name": "uk"
+    },
+    {
+     "count": 1,
+     "name": "country"
+    },
+    {
+     "count": 1,
+     "name": "folk rock"
+    },
+    {
+     "count": 1,
+     "name": "electronica"
+    },
+    {
+     "count": 1,
+     "name": "disco"
+    },
+    {
+     "count": 1,
+     "name": "psychedelic rock"
+    },
+    {
+     "count": 1,
+     "name": "glam rock"
+    },
+    {
+     "count": 3,
+     "name": "classic rock"
+    },
+    {
+     "count": 2,
+     "name": "album rock"
+    },
+    {
+     "count": 7,
+     "name": "soft rock"
+    },
+    {
+     "count": 5,
+     "name": "adult contemporary"
+    },
+    {
+     "count": 11,
+     "name": "pop rock"
+    },
+    {
+     "count": 5,
+     "name": "rock and roll"
+    },
+    {
+     "count": 10,
+     "name": "piano rock"
+    },
+    {
+     "count": 1,
+     "name": "indie dance"
+    },
+    {
+     "count": 2,
+     "name": "film score"
+    },
+    {
+     "count": 1,
+     "name": "english"
+    },
+    {
+     "count": 0,
+     "name": "classic pop and rock"
+    },
+    {
+     "count": -2,
+     "name": "elton-john"
+    },
+    {
+     "count": 1,
+     "name": "pop music"
+    },
+    {
+     "count": 2,
+     "name": "am pop"
+    },
+    {
+     "count": 1,
+     "name": "r&b"
+    },
+    {
+     "count": 3,
+     "name": "singer/songwriter"
+    },
+    {
+     "count": 0,
+     "name": "pop/rock"
+    },
+    {
+     "count": 2,
+     "name": "contemporary pop/rock"
+    },
+    {
+     "count": 2,
+     "name": "show/musical"
+    },
+    {
+     "count": -2,
+     "name": "barcode:0602507159085"
+    },
+    {
+     "count": 1,
+     "name": "2008 universal fire victim"
+    },
+    {
+     "count": 0,
+     "name": "greatest hits 1970–2002"
+    }
+   ]
+  }
+ ]
+}

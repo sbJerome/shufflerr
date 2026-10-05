@@ -1,0 +1,43 @@
+[
+  {
+    "status": "ended",
+    "ended": true,
+    "artistName": "Daft Punk",
+    "foreignArtistId": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+    "artistType": "Group",
+    "disambiguation": "French electronic duo",
+    "folder": "Daft Punk",
+    "qualityProfileId": 0,
+    "metadataProfileId": 0,
+    "monitored": false,
+    "monitorNewItems": "all",
+    "genres": [
+      "Electronic",
+      "House",
+      "French House",
+      "Dance",
+      "Disco",
+      "Electro",
+      "Electronica",
+      "Electro House",
+      "Techno",
+      "Nu Disco",
+      "French Electro",
+      "Club",
+      "Electronic Rock",
+      "Funk",
+      "Synth-Pop",
+      "Jackin House",
+      "Electroclash",
+      "Pop",
+      "R&B",
+      "Trap",
+      "Edm",
+      "Organic House"
+    ],
+    "cleanName": "daftpunk",
+    "sortName": "daft punk",
+    "tags": [],
+    "added": "0001-01-01T00:00:00Z"
+  }
+]

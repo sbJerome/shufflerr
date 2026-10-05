@@ -213,20 +213,24 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | POST | `/api/v1/settings/discover` | MANAGE_SETTINGS | body partial section (deep-merged; e.g. `{spotify:{enabled:true}}`) | DiscoverSettingsResponse |  |
 | GET | `/api/v1/settings/scrobble` | MANAGE_SETTINGS | — | ScrobbleSettingsResponse | Secrets masked |
 | POST | `/api/v1/settings/scrobble` | MANAGE_SETTINGS | body partial section (deep-merged; e.g. `{spotify:{enabled:true}}`) | ScrobbleSettingsResponse |  |
+| POST | `/api/v1/settings/metadata/test/:service` | MANAGE_SETTINGS | service = musicbrainz `{url?, contact?}` · fanart `{apiKey?}` · lastfm `{apiKey?}` (unsaved form values; masked or missing secret = stored one) | ConnectionTestResponse | Always 200; `ok:false` + `message` says what to fix |
+| POST | `/api/v1/settings/youtube/test` | MANAGE_SETTINGS | body `{apiKey?}` | ConnectionTestResponse |  |
+| POST | `/api/v1/settings/discover/test/:service` | MANAGE_SETTINGS | service = spotify `{clientId?, clientSecret?}` · deezer · itunes `{country?}` · ticketmaster `{apiKey?, country?}` · skiddle `{apiKey?}` | ConnectionTestResponse |  |
+| POST | `/api/v1/settings/scrobble/test/:service` | MANAGE_SETTINGS | service = listenbrainz `{url?}` · lastfm (uses the Metadata key) | ConnectionTestResponse |  |
 | GET | `/api/v1/settings/clients` | MANAGE_SETTINGS | — | ClientsSettingsResponse |  |
 | POST | `/api/v1/settings/clients` | MANAGE_SETTINGS | body partial ClientsSettings | ClientsSettingsResponse |  |
 | GET | `/api/v1/settings/clients/devices` | MANAGE_SETTINGS | — | ClientDevice[] | Every app password across users |
 | DELETE | `/api/v1/settings/clients/devices/:id` | MANAGE_SETTINGS | — | 204 | Revoke |
 | GET | `/api/v1/settings/notifications` | MANAGE_SETTINGS | — | NotificationAgentsOverview |  |
 | GET | `/api/v1/settings/notifications/:agent` | MANAGE_SETTINGS | agent = email|webpush|discord|slack|telegram|pushbullet|pushover|webhook|gotify|ntfy | NotificationAgentResponse | `types` as string keys; secrets masked |
-| POST | `/api/v1/settings/notifications/:agent` | MANAGE_SETTINGS | body NotificationAgentResponse | NotificationAgentResponse |  |
-| POST | `/api/v1/settings/notifications/:agent/test` | MANAGE_SETTINGS | body NotificationAgentResponse (unsaved values are tested) | 204 | "Send test" |
+| POST | `/api/v1/settings/notifications/:agent` | MANAGE_SETTINGS | body NotificationAgentResponse | NotificationAgentResponse | 400 `{message}` names the missing/invalid field when `enabled`. Email `options.encryption` = none\|starttls\|tls (maps to Seerr's secure/requireTls/ignoreTls). Webhook `options.jsonPayload` is the template as text |
+| POST | `/api/v1/settings/notifications/:agent/test` | MANAGE_SETTINGS | body NotificationAgentResponse (unsaved values are tested) | 204 | "Send test"; 400 `{message}` when the service refuses it |
 | GET | `/api/v1/settings/notifications/pushover/sounds` | signed in | query `token` | PushoverSound[] | Seerr (kept) |
 | GET | `/api/v1/settings/logs` | MANAGE_SETTINGS | query `take` (25), `skip`, `filter`=debug|info|warn|error, `search` | LogsResultsResponse | Newest first; the page polls for live append |
 | GET | `/api/v1/settings/jobs` | MANAGE_SETTINGS | — | JobItem[] | 15 jobs (docs/ADMIN_PAGES.md §Jobs) |
 | POST | `/api/v1/settings/jobs/:jobId/run` | MANAGE_SETTINGS | — | JobItem |  |
 | POST | `/api/v1/settings/jobs/:jobId/cancel` | MANAGE_SETTINGS | — | JobItem |  |
-| POST | `/api/v1/settings/jobs/:jobId/schedule` | MANAGE_SETTINGS | body `{schedule}` (6-field cron) | JobItem |  |
+| POST | `/api/v1/settings/jobs/:jobId/schedule` | MANAGE_SETTINGS | body `{schedule}` (6-field cron) | JobItem | 400 with a message when the expression is invalid. JobItem also carries `scheduleText` (cron in words), `enabled` (integration on) and `cancellable` |
 | GET | `/api/v1/settings/cache` | MANAGE_SETTINGS | — | CacheResponse |  |
 | POST | `/api/v1/settings/cache/:cacheId/flush` | MANAGE_SETTINGS | — | 204 |  |
 | POST | `/api/v1/settings/cache/dns/:dnsEntry/flush` | MANAGE_SETTINGS | — | 204 |  |

@@ -1,76 +1,60 @@
-import Button from '@app/components/Common/Button';
-import { issueOptions } from '@app/components/IssueModal/constants';
-import { useUser } from '@app/hooks/useUser';
-import {
-  CalendarIcon,
-  ExclamationTriangleIcon,
-  EyeIcon,
-  UserIcon,
-} from '@heroicons/react/24/solid';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import StatusDot from '@app/components/Common/StatusDot';
+import { issueOption } from '@app/components/IssueModal/constants';
+import defineMessages from '@app/utils/defineMessages';
+import { IssueStatus } from '@server/constants/issue';
 import type Issue from '@server/entity/Issue';
 import Link from 'next/link';
-import { useIntl } from 'react-intl';
+import { FormattedDate, useIntl } from 'react-intl';
+
+const messages = defineMessages('components.IssueBlock', {
+  open: 'Open',
+  resolved: 'Resolved',
+  reportedBy: 'Reported by {name}',
+  view: 'View',
+  viewLabel: 'View report {id}',
+});
 
 interface IssueBlockProps {
   issue: Issue;
 }
 
+/** One issue as a list row (`<li>` inside a `sh-list`). */
 const IssueBlock = ({ issue }: IssueBlockProps) => {
-  const { user } = useUser();
   const intl = useIntl();
-  const issueOption = issueOptions.find(
-    (opt) => opt.issueType === issue.issueType
-  );
-
-  if (!issueOption) {
-    return null;
-  }
 
   return (
-    <div className="px-4 py-3 text-gray-300">
-      <div className="flex items-center justify-between">
-        <div className="mr-6 min-w-0 flex-1 flex-col items-center text-sm leading-5">
-          <div className="flex flex-nowrap">
-            <ExclamationTriangleIcon className="mr-1.5 h-5 w-5 flex-shrink-0" />
-            <span className="w-40 truncate md:w-auto">
-              {intl.formatMessage(issueOption.name)}
-            </span>
-          </div>
-          <div className="white mb-1 flex flex-nowrap">
-            <UserIcon className="mr-1.5 h-5 w-5 min-w-0 flex-shrink-0" />
-            <span className="w-40 truncate md:w-auto">
-              <Link
-                href={
-                  issue.createdBy.id === user?.id
-                    ? '/profile'
-                    : `/users/${issue.createdBy.id}`
-                }
-                className="font-semibold text-gray-100 transition duration-300 hover:text-white hover:underline"
-              >
-                {issue.createdBy.displayName}
-              </Link>
-            </span>
-          </div>
-          <div className="white mb-1 flex flex-nowrap">
-            <CalendarIcon className="mr-1.5 h-5 w-5 min-w-0 flex-shrink-0" />
-            <span className="w-40 truncate md:w-auto">
-              {intl.formatDate(issue.createdAt, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
-          </div>
-        </div>
-        <div className="ml-2 flex flex-shrink-0 flex-wrap">
-          <Link href={`/issues/${issue.id}`} passHref legacyBehavior>
-            <Button buttonType="primary" as="a">
-              <EyeIcon />
-            </Button>
-          </Link>
+    <li>
+      <div className="grow">
+        <b>{intl.formatMessage(issueOption(issue.issueType).name)}</b>
+        <div className="text-muted">
+          {intl.formatMessage(messages.reportedBy, {
+            name: issue.createdBy?.displayName,
+          })}
+          {' · '}
+          <FormattedDate
+            value={issue.createdAt}
+            year="numeric"
+            month="short"
+            day="numeric"
+          />
         </div>
       </div>
-    </div>
+      <StatusDot
+        tone={issue.status === IssueStatus.OPEN ? 'pending' : 'available'}
+      >
+        {intl.formatMessage(
+          issue.status === IssueStatus.OPEN ? messages.open : messages.resolved
+        )}
+      </StatusDot>
+      <Link
+        className="sh-btn small"
+        href={`/issues/${issue.id}`}
+        aria-label={intl.formatMessage(messages.viewLabel, { id: issue.id })}
+      >
+        {intl.formatMessage(messages.view)}
+      </Link>
+    </li>
   );
 };
 

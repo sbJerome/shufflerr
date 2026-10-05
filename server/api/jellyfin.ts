@@ -3,7 +3,6 @@
 import ExternalAPI from '@server/api/externalapi';
 import { ApiErrorCode } from '@server/constants/error';
 import { MediaServerType } from '@server/constants/server';
-import availabilitySync from '@server/lib/availabilitySync';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { ApiError } from '@server/types/error';
@@ -74,74 +73,61 @@ interface JellyfinMediaFolder {
 }
 
 export interface JellyfinLibrary {
-  type: 'show' | 'movie';
+  type: 'music';
   key: string;
   title: string;
   agent: string;
 }
 
-export interface JellyfinLibraryItem {
+/** MusicAlbum / Audio items as returned with Fields=ProviderIds,MediaSources,DateCreated. */
+export interface JellyfinMusicItem {
   Name: string;
   Id: string;
-  HasSubtitles: boolean;
-  Type: 'Movie' | 'Episode' | 'Season' | 'Series';
-  LocationType: 'FileSystem' | 'Offline' | 'Remote' | 'Virtual';
-  SeriesName?: string;
-  SeriesId?: string;
-  SeasonId?: string;
-  SeasonName?: string;
+  Type: 'MusicAlbum' | 'Audio';
+  AlbumArtist?: string;
+  AlbumArtists?: { Name: string; Id: string }[];
+  Artists?: string[];
+  Album?: string;
+  AlbumId?: string;
+  ProductionYear?: number;
+  /** Track number */
   IndexNumber?: number;
-  IndexNumberEnd?: number;
+  /** Disc number */
   ParentIndexNumber?: number;
-  MediaType: string;
-}
-
-export interface JellyfinMediaStream {
-  Codec: string;
-  Type: 'Video' | 'Audio' | 'Subtitle';
-  Height?: number;
-  Width?: number;
-  AverageFrameRate?: number;
-  RealFrameRate?: number;
-  Language?: string;
-  DisplayTitle: string;
-}
-
-export interface JellyfinMediaSource {
-  Protocol: string;
-  Id: string;
-  Path: string;
-  Type: string;
-  VideoType: string;
-  MediaStreams: JellyfinMediaStream[];
-}
-
-export interface JellyfinLibraryItemExtended extends JellyfinLibraryItem {
-  ProviderIds: {
-    Tmdb?: string;
-    TheMovieDb?: string;
-    Imdb?: string;
-    Tvdb?: string;
-    AniDB?: string;
-  };
-  MediaSources?: JellyfinMediaSource[];
-  Width?: number;
-  Height?: number;
-  IsHD?: boolean;
+  RunTimeTicks?: number;
   DateCreated?: string;
+  ChildCount?: number;
+  Container?: string;
+  LocationType?: 'FileSystem' | 'Offline' | 'Remote' | 'Virtual';
+  ProviderIds?: {
+    MusicBrainzReleaseGroup?: string;
+    MusicBrainzAlbum?: string;
+    MusicBrainzAlbumArtist?: string;
+    MusicBrainzArtist?: string;
+    MusicBrainzTrack?: string;
+    MusicBrainzRecording?: string;
+  };
+  MediaSources?: {
+    Id: string;
+    Container?: string;
+    Bitrate?: number;
+    MediaStreams?: {
+      Type: string;
+      Codec?: string;
+      BitRate?: number;
+      BitDepth?: number;
+      SampleRate?: number;
+    }[];
+  }[];
 }
 
-type EpisodeReturn<T> = T extends { includeMediaInfo: true }
-  ? JellyfinLibraryItemExtended[]
-  : JellyfinLibraryItem[];
-
-export interface JellyfinItemsReponse {
-  Items: JellyfinLibraryItemExtended[];
+interface JellyfinMusicItemsResponse {
+  Items: JellyfinMusicItem[];
   TotalRecordCount: number;
-  StartIndex: number;
 }
 
 class JellyfinAPI extends ExternalAPI {
+  private authHeaderValue: string;
   private userId?: string;
   private mediaServerType: MediaServerType;
 
@@ -179,6 +165,12 @@ class JellyfinAPI extends ExternalAPI {
     );
 
     this.mediaServerType = settings.main.mediaServerType;
+    this.authHeaderValue = authHeaderVal;
+  }
+
+  /** Headers for fetching a stream or image straight from the server. */
+  public authHeaders(): Record<string, string> {
+    return { Authorization: this.authHeaderValue };
   }
 
   public async login(
@@ -422,166 +414,82 @@ class JellyfinAPI extends ExternalAPI {
   }
 
   private mapLibraries(mediaFolders: JellyfinMediaFolder[]): JellyfinLibrary[] {
-    const excludedTypes = [
-      'music',
-      'books',
-      'musicvideos',
-      'homevideos',
-      'boxsets',
-    ];
-
+    // Shufflerr only uses music libraries (CollectionType `music`)
     return mediaFolders
-      .filter((Item: JellyfinMediaFolder) => {
-        return (
-          Item.Type === 'CollectionFolder' &&
-          !excludedTypes.includes(Item.CollectionType)
-        );
-      })
+      .filter(
+        (Item: JellyfinMediaFolder) =>
+          Item.Type === 'CollectionFolder' && Item.CollectionType === 'music'
+      )
       .map((Item: JellyfinMediaFolder) => {
         return <JellyfinLibrary>{
           key: Item.Id,
           title: Item.Name,
-          type: Item.CollectionType === 'movies' ? 'movie' : 'show',
+          type: 'music',
           agent: 'jellyfin',
         };
       });
   }
 
-  public async getLibraryContents(id: string): Promise<JellyfinLibraryItem[]> {
-    try {
-      const libraryItemsResponse = await this.get<any>(
-        `/Items?SortBy=SortName&SortOrder=Ascending&IncludeItemTypes=Series,Movie,Others&Recursive=true&StartIndex=0&ParentId=${id}&collapseBoxSetItems=false`
-      );
-
-      return libraryItemsResponse.Items.filter(
-        (item: JellyfinLibraryItem) => item.LocationType !== 'Virtual'
-      );
-    } catch (e) {
-      logger.error(
-        `Something went wrong while getting library content from the Jellyfin server: ${e.message}`,
-        { label: 'Jellyfin API', error: e?.response?.status }
-      );
-
-      if (!e.response) {
-        throw new ApiError(502, ApiErrorCode.ConnectionError);
-      }
-
-      throw new ApiError(e.response.status, ApiErrorCode.InvalidAuthToken);
-    }
+  private itemsEndpoint(): string {
+    // Emby only lists items below a user; Jellyfin accepts both
+    return this.mediaServerType === MediaServerType.EMBY && this.userId
+      ? `/Users/${this.userId}/Items`
+      : '/Items';
   }
 
-  public async getRecentlyAdded(id: string): Promise<JellyfinLibraryItem[]> {
-    try {
-      const endpoint =
-        this.mediaServerType === MediaServerType.JELLYFIN
-          ? `/Items/Latest`
-          : `/Users/${this.userId}/Items/Latest`;
-      const itemResponse = await this.get<any>(
-        `${endpoint}?Limit=12&ParentId=${id}${
-          this.mediaServerType === MediaServerType.JELLYFIN
-            ? `&userId=${this.userId ?? 'Me'}`
-            : ''
-        }`
-      );
-
-      return itemResponse;
-    } catch (e) {
-      logger.error(
-        `Something went wrong while getting library content from the Jellyfin server: ${e.message}`,
-        { label: 'Jellyfin API', error: e.response?.status }
-      );
-
-      if (!e.response) {
-        throw new ApiError(502, ApiErrorCode.ConnectionError);
-      }
-
-      throw new ApiError(e.response.status, ApiErrorCode.InvalidAuthToken);
-    }
-  }
-
-  public async getItemData(
-    id: string
-  ): Promise<JellyfinLibraryItemExtended | undefined> {
-    try {
-      const itemResponse = await this.get<JellyfinItemsReponse>(`/Items`, {
+  /** Albums of a music library, paged. `addedSince` limits to recently created items. */
+  public async getMusicAlbums(
+    libraryId: string,
+    {
+      startIndex = 0,
+      limit = 200,
+      recentFirst = false,
+    }: { startIndex?: number; limit?: number; recentFirst?: boolean } = {}
+  ): Promise<{ total: number; items: JellyfinMusicItem[] }> {
+    const response = await this.get<JellyfinMusicItemsResponse>(
+      this.itemsEndpoint(),
+      {
         params: {
-          ids: id,
-          fields: 'ProviderIds,MediaSources,Width,Height,IsHD,DateCreated',
+          ParentId: libraryId,
+          IncludeItemTypes: 'MusicAlbum',
+          Recursive: true,
+          Fields: 'ProviderIds,DateCreated,ChildCount',
+          SortBy: recentFirst ? 'DateCreated' : 'SortName',
+          SortOrder: recentFirst ? 'Descending' : 'Ascending',
+          StartIndex: startIndex,
+          Limit: limit,
+          ...(this.userId ? { UserId: this.userId } : {}),
         },
-      });
+      },
+      0
+    );
 
-      return itemResponse.Items?.[0];
-    } catch (e) {
-      if (availabilitySync.running) {
-        if (e.response?.status === 500) {
-          return undefined;
-        }
-      }
-
-      logger.error(
-        `Something went wrong while getting library content from the Jellyfin server: ${e.message}`,
-        { label: 'Jellyfin API', error: e.response?.status }
-      );
-      if (!e.response) {
-        throw new ApiError(502, ApiErrorCode.ConnectionError);
-      }
-
-      throw new ApiError(e.response.status, ApiErrorCode.InvalidAuthToken);
-    }
+    return {
+      total: response.TotalRecordCount ?? response.Items?.length ?? 0,
+      items: response.Items ?? [],
+    };
   }
 
-  public async getSeasons(seriesID: string): Promise<JellyfinLibraryItem[]> {
-    try {
-      const seasonResponse = await this.get<any>(`/Shows/${seriesID}/Seasons`);
+  /** Audio items of an album with provider ids and media sources. */
+  public async getAlbumTracks(albumId: string): Promise<JellyfinMusicItem[]> {
+    const response = await this.get<JellyfinMusicItemsResponse>(
+      this.itemsEndpoint(),
+      {
+        params: {
+          ParentId: albumId,
+          IncludeItemTypes: 'Audio',
+          Recursive: true,
+          Fields: 'ProviderIds,MediaSources,DateCreated',
+          SortBy: 'ParentIndexNumber,IndexNumber,SortName',
+          ...(this.userId ? { UserId: this.userId } : {}),
+        },
+      },
+      0
+    );
 
-      return seasonResponse.Items;
-    } catch (e) {
-      logger.error(
-        `Something went wrong while getting the list of seasons from the Jellyfin server: ${e.message}`,
-        { label: 'Jellyfin API', error: e.response?.status }
-      );
-
-      if (!e.response) {
-        throw new ApiError(502, ApiErrorCode.ConnectionError);
-      }
-
-      throw new ApiError(e.response.status, ApiErrorCode.InvalidAuthToken);
-    }
-  }
-
-  public async getEpisodes<
-    T extends { includeMediaInfo?: boolean } | undefined = undefined,
-  >(
-    seriesID: string,
-    seasonID: string,
-    options?: T
-  ): Promise<EpisodeReturn<T>> {
-    try {
-      const episodeResponse = await this.get<any>(
-        `/Shows/${seriesID}/Episodes`,
-        {
-          params: {
-            seasonId: seasonID,
-            ...(options?.includeMediaInfo && { fields: 'MediaSources' }),
-          },
-        }
-      );
-
-      return episodeResponse.Items.filter(
-        (item: JellyfinLibraryItem) => item.LocationType !== 'Virtual'
-      );
-    } catch (e) {
-      logger.error(
-        `Something went wrong while getting the list of episodes from the Jellyfin server: ${e.message}`,
-        { label: 'Jellyfin API', error: e.response?.status }
-      );
-
-      if (!e.response) {
-        throw new ApiError(502, ApiErrorCode.ConnectionError);
-      }
-
-      throw new ApiError(e.response.status, ApiErrorCode.InvalidAuthToken);
-    }
+    return (response.Items ?? []).filter(
+      (item) => item.LocationType !== 'Virtual'
+    );
   }
 
   public async createApiToken(appName: string): Promise<string> {

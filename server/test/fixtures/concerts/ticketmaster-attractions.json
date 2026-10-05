@@ -1,0 +1,29 @@
+{
+ "_embedded": {
+  "attractions": [
+   {
+    "id": "K8vZ917_bP7",
+    "name": "John Summit Tribute Night",
+    "url": "https://www.ticketmaster.com/john-summit-tribute-night-tickets/artist/0000001"
+   },
+   {
+    "id": "K8vZ9179cV0",
+    "name": "John Summit",
+    "url": "https://www.ticketmaster.com/john-summit-tickets/artist/2828231",
+    "externalLinks": {
+     "musicbrainz": [
+      {
+       "id": "2547c5e3-314c-4332-981d-f18c902a4086"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "page": {
+  "size": 10,
+  "totalElements": 2,
+  "totalPages": 1,
+  "number": 0
+ }
+}

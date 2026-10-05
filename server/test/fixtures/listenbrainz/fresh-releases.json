@@ -1,0 +1,97 @@
+{
+ "payload": {
+  "releases": [
+   {
+    "artist_credit_name": "404 Breakcore",
+    "artist_mbids": [
+     "a7dadb5c-ab35-4738-a5ea-e285be47249a"
+    ],
+    "caa_id": 46261350321,
+    "caa_release_mbid": "405d9055-4f58-407d-805e-c18c814a2b1b",
+    "listen_count": 0,
+    "release_date": "2026-09-21",
+    "release_group_mbid": "84d37ce0-bc38-4ba7-8d21-d8c64936892d",
+    "release_group_primary_type": "Single",
+    "release_mbid": "405d9055-4f58-407d-805e-c18c814a2b1b",
+    "release_name": "404 Obsession (breakcore)",
+    "release_tags": []
+   },
+   {
+    "artist_credit_name": "All Human",
+    "artist_mbids": [
+     "8b70ea2d-9e22-4231-8345-a6bd39f5c33b"
+    ],
+    "caa_id": 46252587539,
+    "caa_release_mbid": "13012559-c113-4693-860a-8b5729c68ee0",
+    "listen_count": 0,
+    "release_date": "2026-09-21",
+    "release_group_mbid": "31733b16-2747-47be-8a5f-70dd66e0e77d",
+    "release_group_primary_type": "Single",
+    "release_mbid": "13012559-c113-4693-860a-8b5729c68ee0",
+    "release_name": "Fly in Honey",
+    "release_tags": []
+   },
+   {
+    "artist_credit_name": "Amrinder Gill",
+    "artist_mbids": [
+     "cd74f170-639f-4ff9-b01f-29b8e82912ae"
+    ],
+    "caa_id": 46247826562,
+    "caa_release_mbid": "81443cf2-fea2-4ecc-ac8b-2398a180f856",
+    "listen_count": 0,
+    "release_date": "2026-09-21",
+    "release_group_mbid": "72fab131-8f2e-4dbf-946e-02c57bb5ca05",
+    "release_group_primary_type": "Album",
+    "release_mbid": "81443cf2-fea2-4ecc-ac8b-2398a180f856",
+    "release_name": "Hazir",
+    "release_tags": []
+   },
+   {
+    "artist_credit_name": "Aquarius Jay",
+    "artist_mbids": [
+     "4d824bfe-5d26-4ed1-89f7-d6e33a5a7a50"
+    ],
+    "caa_id": null,
+    "caa_release_mbid": null,
+    "listen_count": 0,
+    "release_date": "2026-09-21",
+    "release_group_mbid": "9f166214-d62e-428f-b71a-11909fb4eaed",
+    "release_group_primary_type": "Single",
+    "release_mbid": "70295d9c-c008-48f2-bc32-5999584e6906",
+    "release_name": "Lotion (Aqua Flip) [W/ Lismo]",
+    "release_tags": []
+   },
+   {
+    "artist_credit_name": "Artificial Brain",
+    "artist_mbids": [
+     "bb27d41e-978a-4dc7-98c8-1e614d185b61"
+    ],
+    "caa_id": 46248678463,
+    "caa_release_mbid": "2467e58b-ab34-46fc-9391-d89b9c31d834",
+    "listen_count": 0,
+    "release_date": "2026-09-21",
+    "release_group_mbid": "b52fc5ff-e537-4696-a4e0-1faa3d1a7c7c",
+    "release_group_primary_type": "Single",
+    "release_mbid": "2467e58b-ab34-46fc-9391-d89b9c31d834",
+    "release_name": "Quantum Malignancies",
+    "release_tags": []
+   },
+   {
+    "artist_credit_name": "BLOODSPAWN",
+    "artist_mbids": [
+     "12ec18d2-db1b-4bf5-9ba8-6462cf948191"
+    ],
+    "caa_id": null,
+    "caa_release_mbid": null,
+    "listen_count": 0,
+    "release_date": "2026-09-21",
+    "release_group_mbid": "14288392-7649-47df-9509-df124179593d",
+    "release_group_primary_type": "Single",
+    "release_mbid": "52366808-65d1-49a4-9d07-610825b4a50e",
+    "release_name": "Brainmatter Collapse",
+    "release_tags": []
+   }
+  ],
+  "total_count": 3787
+ }
+}

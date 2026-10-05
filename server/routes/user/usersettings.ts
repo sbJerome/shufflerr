@@ -1,7 +1,4 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-// STREAM(SV4): adapt per docs/USER_SYSTEM.md + docs/API_CONTRACT.md §SV4
-// (linked accounts incl. Last.fm/ListenBrainz/Spotify, app passwords,
-// notification channels in the new response shape).
 import JellyfinAPI from '@server/api/jellyfin';
 import PlexTvAPI from '@server/api/plextv';
 import { ApiErrorCode } from '@server/constants/error';
@@ -11,9 +8,41 @@ import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
 import { UserSettings } from '@server/entity/UserSettings';
 import type {
+  AppPasswordCreatedResponse,
+  LinkableProvider,
+  LinkAuthorizeResponse,
+  LinkedAccountStatus,
+  UserNotificationChannel,
+  UserSettingsAppPasswordsResponse,
   UserSettingsGeneralResponse,
+  UserSettingsLinkedAccountsResponse,
   UserSettingsNotificationsResponse,
+  UserSettingsPasswordBody,
 } from '@server/interfaces/api/userSettingsInterfaces';
+import {
+  clientUsername,
+  createAppPassword,
+  listAppPasswords,
+  revokeAppPassword,
+} from '@server/lib/auth/appPasswords';
+import {
+  buildLastfmAuthorizeUrl,
+  buildSpotifyAuthorizeUrl,
+  getBaseUrl,
+  getLinkedAccounts,
+  InvalidLinkTokenError,
+  isLinkProvider,
+  linkProviders,
+  removeLinkedAccount,
+  setLinkedAccount,
+} from '@server/lib/auth/linkedAccounts';
+import type { NotificationTypeKey } from '@server/lib/notifications/types';
+import {
+  MANAGER_NOTIFICATION_TYPES,
+  maskToTypes,
+  MUSIC_NOTIFICATION_TYPES,
+  typesToMask,
+} from '@server/lib/notifications/types';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -28,7 +57,26 @@ import {
 import { Router } from 'express';
 import net from 'net';
 import { Not } from 'typeorm';
+import validator from 'validator';
 import { canMakePermissionsChange } from '.';
+
+export const SETTINGS_MESSAGES = {
+  ownerOnly: "Only the owner can change the owner's account.",
+  emailInvalid: 'Enter a valid email address.',
+  emailTaken: 'That email address is already used.',
+  currentPasswordRequired: 'Enter your current password.',
+  currentPasswordWrong: "That current password isn't right.",
+  newPasswordTooShort: 'The new password needs at least 8 characters.',
+  passwordMismatch: "The passwords don't match.",
+  appPasswordName: 'Give the password a name, like "Finamp on my phone".',
+  ownPermissions: "You can't change your own permissions.",
+  ownerPermissions: 'The owner always has full access.',
+  adminOnlyByOwner: 'Only the owner can make someone an admin.',
+} as const;
+
+/** Nobody but the owner edits the owner. */
+const ownerGuard = (targetId: number, actor?: User): boolean =>
+  targetId === 1 && actor?.id !== 1;
 
 const userSettingsRoutes = Router({ mergeParams: true });
 
@@ -89,49 +137,96 @@ userSettingsRoutes.post<
     }
 
     // "Owner" user settings cannot be modified by other users
-    if (user.id === 1 && req.user?.id !== 1) {
-      return next({
-        status: 403,
-        message: "You do not have permission to modify this user's settings.",
-      });
+    if (ownerGuard(user.id, req.user)) {
+      return next({ status: 403, message: SETTINGS_MESSAGES.ownerOnly });
     }
 
     const oldEmail = user.email;
-    user.username = req.body.username;
-    if (user.userType !== UserType.PLEX) {
-      user.email = req.body.email || user.jellyfinUsername || user.email;
+    if (req.body.username !== undefined) {
+      user.username = req.body.username?.trim() ?? '';
+    }
+    // A Plex account's email comes from Plex and is refreshed at sign-in.
+    if (user.userType !== UserType.PLEX && req.body.email !== undefined) {
+      const email = (req.body.email ?? '').trim().toLowerCase();
+      if (email && email !== oldEmail) {
+        if (!validator.isEmail(email, { require_tld: false })) {
+          return next({
+            status: 400,
+            message: SETTINGS_MESSAGES.emailInvalid,
+            errors: ['email'],
+          });
+        }
+        user.email = email;
+      }
     }
 
-    const existingUser = await userRepository.findOne({
-      where: { email: user.email, id: Not(user.id) },
-    });
-
-    if (oldEmail !== user.email && existingUser) {
-      throw new ApiError(400, ApiErrorCode.InvalidEmail);
+    if (oldEmail !== user.email) {
+      const existingUser = await userRepository.findOne({
+        where: { email: user.email, id: Not(user.id) },
+      });
+      if (existingUser) {
+        return next({
+          status: 400,
+          message: SETTINGS_MESSAGES.emailTaken,
+          errors: ['email', ApiErrorCode.InvalidEmail],
+        });
+      }
     }
 
-    // Update quota values only if the user has the correct permissions
+    // Request-limit overrides: only people who manage users set them, and
+    // never for themselves or for someone who has no limit anyway
+    // (docs/USER_SYSTEM.md §General). null = follow the global limit.
+    const quotaKeys = [
+      'albumQuotaLimit',
+      'albumQuotaDays',
+      'trackQuotaLimit',
+      'trackQuotaDays',
+    ] as const;
     if (
-      !user.hasPermission(Permission.MANAGE_USERS) &&
-      req.user?.id !== user.id
+      req.user?.hasPermission(Permission.MANAGE_USERS) &&
+      req.user.id !== user.id &&
+      !user.hasPermission(Permission.MANAGE_USERS)
     ) {
-      user.albumQuotaDays = req.body.albumQuotaDays;
-      user.albumQuotaLimit = req.body.albumQuotaLimit;
-      user.trackQuotaDays = req.body.trackQuotaDays;
-      user.trackQuotaLimit = req.body.trackQuotaLimit;
+      for (const key of quotaKeys) {
+        const value = req.body[key];
+        if (value === undefined) {
+          continue;
+        }
+        if (value === null) {
+          user[key] = null;
+        } else if (Number.isInteger(value) && value >= 0) {
+          user[key] = value;
+        } else {
+          return next({
+            status: 400,
+            message: 'Request limits have to be whole numbers, 0 or higher.',
+            errors: [key],
+          });
+        }
+      }
+    }
+
+    // "Request albums I save on Spotify" needs the auto-request permission.
+    const mayAutoRequest = user.hasPermission(
+      [Permission.AUTO_REQUEST, Permission.AUTO_REQUEST_ALBUM],
+      { type: 'or' }
+    );
+    if (req.body.autoRequestSpotifySaved && !mayAutoRequest) {
+      req.body.autoRequestSpotifySaved = false;
     }
 
     if (!user.settings) {
       user.settings = new UserSettings({
-        user: req.user,
+        user,
         locale: req.body.locale,
         discoverRegion: req.body.discoverRegion,
         autoRequestSpotifySaved: req.body.autoRequestSpotifySaved ?? false,
         scrobbleEnabled: req.body.scrobbleEnabled ?? true,
       });
     } else {
-      user.settings.locale = req.body.locale;
-      user.settings.discoverRegion = req.body.discoverRegion;
+      user.settings.locale = req.body.locale ?? user.settings.locale;
+      user.settings.discoverRegion =
+        req.body.discoverRegion ?? user.settings.discoverRegion;
       user.settings.autoRequestSpotifySaved =
         req.body.autoRequestSpotifySaved ??
         user.settings.autoRequestSpotifySaved;
@@ -140,14 +235,23 @@ userSettingsRoutes.post<
     }
 
     const savedUser = await userRepository.save(user);
+    const { defaultQuotas } = getSettings().main;
 
     return res.status(200).json({
       username: savedUser.username,
+      email: savedUser.email,
       locale: savedUser.settings?.locale,
       discoverRegion: savedUser.settings?.discoverRegion,
+      albumQuotaLimit: savedUser.albumQuotaLimit,
+      albumQuotaDays: savedUser.albumQuotaDays,
+      trackQuotaLimit: savedUser.trackQuotaLimit,
+      trackQuotaDays: savedUser.trackQuotaDays,
+      globalAlbumQuotaDays: defaultQuotas.album.quotaDays,
+      globalAlbumQuotaLimit: defaultQuotas.album.quotaLimit,
+      globalTrackQuotaDays: defaultQuotas.track.quotaDays,
+      globalTrackQuotaLimit: defaultQuotas.track.quotaLimit,
       autoRequestSpotifySaved: savedUser.settings?.autoRequestSpotifySaved,
       scrobbleEnabled: savedUser.settings?.scrobbleEnabled,
-      email: savedUser.email,
     });
   } catch (e) {
     if (e.errorCode) {
@@ -183,371 +287,469 @@ userSettingsRoutes.get<{ id: string }, { hasPassword: boolean }>(
   }
 );
 
-userSettingsRoutes.post<
-  { id: string },
-  null,
-  { currentPassword?: string; newPassword: string }
->('/password', isOwnProfileOrAdmin(), async (req, res, next) => {
-  const userRepository = getRepository(User);
-
-  try {
-    const user = await userRepository.findOne({
-      where: { id: Number(req.params.id) },
-    });
-
-    const userWithPassword = await userRepository.findOne({
-      select: ['id', 'password'],
-      where: { id: Number(req.params.id) },
-    });
-
-    if (!user || !userWithPassword) {
-      return next({ status: 404, message: 'User not found.' });
-    }
-
-    if (req.body.newPassword.length < 8) {
-      return next({
-        status: 400,
-        message: 'Password must be at least 8 characters.',
-      });
-    }
-
-    if (
-      (user.id === 1 && req.user?.id !== 1) ||
-      (user.hasPermission(Permission.ADMIN) &&
-        user.id !== req.user?.id &&
-        req.user?.id !== 1)
-    ) {
-      return next({
-        status: 403,
-        message: "You do not have permission to modify this user's password.",
-      });
-    }
-
-    // If the user has the permission to manage users and they are not
-    // editing themselves, we will just set the new password
-    if (
-      req.user?.hasPermission(Permission.MANAGE_USERS) &&
-      req.user?.id !== user.id
-    ) {
-      await user.setPassword(req.body.newPassword);
-      await userRepository.save(user);
-      logger.debug('Password overriden by user.', {
-        label: 'User Settings',
-        userEmail: user.email,
-        changingUser: req.user.email,
-      });
-      return res.status(204).send();
-    }
-
-    // If the user has a password, we need to check the currentPassword is correct
-    if (
-      user.password &&
-      (!req.body.currentPassword ||
-        !(await userWithPassword.passwordMatch(req.body.currentPassword)))
-    ) {
-      logger.debug(
-        'Attempt to change password for user failed. Invalid current password provided.',
-        { label: 'User Settings', userEmail: user.email }
-      );
-      return next({ status: 403, message: 'Current password is invalid.' });
-    }
-
-    await user.setPassword(req.body.newPassword);
-    await userRepository.save(user);
-
-    return res.status(204).send();
-  } catch (e) {
-    next({ status: 500, message: e.message });
-  }
-});
-
-userSettingsRoutes.post<{ authToken: string }>(
-  '/linked-accounts/plex',
-  isOwnProfile(),
-  async (req, res) => {
-    const settings = getSettings();
-    const userRepository = getRepository(User);
-
-    if (!req.user) {
-      return res.status(404).json({ code: ApiErrorCode.Unauthorized });
-    }
-    // Make sure Plex login is enabled
-    if (settings.main.mediaServerType !== MediaServerType.PLEX) {
-      return res.status(500).json({ message: 'Plex login is disabled' });
-    }
-
-    // First we need to use this auth token to get the user's email from plex.tv
-    const plextv = new PlexTvAPI(req.body.authToken);
-    const account = await plextv.getUser();
-
-    // Do not allow linking of an already linked account
-    if (await userRepository.exist({ where: { plexId: account.id } })) {
-      return res.status(422).json({
-        message: 'This Plex account is already linked to a Shufflerr user',
-      });
-    }
-
-    const user = req.user;
-
-    // Emails do not match
-    if (user.email !== account.email) {
-      return res.status(422).json({
-        message:
-          'This Plex account is registered under a different email address.',
-      });
-    }
-
-    // valid plex user found, link to current user
-    user.userType = UserType.PLEX;
-    user.plexId = account.id;
-    user.plexUsername = account.username;
-    user.plexToken = account.authToken;
-    await userRepository.save(user);
-
-    return res.status(204).send();
-  }
-);
-
-userSettingsRoutes.delete<{ id: string }>(
-  '/linked-accounts/plex',
+userSettingsRoutes.post<{ id: string }, null, UserSettingsPasswordBody>(
+  '/password',
   isOwnProfileOrAdmin(),
-  async (req, res) => {
-    const settings = getSettings();
+  async (req, res, next) => {
     const userRepository = getRepository(User);
-
-    // Make sure Plex login is enabled
-    if (settings.main.mediaServerType !== MediaServerType.PLEX) {
-      return res.status(500).json({ message: 'Plex login is disabled' });
-    }
 
     try {
-      const user = await userRepository
-        .createQueryBuilder('user')
-        .addSelect('user.password')
-        .where({
-          id: Number(req.params.id),
-        })
-        .getOne();
+      const user = await userRepository.findOne({
+        where: { id: Number(req.params.id) },
+      });
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
+      const userWithPassword = await userRepository.findOne({
+        select: ['id', 'password'],
+        where: { id: Number(req.params.id) },
+      });
+
+      if (!user || !userWithPassword) {
+        return next({ status: 404, message: 'User not found.' });
       }
 
-      if (user.id === 1) {
-        return res.status(400).json({
-          message:
-            'Cannot unlink media server accounts for the primary administrator.',
+      if (
+        ownerGuard(user.id, req.user) ||
+        (user.hasPermission(Permission.ADMIN) &&
+          user.id !== req.user?.id &&
+          req.user?.id !== 1)
+      ) {
+        return next({
+          status: 403,
+          message: "You do not have permission to modify this user's password.",
         });
       }
 
-      if (!user.email || !user.password) {
-        return res.status(400).json({
-          message: 'User does not have a local email or password set.',
+      const isSelf = req.user?.id === user.id;
+      const newPassword = req.body.newPassword ?? '';
+
+      // Changing your own existing password: prove you know it first.
+      if (isSelf && userWithPassword.password) {
+        if (!req.body.currentPassword) {
+          return next({
+            status: 400,
+            message: SETTINGS_MESSAGES.currentPasswordRequired,
+            errors: ['currentPassword'],
+          });
+        }
+        if (!(await userWithPassword.passwordMatch(req.body.currentPassword))) {
+          logger.debug(
+            'Attempt to change password for user failed. Invalid current password provided.',
+            { label: 'User Settings', userId: user.id }
+          );
+          return next({
+            status: 403,
+            message: SETTINGS_MESSAGES.currentPasswordWrong,
+            errors: ['currentPassword'],
+          });
+        }
+      }
+
+      if (newPassword.length < 8) {
+        return next({
+          status: 400,
+          message: SETTINGS_MESSAGES.newPasswordTooShort,
+          errors: ['newPassword'],
         });
       }
 
-      user.userType = UserType.LOCAL;
-      user.plexId = null;
-      user.plexUsername = null;
-      user.plexToken = null;
+      if (
+        req.body.confirmPassword !== undefined &&
+        req.body.confirmPassword !== newPassword
+      ) {
+        return next({
+          status: 400,
+          message: SETTINGS_MESSAGES.passwordMismatch,
+          errors: ['confirmPassword'],
+        });
+      }
+
+      await user.setPassword(newPassword);
       await userRepository.save(user);
+
+      if (!isSelf) {
+        logger.debug('Password set by a user manager.', {
+          label: 'User Settings',
+          userId: user.id,
+          changingUserId: req.user?.id,
+        });
+      }
 
       return res.status(204).send();
     } catch (e) {
-      return res.status(500).json({ message: e.message });
+      next({ status: 500, message: e.message });
     }
   }
 );
 
-userSettingsRoutes.post<{ username: string; password: string }>(
-  '/linked-accounts/jellyfin',
+// ---------------------------------------------------------------------------
+// Linked accounts
+// ---------------------------------------------------------------------------
+
+const plexLinkAvailable = (): boolean => {
+  const settings = getSettings();
+  return (
+    (settings.main.mediaServerLogin && settings.plex.loginEnabled) ||
+    settings.integrations.plex
+  );
+};
+
+const jellyfinLinkAvailable = (): boolean => {
+  const settings = getSettings();
+  return (
+    settings.jellyfin.ip !== '' &&
+    ((settings.main.mediaServerLogin && settings.jellyfin.loginEnabled) ||
+      settings.integrations.jellyfin)
+  );
+};
+
+const isEmby = (): boolean =>
+  getSettings().main.mediaServerType === MediaServerType.EMBY;
+
+/** After unlinking, what does the account sign in with? */
+const fallbackUserType = (
+  user: User,
+  removed: 'plex' | 'jellyfin'
+): UserType => {
+  if (removed !== 'plex' && user.plexId) {
+    return UserType.PLEX;
+  }
+  if (removed !== 'jellyfin' && user.jellyfinUserId) {
+    return isEmby() ? UserType.EMBY : UserType.JELLYFIN;
+  }
+  return UserType.LOCAL;
+};
+
+const loadUserWithPassword = (id: number): Promise<User | null> =>
+  getRepository(User)
+    .createQueryBuilder('user')
+    .addSelect('user.password')
+    .where('user.id = :id', { id })
+    .getOne();
+
+const buildLinkedAccounts = async (
+  user: User
+): Promise<LinkedAccountStatus[]> => {
+  const settings = getSettings();
+  const integrations = settings.integrations;
+  const withPassword = await loadUserWithPassword(user.id);
+  // A media-server link can only go when another way to sign in remains.
+  const hasPassword = !!withPassword?.password && settings.main.localLogin;
+  const links = new Map(
+    (await getLinkedAccounts(user.id)).map((link) => [link.provider, link])
+  );
+
+  const external = (
+    provider: 'lastfm' | 'listenbrainz' | 'spotify',
+    available: boolean,
+    flow: LinkedAccountStatus['flow']
+  ): LinkedAccountStatus => {
+    const link = links.get(provider);
+    return {
+      provider,
+      available,
+      linked: !!link,
+      externalUsername: link?.externalUsername || undefined,
+      canUnlink: !!link,
+      flow,
+      linkedAt: link ? new Date(link.createdAt).toISOString() : undefined,
+    };
+  };
+
+  return [
+    {
+      provider: 'plex',
+      available: plexLinkAvailable(),
+      linked: !!user.plexId,
+      externalUsername: user.plexId
+        ? (user.plexUsername ?? undefined)
+        : undefined,
+      canUnlink: !!user.plexId && (hasPassword || !!user.jellyfinUserId),
+      flow: 'plex-pin',
+    },
+    {
+      provider: 'jellyfin',
+      available: jellyfinLinkAvailable(),
+      linked: !!user.jellyfinUserId,
+      externalUsername: user.jellyfinUserId
+        ? (user.jellyfinUsername ?? undefined)
+        : undefined,
+      canUnlink: !!user.jellyfinUserId && (hasPassword || !!user.plexId),
+      flow: 'credentials',
+    },
+    external('lastfm', integrations.lastfmScrobble, 'oauth'),
+    external('listenbrainz', integrations.listenbrainz, 'token'),
+    external('spotify', integrations.spotify, 'oauth'),
+  ];
+};
+
+const linkedStatus = async (
+  user: User,
+  provider: LinkableProvider
+): Promise<LinkedAccountStatus> => {
+  const fresh = await getRepository(User).findOneOrFail({
+    where: { id: user.id },
+  });
+  const accounts = await buildLinkedAccounts(fresh);
+  return accounts.find((account) => account.provider === provider)!;
+};
+
+userSettingsRoutes.get<{ id: string }, UserSettingsLinkedAccountsResponse>(
+  '/linked-accounts',
+  isOwnProfileOrAdmin(),
+  async (req, res, next) => {
+    try {
+      const user = await getRepository(User).findOne({
+        where: { id: Number(req.params.id) },
+      });
+      if (!user) {
+        return next({ status: 404, message: 'User not found.' });
+      }
+      return res
+        .status(200)
+        .json({ accounts: await buildLinkedAccounts(user) });
+    } catch (e) {
+      next({ status: 500, message: e.message });
+    }
+  }
+);
+
+userSettingsRoutes.post<{ id: string }, unknown, { authToken?: string }>(
+  '/linked-accounts/plex',
   isOwnProfile(),
-  async (req, res) => {
-    const settings = getSettings();
+  async (req, res, next) => {
     const userRepository = getRepository(User);
 
     if (!req.user) {
-      return res.status(401).json({ code: ApiErrorCode.Unauthorized });
+      return next({ status: 401, message: ApiErrorCode.Unauthorized });
     }
-    // Make sure jellyfin login is enabled
-    if (
-      settings.main.mediaServerType !== MediaServerType.JELLYFIN &&
-      settings.main.mediaServerType !== MediaServerType.EMBY
-    ) {
-      return res
-        .status(500)
-        .json({ message: 'Jellyfin/Emby login is disabled' });
+    // The owner may always link Plex: that is what makes Plex sign-in,
+    // imports and the server-access check possible in the first place.
+    if (!plexLinkAvailable() && req.user.id !== 1) {
+      return next({ status: 400, message: 'Plex is turned off.' });
     }
-
-    // Do not allow linking of an already linked account
-    if (
-      await userRepository.exist({
-        where: { jellyfinUsername: req.body.username },
-      })
-    ) {
-      return res.status(422).json({
-        message: 'The specified account is already linked to a Shufflerr user',
+    if (!req.body.authToken) {
+      return next({
+        status: 400,
+        message: "Plex didn't confirm that sign-in. Try again.",
       });
     }
 
-    const hostname = getHostname();
-    const deviceId = Buffer.from(
-      req.user?.id === 1
-        ? 'BOT_shufflerr'
-        : `BOT_shufflerr_${req.user.username ?? ''}`
-    ).toString('base64');
-
-    const jellyfinserver = new JellyfinAPI(hostname, undefined, deviceId);
-
-    const ip = req.ip;
-    let clientIp: string | undefined;
-    if (ip) {
-      if (net.isIPv4(ip)) {
-        clientIp = ip;
-      } else if (net.isIPv6(ip)) {
-        clientIp = ip.startsWith('::ffff:') ? ip.substring(7) : ip;
-      }
-    }
-
     try {
-      const account = await jellyfinserver.login(
-        req.body.username,
-        req.body.password,
-        clientIp
-      );
+      // First we need to use this auth token to get the user's account from plex.tv
+      const plextv = new PlexTvAPI(req.body.authToken);
+      const account = await plextv.getUser();
 
       // Do not allow linking of an already linked account
       if (
         await userRepository.exist({
-          where: { jellyfinUserId: account.User.Id },
+          where: { plexId: account.id, id: Not(req.user.id) },
         })
       ) {
-        return res.status(422).json({
+        return next({
+          status: 422,
           message:
-            'The specified account is already linked to a Shufflerr user',
+            'That Plex account is already linked to another Shufflerr user.',
         });
       }
 
       const user = req.user;
 
-      // valid jellyfin user found, link to current user
-      user.userType =
-        settings.main.mediaServerType === MediaServerType.EMBY
-          ? UserType.EMBY
-          : UserType.JELLYFIN;
-      user.jellyfinUserId = account.User.Id;
-      user.jellyfinUsername = account.User.Name;
-      user.jellyfinAuthToken = account.AccessToken;
-      user.jellyfinDeviceId = deviceId;
+      // valid plex user found, link to current user
+      user.userType = UserType.PLEX;
+      user.plexId = account.id;
+      user.plexUsername = account.username;
+      user.plexToken = account.authToken;
+      if (account.thumb && (!user.avatar || user.avatar.includes('gravatar'))) {
+        user.avatar = account.thumb;
+      }
       await userRepository.save(user);
 
-      return res.status(204).send();
+      return res.status(200).json(await linkedStatus(user, 'plex'));
     } catch (e) {
-      logger.error('Failed to link account to user.', {
+      logger.error('Failed to link a Plex account.', {
         label: 'API',
         ip: req.ip,
-        error: e,
+        errorMessage: e.message,
       });
-      if (
-        e instanceof ApiError &&
-        e.errorCode === ApiErrorCode.InvalidCredentials
-      ) {
-        return res.status(401).json({ code: e.errorCode });
-      }
-
-      return res.status(500).send();
+      return next({
+        status: 500,
+        message: "Plex didn't confirm that sign-in. Try again.",
+      });
     }
   }
 );
 
-userSettingsRoutes.delete<{ id: string }>(
-  '/linked-accounts/jellyfin',
-  isOwnProfileOrAdmin(),
-  async (req, res) => {
-    const settings = getSettings();
-    const userRepository = getRepository(User);
+const unlinkMediaServer = async (
+  targetId: number,
+  provider: 'plex' | 'jellyfin'
+): Promise<{ status: number; message?: string }> => {
+  const userRepository = getRepository(User);
+  const user = await loadUserWithPassword(targetId);
 
-    // Make sure jellyfin login is enabled
+  if (!user) {
+    return { status: 404, message: 'User not found.' };
+  }
+
+  const linked = provider === 'plex' ? !!user.plexId : !!user.jellyfinUserId;
+  if (!linked) {
+    return { status: 204 };
+  }
+
+  const otherLink = provider === 'plex' ? !!user.jellyfinUserId : !!user.plexId;
+  const hasPassword = !!user.password && getSettings().main.localLogin;
+  if (!otherLink && !hasPassword) {
+    return {
+      status: 400,
+      message:
+        'This is how the account signs in. Set a password first, then unlink it.',
+    };
+  }
+
+  if (provider === 'plex') {
+    user.plexId = null;
+    user.plexUsername = null;
+    user.plexToken = null;
+  } else {
+    user.jellyfinUserId = null;
+    user.jellyfinUsername = null;
+    user.jellyfinAuthToken = null;
+    user.jellyfinDeviceId = null;
+  }
+  user.userType = fallbackUserType(user, provider);
+  await userRepository.save(user);
+  return { status: 204 };
+};
+
+userSettingsRoutes.post<
+  { id: string },
+  unknown,
+  { username?: string; password?: string }
+>('/linked-accounts/jellyfin', isOwnProfile(), async (req, res, next) => {
+  const userRepository = getRepository(User);
+
+  if (!req.user) {
+    return next({ status: 401, message: ApiErrorCode.Unauthorized });
+  }
+  if (!jellyfinLinkAvailable()) {
+    return next({
+      status: 400,
+      message:
+        "Jellyfin isn't connected yet. Ask an admin to set it up in Settings.",
+    });
+  }
+  if (!req.body.username) {
+    return next({
+      status: 400,
+      message: 'Enter your Jellyfin username and password.',
+    });
+  }
+
+  const hostname = getHostname();
+  const deviceId = Buffer.from(
+    req.user.id === 1
+      ? 'BOT_shufflerr'
+      : `BOT_shufflerr_${req.user.username ?? ''}`
+  ).toString('base64');
+
+  const jellyfinserver = new JellyfinAPI(hostname, undefined, deviceId);
+
+  const ip = req.ip;
+  let clientIp: string | undefined;
+  if (ip) {
+    if (net.isIPv4(ip)) {
+      clientIp = ip;
+    } else if (net.isIPv6(ip)) {
+      clientIp = ip.startsWith('::ffff:') ? ip.substring(7) : ip;
+    }
+  }
+
+  try {
+    const account = await jellyfinserver.login(
+      req.body.username,
+      req.body.password,
+      clientIp
+    );
+
+    // Do not allow linking of an already linked account
     if (
-      settings.main.mediaServerType !== MediaServerType.JELLYFIN &&
-      settings.main.mediaServerType !== MediaServerType.EMBY
+      await userRepository.exist({
+        where: { jellyfinUserId: account.User.Id, id: Not(req.user.id) },
+      })
     ) {
-      return res
-        .status(500)
-        .json({ message: 'Jellyfin/Emby login is disabled' });
+      return next({
+        status: 422,
+        message:
+          'That Jellyfin account is already linked to another Shufflerr user.',
+      });
     }
 
-    try {
-      const user = await userRepository
-        .createQueryBuilder('user')
-        .addSelect('user.password')
-        .where({
-          id: Number(req.params.id),
-        })
-        .getOne();
+    const user = req.user;
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
-      }
-
-      if (user.id === 1) {
-        return res.status(400).json({
-          message:
-            'Cannot unlink media server accounts for the primary administrator.',
-        });
-      }
-
-      if (!user.email || !user.password) {
-        return res.status(400).json({
-          message: 'User does not have a local email or password set.',
-        });
-      }
-
-      user.userType = UserType.LOCAL;
-      user.jellyfinUserId = null;
-      user.jellyfinUsername = null;
-      user.jellyfinAuthToken = null;
-      user.jellyfinDeviceId = null;
-      await userRepository.save(user);
-
-      return res.status(204).send();
-    } catch (e) {
-      return res.status(500).json({ message: e.message });
+    // valid jellyfin user found, link to current user
+    if (!user.plexId) {
+      user.userType = isEmby() ? UserType.EMBY : UserType.JELLYFIN;
     }
+    user.jellyfinUserId = account.User.Id;
+    user.jellyfinUsername = account.User.Name;
+    user.jellyfinAuthToken = account.AccessToken;
+    user.jellyfinDeviceId = deviceId;
+    await userRepository.save(user);
+
+    return res.status(200).json(await linkedStatus(user, 'jellyfin'));
+  } catch (e) {
+    logger.error('Failed to link a Jellyfin account.', {
+      label: 'API',
+      ip: req.ip,
+      errorMessage: e.message,
+    });
+    if (
+      e instanceof ApiError &&
+      e.errorCode === ApiErrorCode.InvalidCredentials
+    ) {
+      return next({
+        status: 401,
+        message: "Jellyfin didn't accept that username and password.",
+        errors: [e.errorCode],
+      });
+    }
+
+    return next({
+      status: 500,
+      message: "Couldn't reach Jellyfin. Try again in a moment.",
+    });
   }
-);
+});
 
-userSettingsRoutes.post<{ secret: string }>(
+userSettingsRoutes.post<{ id: string }, unknown, { secret?: string }>(
   '/linked-accounts/jellyfin/quickconnect',
   isOwnProfile(),
-  async (req, res) => {
-    const settings = getSettings();
+  async (req, res, next) => {
     const userRepository = getRepository(User);
 
     if (!req.user) {
-      return res.status(401).json({ code: ApiErrorCode.Unauthorized });
+      return next({ status: 401, message: ApiErrorCode.Unauthorized });
     }
 
     const result = quickConnectSecret.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ message: 'Invalid secret format' });
+      return next({ status: 400, message: 'Invalid secret format' });
     }
 
     const { secret } = result.data;
 
-    if (
-      settings.main.mediaServerType !== MediaServerType.JELLYFIN &&
-      settings.main.mediaServerType !== MediaServerType.EMBY
-    ) {
-      return res
-        .status(500)
-        .json({ message: 'Jellyfin/Emby login is disabled' });
+    if (!jellyfinLinkAvailable()) {
+      return next({
+        status: 400,
+        message:
+          "Jellyfin isn't connected yet. Ask an admin to set it up in Settings.",
+      });
     }
 
-    if (settings.main.mediaServerType !== MediaServerType.JELLYFIN) {
-      return res
-        .status(403)
-        .json({ message: 'Quick Connect is only supported by Jellyfin.' });
+    if (isEmby()) {
+      return next({
+        status: 403,
+        message: 'Quick Connect is only supported by Jellyfin.',
+      });
     }
 
     const hostname = getHostname();
@@ -558,12 +760,13 @@ userSettingsRoutes.post<{ secret: string }>(
 
       if (
         await userRepository.exist({
-          where: { jellyfinUserId: account.User.Id },
+          where: { jellyfinUserId: account.User.Id, id: Not(req.user.id) },
         })
       ) {
-        return res.status(422).json({
+        return next({
+          status: 422,
           message:
-            'The specified account is already linked to a Shufflerr user',
+            'That Jellyfin account is already linked to another Shufflerr user.',
         });
       }
 
@@ -572,36 +775,322 @@ userSettingsRoutes.post<{ secret: string }>(
         user.id === 1 ? 'BOT_shufflerr' : `BOT_shufflerr_${user.username ?? ''}`
       ).toString('base64');
 
-      user.userType = UserType.JELLYFIN;
+      if (!user.plexId) {
+        user.userType = UserType.JELLYFIN;
+      }
       user.jellyfinUserId = account.User.Id;
       user.jellyfinUsername = account.User.Name;
       user.jellyfinAuthToken = account.AccessToken;
       user.jellyfinDeviceId = deviceId;
       await userRepository.save(user);
 
-      return res.status(204).send();
+      return res.status(200).json(await linkedStatus(user, 'jellyfin'));
     } catch (e) {
       logger.error('Failed to link account with Quick Connect.', {
         label: 'API',
         ip: req.ip,
-        error: e,
+        errorMessage: e.message,
       });
 
-      const status = e instanceof ApiError ? e.statusCode : 500;
-      return res.status(status).send();
+      return next({
+        status: e instanceof ApiError ? e.statusCode : 500,
+        message: "Jellyfin didn't approve that Quick Connect code.",
+      });
     }
   }
 );
+
+// ListenBrainz: the user pastes their token; it is checked before it is stored.
+userSettingsRoutes.post<{ id: string }, unknown, { token?: string }>(
+  '/linked-accounts/listenbrainz',
+  isOwnProfile(),
+  async (req, res, next) => {
+    if (!req.user) {
+      return next({ status: 401, message: ApiErrorCode.Unauthorized });
+    }
+    if (!getSettings().integrations.listenbrainz) {
+      return next({ status: 400, message: 'ListenBrainz is turned off.' });
+    }
+    const token = (req.body.token ?? '').trim();
+    if (!token) {
+      return next({
+        status: 400,
+        message:
+          'Paste your ListenBrainz user token. You find it on listenbrainz.org under Settings.',
+      });
+    }
+
+    try {
+      const result = await linkProviders.listenbrainzValidate(token);
+      await setLinkedAccount(req.user.id, 'listenbrainz', result);
+      return res.status(200).json(await linkedStatus(req.user, 'listenbrainz'));
+    } catch (e) {
+      if (e instanceof InvalidLinkTokenError) {
+        return next({ status: 400, message: e.message });
+      }
+      logger.error('Failed to validate a ListenBrainz token.', {
+        label: 'API',
+        userId: req.user.id,
+        errorMessage: e.message,
+      });
+      return next({
+        status: 502,
+        message: "Couldn't reach ListenBrainz to check the token. Try again.",
+      });
+    }
+  }
+);
+
+// Last.fm and Spotify start in the browser: open the returned URL.
+userSettingsRoutes.get<{ id: string; provider: string }, LinkAuthorizeResponse>(
+  '/linked-accounts/:provider/authorize',
+  isOwnProfile(),
+  async (req, res, next) => {
+    if (!req.user) {
+      return next({ status: 401, message: ApiErrorCode.Unauthorized });
+    }
+    const integrations = getSettings().integrations;
+    const returnPath = '/profile/settings/linked-accounts';
+
+    switch (req.params.provider) {
+      case 'lastfm':
+        if (!integrations.lastfmScrobble) {
+          return next({ status: 400, message: 'Last.fm is turned off.' });
+        }
+        return res.status(200).json({
+          url: buildLastfmAuthorizeUrl(req.user.id, returnPath, req),
+        });
+      case 'spotify':
+        if (!integrations.spotify) {
+          return next({ status: 400, message: 'Spotify is turned off.' });
+        }
+        return res.status(200).json({
+          url: buildSpotifyAuthorizeUrl(req.user.id, returnPath, req),
+        });
+      default:
+        return next({
+          status: 404,
+          message: "That account type can't be linked this way.",
+        });
+    }
+  }
+);
+
+userSettingsRoutes.delete<{ id: string; provider: string }>(
+  '/linked-accounts/:provider',
+  isOwnProfileOrAdmin(),
+  async (req, res, next) => {
+    try {
+      const targetId = Number(req.params.id);
+      if (ownerGuard(targetId, req.user)) {
+        return next({ status: 403, message: SETTINGS_MESSAGES.ownerOnly });
+      }
+      const provider = req.params.provider;
+
+      if (provider === 'plex' || provider === 'jellyfin') {
+        const result = await unlinkMediaServer(targetId, provider);
+        if (result.status !== 204) {
+          return next(result);
+        }
+        return res.status(204).send();
+      }
+
+      if (!isLinkProvider(provider)) {
+        return next({ status: 404, message: 'Unknown account type.' });
+      }
+
+      await removeLinkedAccount(targetId, provider);
+
+      // No Spotify link, nothing to auto-request from.
+      if (provider === 'spotify') {
+        const user = await getRepository(User).findOne({
+          where: { id: targetId },
+        });
+        if (user?.settings?.autoRequestSpotifySaved) {
+          user.settings.autoRequestSpotifySaved = false;
+          await getRepository(User).save(user);
+        }
+      }
+
+      return res.status(204).send();
+    } catch (e) {
+      next({ status: 500, message: e.message });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// App passwords
+// ---------------------------------------------------------------------------
+
+userSettingsRoutes.get<{ id: string }, UserSettingsAppPasswordsResponse>(
+  '/app-passwords',
+  isOwnProfileOrAdmin(),
+  async (req, res, next) => {
+    try {
+      const settings = getSettings();
+      const user = await getRepository(User).findOne({
+        where: { id: Number(req.params.id) },
+      });
+      if (!user) {
+        return next({ status: 404, message: 'User not found.' });
+      }
+
+      return res.status(200).json({
+        serverUrl: getBaseUrl(req),
+        username: clientUsername(user),
+        openSubsonicEnabled: settings.clients.openSubsonic,
+        jellyfinApiEnabled: settings.clients.jellyfinApi,
+        passwords: await listAppPasswords(user.id),
+      });
+    } catch (e) {
+      next({ status: 500, message: e.message });
+    }
+  }
+);
+
+userSettingsRoutes.post<
+  { id: string },
+  AppPasswordCreatedResponse,
+  { name?: string }
+>('/app-passwords', isOwnProfile(), async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return next({ status: 401, message: ApiErrorCode.Unauthorized });
+    }
+    const name = (req.body.name ?? '').trim();
+    if (!name || name.length > 80) {
+      return next({
+        status: 400,
+        message: SETTINGS_MESSAGES.appPasswordName,
+        errors: ['name'],
+      });
+    }
+
+    const { item, password } = await createAppPassword(req.user, name);
+    logger.info('Created an app password', {
+      label: 'User Settings',
+      userId: req.user.id,
+      appPasswordId: item.id,
+    });
+
+    // The only time the plaintext leaves the server.
+    return res.status(201).json({ ...item, password });
+  } catch (e) {
+    next({ status: 500, message: e.message });
+  }
+});
+
+userSettingsRoutes.delete<{ id: string; passwordId: string }>(
+  '/app-passwords/:passwordId',
+  isOwnProfileOrAdmin(),
+  async (req, res, next) => {
+    try {
+      const targetId = Number(req.params.id);
+      if (ownerGuard(targetId, req.user)) {
+        return next({ status: 403, message: SETTINGS_MESSAGES.ownerOnly });
+      }
+      const removed = await revokeAppPassword(
+        targetId,
+        Number(req.params.passwordId)
+      );
+      if (!removed) {
+        return next({ status: 404, message: 'App password not found.' });
+      }
+      return res.status(204).send();
+    } catch (e) {
+      next({ status: 500, message: e.message });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+type ChannelKey = keyof UserSettingsNotificationsResponse['channels'];
+const CHANNELS: ChannelKey[] = [
+  'email',
+  'webpush',
+  'discord',
+  'telegram',
+  'pushbullet',
+  'pushover',
+];
+
+/** Manager-only types are offered only to people who manage requests. */
+const availableTypesFor = (user: User): NotificationTypeKey[] =>
+  MUSIC_NOTIFICATION_TYPES.filter(
+    (type) =>
+      !MANAGER_NOTIFICATION_TYPES.includes(type) ||
+      user.hasPermission(Permission.MANAGE_REQUESTS)
+  );
+
+const buildNotifications = (user: User): UserSettingsNotificationsResponse => {
+  const agents = getSettings().notifications.agents;
+  const availableTypes = availableTypesFor(user);
+  const stored = user.settings?.notificationTypes ?? {};
+
+  const channel = (
+    key: ChannelKey,
+    available: boolean
+  ): UserNotificationChannel => {
+    // Without saved settings, email and web push default to everything
+    // (Seerr behaviour); the other channels start off.
+    const mask =
+      stored[key] ??
+      (key === 'email' || key === 'webpush' ? typesToMask(availableTypes) : 0);
+    const types = maskToTypes(mask).filter((type) =>
+      availableTypes.includes(type)
+    );
+    return { available, enabled: types.length > 0, types };
+  };
+
+  return {
+    availableTypes,
+    channels: {
+      email: {
+        ...channel('email', agents.email.enabled),
+        pgpKey: user.settings?.pgpKey ?? undefined,
+      },
+      webpush: channel('webpush', agents.webpush.enabled),
+      discord: {
+        ...channel(
+          'discord',
+          agents.discord.enabled && !!agents.discord.options.enableMentions
+        ),
+        discordIds: user.settings?.discordIds ?? [],
+      },
+      telegram: {
+        ...channel('telegram', agents.telegram.enabled),
+        telegramBotUsername: agents.telegram.options.botUsername || undefined,
+        telegramChatId: user.settings?.telegramChatId ?? undefined,
+        telegramMessageThreadId:
+          user.settings?.telegramMessageThreadId ?? undefined,
+        telegramSendSilently: user.settings?.telegramSendSilently ?? false,
+      },
+      pushbullet: {
+        ...channel('pushbullet', agents.pushbullet.enabled),
+        pushbulletAccessToken:
+          user.settings?.pushbulletAccessToken ?? undefined,
+      },
+      pushover: {
+        ...channel('pushover', agents.pushover.enabled),
+        pushoverApplicationToken:
+          user.settings?.pushoverApplicationToken ?? undefined,
+        pushoverUserKey: user.settings?.pushoverUserKey ?? undefined,
+        pushoverSound: user.settings?.pushoverSound ?? undefined,
+      },
+    },
+  };
+};
 
 userSettingsRoutes.get<{ id: string }, UserSettingsNotificationsResponse>(
   '/notifications',
   isOwnProfileOrAdmin(),
   async (req, res, next) => {
-    const userRepository = getRepository(User);
-    const settings = getSettings()?.notifications.agents;
-
     try {
-      const user = await userRepository.findOne({
+      const user = await getRepository(User).findOne({
         where: { id: Number(req.params.id) },
       });
 
@@ -609,112 +1098,147 @@ userSettingsRoutes.get<{ id: string }, UserSettingsNotificationsResponse>(
         return next({ status: 404, message: 'User not found.' });
       }
 
-      // STREAM(SV4): return UserSettingsNotificationsResponse (channels shape)
-      return res.status(200).json(<UserSettingsNotificationsResponse>(<unknown>{
-        emailEnabled: settings.email.enabled,
-        pgpKey: user.settings?.pgpKey,
-        discordEnabled:
-          settings?.discord.enabled && settings.discord.options.enableMentions,
-        discordEnabledTypes:
-          settings?.discord.enabled && settings.discord.options.enableMentions
-            ? settings.discord.types
-            : 0,
-        discordIds: user.settings?.discordIds ?? [],
-        pushbulletAccessToken: user.settings?.pushbulletAccessToken,
-        pushoverApplicationToken: user.settings?.pushoverApplicationToken,
-        pushoverUserKey: user.settings?.pushoverUserKey,
-        pushoverSound: user.settings?.pushoverSound,
-        telegramEnabled: settings.telegram.enabled,
-        telegramBotUsername: settings.telegram.options.botUsername,
-        telegramChatId: user.settings?.telegramChatId,
-        telegramMessageThreadId: user.settings?.telegramMessageThreadId,
-        telegramSendSilently: user.settings?.telegramSendSilently,
-        webPushEnabled: settings.webpush.enabled,
-        notificationTypes: user.settings?.notificationTypes ?? {},
-      }));
+      return res.status(200).json(buildNotifications(user));
     } catch (e) {
       next({ status: 500, message: e.message });
     }
   }
 );
 
-userSettingsRoutes.post<{ id: string }, UserSettingsNotificationsResponse>(
-  '/notifications',
-  isOwnProfileOrAdmin(),
-  async (req, res, next) => {
-    const userRepository = getRepository(User);
+type ChannelInput = Partial<
+  UserNotificationChannel & {
+    pgpKey: string;
+    discordIds: string[];
+    telegramChatId: string;
+    telegramMessageThreadId: string;
+    telegramSendSilently: boolean;
+    pushbulletAccessToken: string;
+    pushoverApplicationToken: string;
+    pushoverUserKey: string;
+    pushoverSound: string;
+  }
+>;
 
-    try {
-      const user = await userRepository.findOne({
-        where: { id: Number(req.params.id) },
-      });
+userSettingsRoutes.post<
+  { id: string },
+  UserSettingsNotificationsResponse,
+  { channels?: Partial<Record<ChannelKey, ChannelInput>> }
+>('/notifications', isOwnProfileOrAdmin(), async (req, res, next) => {
+  const userRepository = getRepository(User);
 
-      if (!user) {
-        return next({ status: 404, message: 'User not found.' });
+  try {
+    const user = await userRepository.findOne({
+      where: { id: Number(req.params.id) },
+    });
+
+    if (!user) {
+      return next({ status: 404, message: 'User not found.' });
+    }
+
+    // "Owner" user settings cannot be modified by other users
+    if (ownerGuard(user.id, req.user)) {
+      return next({ status: 403, message: SETTINGS_MESSAGES.ownerOnly });
+    }
+
+    const channels = req.body.channels ?? {};
+    const availableTypes = availableTypesFor(user);
+
+    if (!user.settings) {
+      user.settings = new UserSettings({ user, notificationTypes: {} });
+    }
+    const settings = user.settings;
+    const current = buildNotifications(user).channels;
+    const masks = { ...(settings.notificationTypes ?? {}) };
+
+    for (const key of CHANNELS) {
+      const input = channels[key];
+      if (!input) {
+        continue;
       }
+      // "Send me <channel> notifications" off = no types; the checklist is
+      // kept client-side while the switch is off.
+      const enabled = input.enabled ?? current[key].enabled;
+      const types = (input.types ?? current[key].types).filter((type) =>
+        availableTypes.includes(type)
+      );
+      masks[key] = enabled ? typesToMask(types) : 0;
+    }
+    settings.notificationTypes = masks;
 
-      // "Owner" user settings cannot be modified by other users
-      if (user.id === 1 && req.user?.id !== 1) {
+    // Channel fields: only touch what was sent. Empty string clears.
+    const text = (value: string | undefined, currentValue?: string) =>
+      value === undefined ? currentValue : value.trim() || undefined;
+
+    if (channels.email) {
+      settings.pgpKey = text(channels.email.pgpKey, settings.pgpKey);
+    }
+    if (channels.discord?.discordIds !== undefined) {
+      const ids = (channels.discord.discordIds ?? [])
+        .map((id) => String(id).trim())
+        .filter((id) => id !== '');
+      if (ids.some((id) => !/^\d{17,20}$/.test(id))) {
         return next({
-          status: 403,
-          message: "You do not have permission to modify this user's settings.",
+          status: 400,
+          message:
+            'A Discord user ID is a number of 17 to 20 digits. Copy it from Discord with developer mode on.',
+          errors: ['discordIds'],
         });
       }
-
-      const discordIds =
-        req.body.discordIds?.filter((id: string) => id !== '') ?? [];
-
-      if (!user.settings) {
-        user.settings = new UserSettings({
-          user: req.user,
-          pgpKey: req.body.pgpKey,
-          discordIds,
-          pushbulletAccessToken: req.body.pushbulletAccessToken,
-          pushoverApplicationToken: req.body.pushoverApplicationToken,
-          pushoverUserKey: req.body.pushoverUserKey,
-          telegramChatId: req.body.telegramChatId,
-          telegramMessageThreadId: req.body.telegramMessageThreadId,
-          telegramSendSilently: req.body.telegramSendSilently,
-          notificationTypes: req.body.notificationTypes,
-        });
-      } else {
-        user.settings.pgpKey = req.body.pgpKey;
-        user.settings.discordIds = discordIds;
-        user.settings.pushbulletAccessToken = req.body.pushbulletAccessToken;
-        user.settings.pushoverApplicationToken =
-          req.body.pushoverApplicationToken;
-        user.settings.pushoverUserKey = req.body.pushoverUserKey;
-        user.settings.pushoverSound = req.body.pushoverSound;
-        user.settings.telegramChatId = req.body.telegramChatId;
-        user.settings.telegramMessageThreadId =
-          req.body.telegramMessageThreadId;
-        user.settings.telegramSendSilently = req.body.telegramSendSilently;
-        user.settings.notificationTypes = Object.assign(
-          {},
-          user.settings.notificationTypes,
-          req.body.notificationTypes
-        );
-      }
-
-      await userRepository.save(user);
-
-      return res.status(200).json(<UserSettingsNotificationsResponse>(<unknown>{
-        pgpKey: user.settings.pgpKey,
-        discordIds: user.settings.discordIds ?? [],
-        pushbulletAccessToken: user.settings.pushbulletAccessToken,
-        pushoverApplicationToken: user.settings.pushoverApplicationToken,
-        pushoverUserKey: user.settings.pushoverUserKey,
-        pushoverSound: user.settings.pushoverSound,
-        telegramChatId: user.settings.telegramChatId,
-        telegramMessageThreadId: user.settings.telegramMessageThreadId,
-        telegramSendSilently: user.settings.telegramSendSilently,
-        notificationTypes: user.settings.notificationTypes,
-      }));
-    } catch (e) {
-      next({ status: 500, message: e.message });
+      settings.discordIds = ids;
     }
+    if (channels.telegram) {
+      settings.telegramChatId = text(
+        channels.telegram.telegramChatId,
+        settings.telegramChatId
+      );
+      settings.telegramMessageThreadId = text(
+        channels.telegram.telegramMessageThreadId,
+        settings.telegramMessageThreadId
+      );
+      if (channels.telegram.telegramSendSilently !== undefined) {
+        settings.telegramSendSilently =
+          !!channels.telegram.telegramSendSilently;
+      }
+    }
+    if (channels.pushbullet) {
+      settings.pushbulletAccessToken = text(
+        channels.pushbullet.pushbulletAccessToken,
+        settings.pushbulletAccessToken
+      );
+    }
+    if (channels.pushover) {
+      settings.pushoverApplicationToken = text(
+        channels.pushover.pushoverApplicationToken,
+        settings.pushoverApplicationToken
+      );
+      settings.pushoverUserKey = text(
+        channels.pushover.pushoverUserKey,
+        settings.pushoverUserKey
+      );
+      settings.pushoverSound = text(
+        channels.pushover.pushoverSound,
+        settings.pushoverSound
+      );
+    }
+
+    await userRepository.save(user);
+
+    return res.status(200).json(buildNotifications(user));
+  } catch (e) {
+    next({ status: 500, message: e.message });
   }
-);
+});
+
+// ---------------------------------------------------------------------------
+// Permissions
+// ---------------------------------------------------------------------------
+
+/**
+ * Seerr rule, kept: the tab is hidden on your own account unless you're the
+ * owner (`currentUser.id !== 1 && currentUser.id === user.id`).
+ */
+const ownPermissionsHidden = (targetId: number, actor?: User): boolean =>
+  actor?.id !== 1 && actor?.id === targetId;
 
 userSettingsRoutes.get<{ id: string }, { permissions?: number }>(
   '/permissions',
@@ -729,6 +1253,13 @@ userSettingsRoutes.get<{ id: string }, { permissions?: number }>(
 
       if (!user) {
         return next({ status: 404, message: 'User not found.' });
+      }
+
+      if (ownPermissionsHidden(user.id, req.user)) {
+        return next({
+          status: 403,
+          message: SETTINGS_MESSAGES.ownPermissions,
+        });
       }
 
       return res.status(200).json({ permissions: user.permissions });
@@ -757,21 +1288,46 @@ userSettingsRoutes.post<
         return next({ status: 404, message: 'User not found.' });
       }
 
-      // "Owner" user permissions cannot be modified, and users cannot set their own permissions
-      if (user.id === 1 || req.user?.id === user.id) {
+      // The owner always has full access; nobody edits that, the owner included.
+      if (user.id === 1) {
         return next({
           status: 403,
-          message: 'You do not have permission to modify this user',
+          message: SETTINGS_MESSAGES.ownerPermissions,
         });
       }
 
-      if (!canMakePermissionsChange(req.body.permissions, req.user)) {
+      // Users cannot set their own permissions.
+      if (req.user?.id === user.id) {
         return next({
           status: 403,
-          message: 'You do not have permission to grant this level of access',
+          message: SETTINGS_MESSAGES.ownPermissions,
         });
       }
-      user.permissions = req.body.permissions;
+
+      if (!Number.isInteger(req.body.permissions) || req.body.permissions < 0) {
+        return next({
+          status: 400,
+          message: 'Choose the permissions to save.',
+        });
+      }
+
+      // Only the owner grants admin, or changes someone who already is one.
+      if (
+        !canMakePermissionsChange(req.body.permissions, req.user) ||
+        (user.hasPermission(Permission.ADMIN) && req.user?.id !== 1)
+      ) {
+        return next({
+          status: 403,
+          message: SETTINGS_MESSAGES.adminOnlyByOwner,
+        });
+      }
+
+      // ADMIN covers everything else (docs/PERMISSIONS_AND_APPROVALS.md):
+      // store just that bit.
+      user.permissions =
+        req.body.permissions & Permission.ADMIN
+          ? Permission.ADMIN
+          : req.body.permissions;
 
       await userRepository.save(user);
 

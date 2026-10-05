@@ -1,0 +1,11 @@
+{
+  "name": "John Summit",
+  "mbid_id": "2547c5e3-314c-4332-981d-f18c902a4086",
+  "artistthumb": [
+    { "id": "1", "url": "https://assets.fanart.tv/fanart/music/2547c5e3-314c-4332-981d-f18c902a4086/artistthumb/a.jpg", "likes": "1" },
+    { "id": "2", "url": "https://assets.fanart.tv/fanart/music/2547c5e3-314c-4332-981d-f18c902a4086/artistthumb/b.jpg", "likes": "4" }
+  ],
+  "artistbackground": [
+    { "id": "3", "url": "http://assets.fanart.tv/fanart/music/2547c5e3-314c-4332-981d-f18c902a4086/artistbackground/c.jpg", "likes": "0" }
+  ]
+}

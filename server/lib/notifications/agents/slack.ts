@@ -1,5 +1,4 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-// STREAM(SV5): reword for music (types, copy, payload variables).
 import { IssueStatus, IssueTypeName } from '@server/constants/issue';
 import { getIntl } from '@server/i18n';
 import globalMessages from '@server/i18n/globalMessages';

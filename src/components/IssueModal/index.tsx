@@ -1,31 +1,30 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import CreateIssueModal from '@app/components/IssueModal/CreateIssueModal';
-import { Transition } from '@headlessui/react';
+import { Permission, useUser } from '@app/hooks/useUser';
 
-interface IssueModalProps {
-  show?: boolean;
-  onCancel: () => void;
-  mediaType: 'movie' | 'tv';
-  tmdbId: number;
-  issueId?: never;
+export interface IssueModalProps {
+  mediaType: 'artist' | 'release-group';
+  mbid: string;
+  show: boolean;
+  onClose: () => void;
 }
 
-const IssueModal = ({ show, mediaType, onCancel, tmdbId }: IssueModalProps) => (
-  <Transition
-    as="div"
-    enter="transition-opacity duration-300"
-    enterFrom="opacity-0"
-    enterTo="opacity-100"
-    leave="transition-opacity duration-300"
-    leaveFrom="opacity-100"
-    leaveTo="opacity-0"
-    show={show}
-  >
-    <CreateIssueModal
-      mediaType={mediaType}
-      onCancel={onCancel}
-      tmdbId={tmdbId}
-    />
-  </Transition>
-);
+/** "Report a problem" dialog for an album or artist. */
+const IssueModal = ({ mediaType, mbid, show, onClose }: IssueModalProps) => {
+  const { hasPermission } = useUser();
+
+  if (
+    !show ||
+    !hasPermission([Permission.MANAGE_ISSUES, Permission.CREATE_ISSUES], {
+      type: 'or',
+    })
+  ) {
+    return null;
+  }
+
+  return (
+    <CreateIssueModal mediaType={mediaType} mbid={mbid} onCancel={onClose} />
+  );
+};
 
 export default IssueModal;

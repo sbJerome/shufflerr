@@ -1,145 +1,77 @@
-import EmbyLogo from '@app/assets/services/emby.svg';
-import ImdbLogo from '@app/assets/services/imdb.svg';
-import JellyfinLogo from '@app/assets/services/jellyfin.svg';
-import LetterboxdLogo from '@app/assets/services/letterboxd.svg';
-import PlexLogo from '@app/assets/services/plex.svg';
-import RTLogo from '@app/assets/services/rt.svg';
-import SimklLogo from '@app/assets/services/simkl.svg';
-import TmdbLogo from '@app/assets/services/tmdb.svg';
-import TraktLogo from '@app/assets/services/trakt.svg';
-import TvdbLogo from '@app/assets/services/tvdb.svg';
-import useLocale from '@app/hooks/useLocale';
-import useSettings from '@app/hooks/useSettings';
-import { MediaType } from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import defineMessages from '@app/utils/defineMessages';
+import type { ExternalLink } from '@server/models/music';
+import { useIntl } from 'react-intl';
 
-type ExternalLinkType = 'movie' | 'tv' | 'person';
+const messages = defineMessages('components.ExternalLinkBlock', {
+  openIn: 'Open in {name}',
+  open: 'Open {name}',
+  newTab: '(opens in a new tab)',
+  official: 'Official site',
+  other: 'Link',
+});
+
+const names: Partial<Record<ExternalLink['type'], string>> = {
+  musicbrainz: 'MusicBrainz',
+  lidarr: 'Lidarr',
+  plex: 'Plex',
+  jellyfin: 'Jellyfin',
+  navidrome: 'Navidrome',
+  lastfm: 'Last.fm',
+  discogs: 'Discogs',
+  spotify: 'Spotify',
+  bandcamp: 'Bandcamp',
+  apple: 'Apple Music',
+};
 
 interface ExternalLinkBlockProps {
-  mediaType: ExternalLinkType;
-  tmdbId?: number;
-  tvdbId?: number;
-  imdbId?: string;
-  rtUrl?: string;
-  mediaUrl?: string;
+  links: ExternalLink[];
+  /** Limit to these link types, in this order. */
+  only?: ExternalLink['type'][];
 }
 
-const ExternalLinkBlock = ({
-  mediaType,
-  tmdbId,
-  tvdbId,
-  imdbId,
-  rtUrl,
-  mediaUrl,
-}: ExternalLinkBlockProps) => {
-  const settings = useSettings();
-  const { locale } = useLocale();
+/** A row of "Open in …" links. Renders nothing when there are none. */
+const ExternalLinkBlock = ({ links, only }: ExternalLinkBlockProps) => {
+  const intl = useIntl();
+  const shown = (
+    only
+      ? only.flatMap((type) => links.filter((link) => link.type === type))
+      : links
+  ).filter((link) => /^https?:\/\//i.test(link.url));
+
+  if (shown.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="flex w-full items-center justify-center space-x-2 sm:space-x-5">
-      {mediaUrl && (
-        <a
-          href={mediaUrl}
-          className="w-12 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {settings.currentSettings.mediaServerType === MediaServerType.PLEX ? (
-            <PlexLogo />
-          ) : settings.currentSettings.mediaServerType ===
-            MediaServerType.EMBY ? (
-            <EmbyLogo />
-          ) : (
-            <JellyfinLogo />
-          )}
-        </a>
-      )}
-      {tmdbId && (
-        <a
-          href={`https://www.themoviedb.org/${mediaType}/${tmdbId}?language=${locale}`}
-          className="w-8 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <TmdbLogo />
-        </a>
-      )}
-      {tvdbId && mediaType === MediaType.TV && (
-        <a
-          href={`http://www.thetvdb.com/?tab=series&id=${tvdbId}`}
-          className="w-9 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <TvdbLogo />
-        </a>
-      )}
-      {imdbId && mediaType !== 'person' && (
-        <a
-          href={`https://www.imdb.com/title/${imdbId}`}
-          className="w-8 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <ImdbLogo />
-        </a>
-      )}
-      {imdbId && mediaType === 'person' && (
-        <a
-          href={`https://www.imdb.com/name/${imdbId}`}
-          className="w-8 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <ImdbLogo />
-        </a>
-      )}
-      {rtUrl && (
-        <a
-          href={rtUrl}
-          className="w-14 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <RTLogo />
-        </a>
-      )}
-      {imdbId && mediaType !== 'person' && (
-        <a
-          href={`https://trakt.tv/${
-            mediaType === 'movie' ? 'movies' : 'shows'
-          }/${imdbId}`}
-          className="w-8 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <TraktLogo />
-        </a>
-      )}
-      {imdbId && mediaType !== 'person' && (
-        <a
-          href={`https://api.simkl.com/redirect?to=Simkl&imdb=${encodeURIComponent(
-            imdbId
-          )}`}
-          aria-label="Simkl"
-          className="w-8 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <SimklLogo />
-        </a>
-      )}
-      {tmdbId && mediaType === MediaType.MOVIE && (
-        <a
-          href={`https://letterboxd.com/tmdb/${tmdbId}`}
-          className="w-8 opacity-50 transition duration-300 hover:opacity-100"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <LetterboxdLogo />
-        </a>
-      )}
-    </div>
+    <ul className="flex flex-wrap gap-2">
+      {shown.map((link) => {
+        const name = names[link.type];
+        const text =
+          link.label ??
+          (name
+            ? intl.formatMessage(messages.openIn, { name })
+            : link.type === 'official'
+              ? intl.formatMessage(messages.official)
+              : intl.formatMessage(messages.other));
+        return (
+          <li key={`${link.type}:${link.url}`}>
+            <a
+              className="sh-btn small"
+              href={link.url}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {text}
+              <span className="sr-only">
+                {' '}
+                {intl.formatMessage(messages.newTab)}
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
   );
 };
 

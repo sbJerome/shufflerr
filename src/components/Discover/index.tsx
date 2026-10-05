@@ -1,465 +1,377 @@
-import Button from '@app/components/Common/Button';
-import ConfirmButton from '@app/components/Common/ConfirmButton';
-import LoadingSpinner from '@app/components/Common/LoadingSpinner';
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import AlbumCard from '@app/components/AlbumCard';
+import ArtistCard from '@app/components/ArtistCard';
 import PageTitle from '@app/components/Common/PageTitle';
-import Tooltip from '@app/components/Common/Tooltip';
-import CreateSlider from '@app/components/Discover/CreateSlider';
-import DiscoverSliderEdit from '@app/components/Discover/DiscoverSliderEdit';
-import MovieGenreSlider from '@app/components/Discover/MovieGenreSlider';
-import NetworkSlider from '@app/components/Discover/NetworkSlider';
-import PlexWatchlistSlider from '@app/components/Discover/PlexWatchlistSlider';
-import RecentRequestsSlider from '@app/components/Discover/RecentRequestsSlider';
-import RecentlyAddedSlider from '@app/components/Discover/RecentlyAddedSlider';
-import StudioSlider from '@app/components/Discover/StudioSlider';
-import TvGenreSlider from '@app/components/Discover/TvGenreSlider';
-import { sliderTitles } from '@app/components/Discover/constants';
-import MediaSlider from '@app/components/MediaSlider';
-import { encodeURIExtraParams } from '@app/hooks/useDiscover';
-import useToasts from '@app/hooks/useToasts';
+import CoverArt from '@app/components/CoverArt';
+import FeaturedRelease from '@app/components/Discover/FeaturedRelease';
+import HorizontalRow from '@app/components/HorizontalRow';
+import RequestButton from '@app/components/RequestButton';
+import useRequestText from '@app/components/RequestList/requestText';
+import { isRequestable, toModalAlbum } from '@app/components/RequestModal/subject';
+import StatusBadge from '@app/components/StatusBadge';
+import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
-import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
-import { Transition } from '@headlessui/react';
-import {
-  ArrowDownOnSquareIcon,
-  ArrowPathIcon,
-  ArrowUturnLeftIcon,
-  PencilIcon,
-  PlusIcon,
-} from '@heroicons/react/24/solid';
-import { DiscoverSliderType } from '@server/constants/discover';
-import type DiscoverSlider from '@server/entity/DiscoverSlider';
-import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { MediaType } from '@server/constants/media';
+import type {
+  DiscoverAlbumsResponse,
+  DiscoverArtistsResponse,
+  DiscoverConcertsResponse,
+  DiscoverRecentRequestsResponse,
+  DiscoverStatsResponse,
+} from '@server/interfaces/api/discoverInterfaces';
+import Link from 'next/link';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.Discover', {
   discover: 'Discover',
-  emptywatchlist:
-    'Media added to your <PlexWatchlistSupportLink>Plex Watchlist</PlexWatchlistSupportLink> will appear here.',
-  resettodefault: 'Reset to Default',
-  resetwarning:
-    'Reset all sliders to default. This will also delete any custom sliders!',
-  updatesuccess: 'Updated discover customization settings.',
-  updatefailed:
-    'Something went wrong updating the discover customization settings.',
-  resetsuccess: 'Sucessfully reset discover customization settings.',
-  resetfailed:
-    'Something went wrong resetting the discover customization settings.',
-  customizediscover: 'Customize Discover',
-  stopediting: 'Stop Editing',
-  createnewslider: 'Create New Slider',
+  heroline1: 'Find it. Request it.',
+  heroline2: 'Hear it tonight.',
+  blurb:
+    'Search MusicBrainz, request an album or a whole discography, and Shufflerr hands it to Lidarr. You get a ping when it lands in the library.',
+  searchmusic: 'Search music',
+  seerequests: 'See requests',
+  statalbums: 'Albums in library',
+  statartists: 'Artists',
+  stattracks: 'Tracks',
+  statdownloading: 'Downloading now',
+  recentlyadded: 'Recently added',
+  recentlyaddedsub: 'The newest albums in your library',
+  seeall: 'See all',
+  trending: 'Trending new releases',
+  trendingsub: 'New releases people are listening to this week',
+  popularartists: 'Popular artists',
+  popularartistssub: 'Most played and requested on this server',
+  artistalbums:
+    '{count, plural, one {# album in library} other {# albums in library}}',
+  concerts: 'Concerts for artists you have',
+  concertsfrom: 'From {providers}',
+  tickets: 'Tickets',
+  ticketsfor: 'Tickets for {artist} on {provider}',
+  recentrequests: 'Recent requests',
+  yourrecentrequests: 'Your recent requests',
+  everyone: 'Everyone on this server',
+  onlyyou: 'Only you can see these',
+  allrequests: 'All requests',
+  norequests:
+    'You haven’t requested anything yet. Search for an album to start.',
+  norequestsall: 'Nobody has requested anything yet.',
 });
+
+const PROVIDER_NAME: Record<string, string> = {
+  ticketmaster: 'Ticketmaster',
+  skiddle: 'Skiddle',
+};
 
 const Discover = () => {
   const intl = useIntl();
   const { hasPermission } = useUser();
-  const { addToast } = useToasts();
-  const {
-    data: discoverData,
-    error: discoverError,
-    mutate,
-  } = useSWR<DiscoverSlider[]>('/api/v1/settings/discover');
-  const [sliders, setSliders] = useState<Partial<DiscoverSlider>[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const { currentSettings } = useSettings();
+  const text = useRequestText();
 
-  // We need to sync the state here so that we can modify the changes locally without commiting
-  // anything to the server until the user decides to save the changes
-  useEffect(() => {
-    if (discoverData && !isEditing) {
-      setSliders(discoverData);
-    }
-  }, [discoverData, isEditing]);
+  const canRequestAlbums = hasPermission(
+    [Permission.REQUEST, Permission.REQUEST_ALBUM],
+    { type: 'or' }
+  );
 
-  const hasChanged = () => !Object.is(discoverData, sliders);
+  const { data: stats } = useSWR<DiscoverStatsResponse>(
+    '/api/v1/discover/stats'
+  );
+  const { data: recent } = useSWR<DiscoverAlbumsResponse>(
+    '/api/v1/discover/recently-added?take=20'
+  );
+  const { data: trending } = useSWR<DiscoverAlbumsResponse>(
+    '/api/v1/discover/trending?take=20'
+  );
+  const { data: artists } = useSWR<DiscoverArtistsResponse>(
+    '/api/v1/discover/popular-artists?take=20'
+  );
+  const { data: concerts } = useSWR<DiscoverConcertsResponse>(
+    currentSettings.concertsEnabled ? '/api/v1/discover/concerts?take=20' : null
+  );
+  const { data: requests } = useSWR<DiscoverRecentRequestsResponse>(
+    '/api/v1/discover/recent-requests?take=5'
+  );
 
-  const updateSliders = async () => {
-    try {
-      await axios.post('/api/v1/settings/discover', sliders);
+  const stat = (value?: number) =>
+    value == null ? '–' : intl.formatNumber(value);
 
-      addToast(intl.formatMessage(messages.updatesuccess), {
-        appearance: 'success',
-        autoDismiss: true,
+  const ownOnly = requests
+    ? requests.ownOnly
+    : !hasPermission([Permission.MANAGE_REQUESTS, Permission.REQUEST_VIEW], {
+        type: 'or',
       });
-      setIsEditing(false);
-      mutate();
-    } catch {
-      addToast(intl.formatMessage(messages.updatefailed), {
-        appearance: 'error',
-        autoDismiss: true,
-      });
-    }
-  };
-
-  const resetSliders = async () => {
-    try {
-      await axios.get('/api/v1/settings/discover/reset');
-
-      addToast(intl.formatMessage(messages.resetsuccess), {
-        appearance: 'success',
-        autoDismiss: true,
-      });
-      setIsEditing(false);
-      mutate();
-    } catch {
-      addToast(intl.formatMessage(messages.resetfailed), {
-        appearance: 'error',
-        autoDismiss: true,
-      });
-    }
-  };
-
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const upcomingDate = new Date(now.getTime() - offset * 60 * 1000)
-    .toISOString()
-    .split('T')[0];
-
-  if (!discoverData && !discoverError) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <>
       <PageTitle title={intl.formatMessage(messages.discover)} />
-      {hasPermission(Permission.ADMIN) && (
-        <>
-          {isEditing && (
-            <div className="my-6 rounded-lg bg-gray-800">
-              <div className="flex items-center space-x-2 rounded-t-lg border-l border-r border-t border-gray-800 bg-gray-900 p-4 text-lg font-semibold text-gray-400">
-                <PlusIcon className="w-6" />
-                <span data-testid="create-slider-header">
-                  {intl.formatMessage(messages.createnewslider)}
-                </span>
-              </div>
-              <div className="p-4">
-                <CreateSlider
-                  onCreate={async () => {
-                    const newSliders = await mutate();
 
-                    if (newSliders) {
-                      setSliders(newSliders);
-                    }
-                  }}
-                />
-              </div>
+      <section className="sh-base-hero" aria-labelledby="discover-hero">
+        <div className="sh-bh-copy">
+          <p className="cmd">$ shufflerr discover --since 7d</p>
+          <h1 id="discover-hero">
+            {intl.formatMessage(messages.heroline1)}
+            <br />
+            <span>{intl.formatMessage(messages.heroline2)}</span>
+          </h1>
+          <p className="blurb">{intl.formatMessage(messages.blurb)}</p>
+          <div className="sh-bh-cta">
+            <Link href="/search" className="sh-btn primary">
+              {intl.formatMessage(messages.searchmusic)}
+            </Link>
+            <Link href="/requests" className="sh-btn">
+              {intl.formatMessage(messages.seerequests)}
+            </Link>
+          </div>
+        </div>
+        <dl className="sh-bh-stats">
+          <div>
+            <dt>{intl.formatMessage(messages.statalbums)}</dt>
+            <dd>{stat(stats?.albums)}</dd>
+          </div>
+          <div>
+            <dt>{intl.formatMessage(messages.statartists)}</dt>
+            <dd>{stat(stats?.artists)}</dd>
+          </div>
+          <div>
+            <dt>{intl.formatMessage(messages.stattracks)}</dt>
+            <dd>{stat(stats?.tracks)}</dd>
+          </div>
+          <div>
+            <dt>{intl.formatMessage(messages.statdownloading)}</dt>
+            <dd className="text-st-processing">{stat(stats?.downloading)}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <FeaturedRelease />
+
+      {recent?.enabled && recent.results.length > 0 && (
+        <HorizontalRow
+          title={intl.formatMessage(messages.recentlyadded)}
+          sub={intl.formatMessage(messages.recentlyaddedsub)}
+          linkHref="/albums"
+          linkText={intl.formatMessage(messages.seeall)}
+        >
+          {recent.results.map((album) => (
+            <AlbumCard
+              key={album.mbid}
+              mbid={album.mbid}
+              title={album.title}
+              artistName={album.artistName}
+              year={album.firstReleaseDate}
+              status={album.status}
+              imageSrc={album.coverUrl}
+            />
+          ))}
+        </HorizontalRow>
+      )}
+
+      {trending?.enabled && trending.results.length > 0 && (
+        <HorizontalRow
+          title={intl.formatMessage(messages.trending)}
+          sub={intl.formatMessage(messages.trendingsub)}
+        >
+          {trending.results.map((album) => (
+            <AlbumCard
+              key={album.mbid}
+              mbid={album.mbid}
+              title={album.title}
+              artistName={album.artistName}
+              year={album.firstReleaseDate}
+              status={album.status}
+              imageSrc={album.coverUrl}
+              action={
+                canRequestAlbums && isRequestable(album) ? (
+                  <RequestButton album={toModalAlbum(album)} />
+                ) : undefined
+              }
+            />
+          ))}
+        </HorizontalRow>
+      )}
+
+      {artists?.enabled && artists.results.length > 0 && (
+        <section aria-labelledby="discover-artists">
+          <div className="sh-sec-head">
+            <div>
+              <h2 className="sh-h-section" id="discover-artists">
+                {intl.formatMessage(messages.popularartists)}
+              </h2>
+              <p className="sh-sub">
+                {intl.formatMessage(messages.popularartistssub)}
+              </p>
+            </div>
+            <Link href="/artists">{intl.formatMessage(messages.seeall)}</Link>
+          </div>
+          <div
+            className="sh-grid"
+            style={{
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+            }}
+          >
+            {artists.results.map((artist) => (
+              <ArtistCard
+                key={artist.mbid}
+                mbid={artist.mbid}
+                name={artist.name}
+                imageSrc={artist.imageUrl}
+                meta={
+                  artist.albumsInLibrary
+                    ? intl.formatMessage(messages.artistalbums, {
+                        count: artist.albumsInLibrary,
+                      })
+                    : artist.disambiguation || artist.area
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {concerts?.enabled && concerts.results.length > 0 && (
+        <section aria-labelledby="discover-concerts">
+          <div className="sh-sec-head">
+            <div>
+              <h2 className="sh-h-section" id="discover-concerts">
+                {intl.formatMessage(messages.concerts)}
+              </h2>
+              {concerts.attribution.length > 0 && (
+                <p className="sh-sub">
+                  {intl.formatMessage(messages.concertsfrom, {
+                    providers: intl.formatList(
+                      concerts.attribution.map((p) => PROVIDER_NAME[p] ?? p),
+                      { type: 'conjunction' }
+                    ),
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="sh-box">
+            <ul className="sh-list sh-events">
+              {concerts.results.map((event) => {
+                const date = new Date(event.startsAt);
+                const provider =
+                  PROVIDER_NAME[event.provider] ?? event.provider;
+                return (
+                  <li key={`${event.provider}-${event.id}`}>
+                    <span className="sh-date">
+                      <b>{intl.formatDate(date, { day: '2-digit' })}</b>
+                      <span>{intl.formatDate(date, { month: 'short' })}</span>
+                    </span>
+                    <div className="grow">
+                      {event.artistMbid ? (
+                        <Link
+                          href={`/artist/${event.artistMbid}`}
+                          className="font-bold text-ink"
+                        >
+                          {event.artistName}
+                        </Link>
+                      ) : (
+                        <b>{event.artistName}</b>
+                      )}
+                      <span className="sh-feat">
+                        {[event.name, event.venue, event.city]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                    </div>
+                    <span className="who">{provider}</span>
+                    <a
+                      className="sh-btn small"
+                      href={event.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={intl.formatMessage(messages.ticketsfor, {
+                        artist: event.artistName,
+                        provider,
+                      })}
+                    >
+                      {intl.formatMessage(messages.tickets)}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {requests && requests.enabled !== false && (
+        <section aria-labelledby="discover-requests">
+          <div className="sh-sec-head">
+            <div>
+              <h2 className="sh-h-section" id="discover-requests">
+                {intl.formatMessage(
+                  ownOnly ? messages.yourrecentrequests : messages.recentrequests
+                )}
+              </h2>
+              <p className="sh-sub">
+                {intl.formatMessage(
+                  ownOnly ? messages.onlyyou : messages.everyone
+                )}
+              </p>
+            </div>
+            <Link href="/requests">
+              {intl.formatMessage(messages.allrequests)}
+            </Link>
+          </div>
+          {requests.results.length ? (
+            <div className="sh-box">
+              <ul className="sh-list">
+                {requests.results.map((request) => {
+                  const artistLine = text.artistLine(request);
+                  return (
+                    <li key={request.id}>
+                      <CoverArt
+                        thumb
+                        decorative
+                        round={request.media?.mediaType === MediaType.ARTIST}
+                        src={request.coverUrl}
+                        mbid={request.media?.mbid}
+                        title={request.media?.title}
+                      />
+                      <div className="grow">
+                        <Link
+                          href={text.href(request)}
+                          className="font-bold text-ink"
+                        >
+                          {text.title(request)}
+                        </Link>
+                        {artistLine && (
+                          <span className="sh-feat">{artistLine}</span>
+                        )}
+                      </div>
+                      <span className="who">
+                        {[
+                          request.requestedBy?.displayName,
+                          text.ago(request.createdAt),
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                      <StatusBadge requestStatus={request.status} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <div className="sh-box flex flex-col items-center gap-3 p-7 text-center text-muted">
+              <span>
+                {intl.formatMessage(
+                  ownOnly ? messages.norequests : messages.norequestsall
+                )}
+              </span>
+              <Link href="/search" className="sh-btn small">
+                {intl.formatMessage(messages.searchmusic)}
+              </Link>
             </div>
           )}
-          <Transition
-            as="div"
-            show={!isEditing}
-            enter="transition-opacity duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="transition-opacity duration-300"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-            className="absolute-bottom-shift fixed right-6 z-50 flex items-center sm:bottom-8"
-          >
-            <button
-              onClick={() => setIsEditing(true)}
-              data-testid="discover-start-editing"
-              className="h-12 w-12 rounded-full border-2 border-gray-600 bg-gray-700/90 p-3 text-gray-400 shadow transition-all hover:bg-gray-700"
-            >
-              <PencilIcon className="h-full w-full" />
-            </button>
-          </Transition>
-          <Transition
-            as="div"
-            show={isEditing}
-            enter="transition duration-300"
-            enterFrom="opacity-0 translate-y-6"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition duration-300"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-6"
-            className="safe-shift-edit-menu fixed left-0 right-0 z-50 flex flex-col items-center justify-end space-x-0 space-y-2 border-t border-gray-700 bg-gray-800/80 p-4 backdrop-blur sm:bottom-0 sm:flex-row sm:space-x-3 sm:space-y-0"
-          >
-            <Button
-              buttonType="default"
-              onClick={() => setIsEditing(false)}
-              className="w-full sm:w-auto"
-            >
-              <ArrowUturnLeftIcon />
-              <span>{intl.formatMessage(messages.stopediting)}</span>
-            </Button>
-            <Tooltip content={intl.formatMessage(messages.resetwarning)}>
-              <ConfirmButton
-                onClick={() => resetSliders()}
-                confirmText={intl.formatMessage(globalMessages.areyousure)}
-                className="w-full sm:w-auto"
-              >
-                <ArrowPathIcon />
-                <span>{intl.formatMessage(messages.resettodefault)}</span>
-              </ConfirmButton>
-            </Tooltip>
-            <Button
-              buttonType="primary"
-              type="submit"
-              disabled={!hasChanged()}
-              onClick={() => updateSliders()}
-              data-testid="discover-customize-submit"
-              className="w-full sm:w-auto"
-            >
-              <ArrowDownOnSquareIcon />
-              <span>{intl.formatMessage(globalMessages.save)}</span>
-            </Button>
-          </Transition>
-        </>
+        </section>
       )}
-      {(isEditing ? sliders : discoverData)?.map((slider, index) => {
-        let sliderComponent: React.ReactNode;
-
-        switch (slider.type) {
-          case DiscoverSliderType.RECENTLY_ADDED:
-            sliderComponent = <RecentlyAddedSlider />;
-            break;
-          case DiscoverSliderType.RECENT_REQUESTS:
-            sliderComponent = <RecentRequestsSlider />;
-            break;
-          case DiscoverSliderType.PLEX_WATCHLIST:
-            sliderComponent = <PlexWatchlistSlider />;
-            break;
-          case DiscoverSliderType.TRENDING:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey="trending"
-                title={intl.formatMessage(sliderTitles.trending)}
-                url="/api/v1/discover/trending"
-                linkUrl="/discover/trending"
-              />
-            );
-            break;
-          case DiscoverSliderType.POPULAR_MOVIES:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey="popular-movies"
-                title={intl.formatMessage(sliderTitles.popularmovies)}
-                url="/api/v1/discover/movies"
-                linkUrl="/discover/movies"
-              />
-            );
-            break;
-          case DiscoverSliderType.MOVIE_GENRES:
-            sliderComponent = <MovieGenreSlider />;
-            break;
-          case DiscoverSliderType.UPCOMING_MOVIES:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey="upcoming"
-                title={intl.formatMessage(sliderTitles.upcoming)}
-                linkUrl={`/discover/movies?primaryReleaseDateGte=${upcomingDate}`}
-                url="/api/v1/discover/movies"
-                extraParams={`primaryReleaseDateGte=${upcomingDate}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.STUDIOS:
-            sliderComponent = <StudioSlider />;
-            break;
-          case DiscoverSliderType.POPULAR_TV:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey="popular-tv"
-                title={intl.formatMessage(sliderTitles.populartv)}
-                url="/api/v1/discover/tv"
-                linkUrl="/discover/tv"
-              />
-            );
-            break;
-          case DiscoverSliderType.TV_GENRES:
-            sliderComponent = <TvGenreSlider />;
-            break;
-          case DiscoverSliderType.UPCOMING_TV:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey="upcoming-tv"
-                title={intl.formatMessage(sliderTitles.upcomingtv)}
-                linkUrl={`/discover/tv?firstAirDateGte=${upcomingDate}`}
-                url="/api/v1/discover/tv"
-                extraParams={`firstAirDateGte=${upcomingDate}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.NETWORKS:
-            sliderComponent = <NetworkSlider />;
-            break;
-          case DiscoverSliderType.TMDB_MOVIE_KEYWORD:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url="/api/v1/discover/movies"
-                extraParams={
-                  slider.data
-                    ? `keywords=${encodeURIExtraParams(slider.data)}`
-                    : ''
-                }
-                linkUrl={`/discover/movies?keywords=${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_TV_KEYWORD:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url="/api/v1/discover/tv"
-                extraParams={
-                  slider.data
-                    ? `keywords=${encodeURIExtraParams(slider.data)}`
-                    : ''
-                }
-                linkUrl={`/discover/tv?keywords=${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_MOVIE_GENRE:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url={`/api/v1/discover/movies`}
-                extraParams={`genre=${slider.data}`}
-                linkUrl={`/discover/movies?genre=${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_TV_GENRE:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url={`/api/v1/discover/tv`}
-                extraParams={`genre=${slider.data}`}
-                linkUrl={`/discover/tv?genre=${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_STUDIO:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url={`/api/v1/discover/movies/studio/${slider.data}`}
-                linkUrl={`/discover/movies/studio/${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_NETWORK:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url={`/api/v1/discover/tv/network/${slider.data}`}
-                linkUrl={`/discover/tv/network/${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_SEARCH:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url="/api/v1/search"
-                extraParams={`query=${slider.data}`}
-                linkUrl={`/search?query=${slider.data}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_MOVIE_STREAMING_SERVICES:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url="/api/v1/discover/movies"
-                extraParams={`watchRegion=${
-                  slider.data?.split(',')[0]
-                }&watchProviders=${slider.data?.split(',')[1]}`}
-                linkUrl={`/discover/movies?watchRegion=${
-                  slider.data?.split(',')[0]
-                }&watchProviders=${slider.data?.split(',')[1]}`}
-              />
-            );
-            break;
-          case DiscoverSliderType.TMDB_TV_STREAMING_SERVICES:
-            sliderComponent = (
-              <MediaSlider
-                sliderKey={`custom-slider-${slider.id}`}
-                title={slider.title ?? ''}
-                url="/api/v1/discover/tv"
-                extraParams={`watchRegion=${
-                  slider.data?.split(',')[0]
-                }&watchProviders=${slider.data?.split(',')[1]}`}
-                linkUrl={`/discover/tv?watchRegion=${
-                  slider.data?.split(',')[0]
-                }&watchProviders=${slider.data?.split(',')[1]}`}
-              />
-            );
-            break;
-        }
-
-        if (isEditing) {
-          return (
-            <DiscoverSliderEdit
-              key={`discover-slider-${slider.id}-edit`}
-              slider={slider}
-              onDelete={async () => {
-                const newSliders = await mutate();
-
-                if (newSliders) {
-                  setSliders(newSliders);
-                }
-              }}
-              onEnable={() => {
-                const tempSliders = sliders.slice();
-                tempSliders[index].enabled = !tempSliders[index].enabled;
-                setSliders(tempSliders);
-              }}
-              onPositionUpdate={(updatedItemId, position, hasClickedArrows) => {
-                const originalPosition = sliders.findIndex(
-                  (item) => item.id === updatedItemId
-                );
-                const originalItem = sliders[originalPosition];
-
-                const tempSliders = sliders.slice();
-
-                tempSliders.splice(originalPosition, 1);
-                if (hasClickedArrows) {
-                  tempSliders.splice(
-                    position === 'Above' ? index - 1 : index + 1,
-                    0,
-                    originalItem
-                  );
-                } else {
-                  tempSliders.splice(
-                    position === 'Above' && index > originalPosition
-                      ? Math.max(index - 1, 0)
-                      : index,
-                    0,
-                    originalItem
-                  );
-                }
-
-                setSliders(tempSliders);
-              }}
-              disableUpButton={index === 0}
-              disableDownButton={index === sliders.length - 1}
-            >
-              {sliderComponent}
-            </DiscoverSliderEdit>
-          );
-        }
-
-        if (!slider.enabled) {
-          return null;
-        }
-
-        return (
-          <div key={`discover-slider-${slider.id}`}>{sliderComponent}</div>
-        );
-      })}
     </>
   );
 };

@@ -1,17 +1,13 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
+import Alert from '@app/components/Common/Alert';
 import Button from '@app/components/Common/Button';
-import Header from '@app/components/Common/Header';
+import EmptyState from '@app/components/Common/EmptyState';
+import FilterChips from '@app/components/Common/FilterChips';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
-import PageTitle from '@app/components/Common/PageTitle';
-import IssueItem from '@app/components/IssueList/IssueItem';
-import { useUpdateQueryParams } from '@app/hooks/useUpdateQueryParams';
-import globalMessages from '@app/i18n/globalMessages';
+import PageHeader from '@app/components/Common/PageHeader';
+import IssueItem, { ISSUE_COLUMNS } from '@app/components/IssueList/IssueItem';
+import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import {
-  BarsArrowDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  FunnelIcon,
-} from '@heroicons/react/24/solid';
 import type { IssueResultsResponse } from '@server/interfaces/api/issueInterfaces';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -20,131 +16,152 @@ import useSWR from 'swr';
 
 const messages = defineMessages('components.IssueList', {
   issues: 'Issues',
-  sortAdded: 'Most Recent',
-  sortModified: 'Last Modified',
-  showallissues: 'Show All Issues',
+  description:
+    'Problems people reported with music in the library. Resolve one when it is fixed.',
+  descriptionOwn:
+    'Problems you reported with music in the library. An admin resolves them when they are fixed.',
+  filterLabel: 'Filter issues',
+  open: 'Open',
+  resolved: 'Resolved',
+  all: 'All',
+  sortLabel: 'Sort by',
+  sortAdded: 'Newest first',
+  sortModified: 'Last changed',
+  colItem: 'Album or artist',
+  colType: 'Problem',
+  colReporter: 'Reported by',
+  colStatus: 'Status',
+  colActions: 'Actions',
+  noOpen: 'No open issues',
+  noOpenNext:
+    'When someone reports a problem from an album page, it shows up here.',
+  noResolved: 'Nothing has been resolved yet',
+  noIssues: 'No issues reported',
+  showAll: 'Show all issues',
+  loadError:
+    'Shufflerr could not load the issues. Reload the page to try again.',
+  previous: 'Previous',
+  next: 'Next',
+  showing: 'Showing {from}–{to} of {total}',
 });
 
-enum Filter {
-  ALL = 'all',
-  OPEN = 'open',
-  RESOLVED = 'resolved',
+type Filter = 'open' | 'resolved' | 'all';
+type Sort = 'added' | 'modified';
+
+interface IssueCounts {
+  total: number;
+  open: number;
+  closed: number;
 }
 
-type Sort = 'added' | 'modified';
+const PAGE_SIZE = 20;
 
 const IssueList = () => {
   const intl = useIntl();
   const router = useRouter();
-  const [currentFilter, setCurrentFilter] = useState<Filter>(Filter.OPEN);
-  const [currentSort, setCurrentSort] = useState<Sort>('added');
-  const [currentPageSize, setCurrentPageSize] = useState<number>(10);
+  const { hasPermission } = useUser();
+  const seesAll = hasPermission(
+    [Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES],
+    { type: 'or' }
+  );
+  const [filter, setFilter] = useState<Filter>('open');
+  const [sort, setSort] = useState<Sort>('added');
+  const page = Math.max(1, Number(router.query.page) || 1);
 
-  const page = router.query.page ? Number(router.query.page) : 1;
-  const pageIndex = page - 1;
-  const updateQueryParams = useUpdateQueryParams({ page: page.toString() });
+  // Remember filter and sort between visits.
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(
+        window.localStorage.getItem('il-filter-settings') ?? '{}'
+      );
+      if (['open', 'resolved', 'all'].includes(stored.filter)) {
+        setFilter(stored.filter);
+      }
+      if (['added', 'modified'].includes(stored.sort)) {
+        setSort(stored.sort);
+      }
+    } catch {
+      // ignore unreadable storage
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        'il-filter-settings',
+        JSON.stringify({ filter, sort })
+      );
+    } catch {
+      // ignore unwritable storage
+    }
+  }, [filter, sort]);
 
   const { data, error } = useSWR<IssueResultsResponse>(
-    `/api/v1/issue?take=${currentPageSize}&skip=${
-      pageIndex * currentPageSize
-    }&filter=${currentFilter}&sort=${currentSort}`
+    `/api/v1/issue?take=${PAGE_SIZE}&skip=${
+      (page - 1) * PAGE_SIZE
+    }&filter=${filter}&sort=${sort}`
+  );
+  // Counts are for the whole server, so only people who see every issue get them.
+  const { data: counts } = useSWR<IssueCounts>(
+    seesAll ? '/api/v1/issue/count' : null
   );
 
-  // Restore last set filter values on component mount
-  useEffect(() => {
-    const filterString = window.localStorage.getItem('il-filter-settings');
-
-    if (filterString) {
-      const filterSettings = JSON.parse(filterString);
-
-      setCurrentFilter(filterSettings.currentFilter);
-      setCurrentSort(filterSettings.currentSort);
-      setCurrentPageSize(filterSettings.currentPageSize);
-    }
-
-    // If filter value is provided in query, use that instead
-    if (Object.values(Filter).includes(router.query.filter as Filter)) {
-      setCurrentFilter(router.query.filter as Filter);
-    }
-  }, [router.query.filter]);
-
-  // Set filter values to local storage any time they are changed
-  useEffect(() => {
-    window.localStorage.setItem(
-      'il-filter-settings',
-      JSON.stringify({
-        currentFilter,
-        currentSort,
-        currentPageSize,
-      })
+  const setPage = (next: number) =>
+    router.push(
+      { pathname: router.pathname, query: { page: next } },
+      undefined,
+      {
+        shallow: true,
+      }
     );
-  }, [currentFilter, currentSort, currentPageSize]);
 
-  if (!data && !error) {
-    return <LoadingSpinner />;
-  }
-
-  if (!data) {
-    return <LoadingSpinner />;
-  }
-
-  const hasNextPage = data.pageInfo.pages > pageIndex + 1;
-  const hasPrevPage = pageIndex > 0;
+  const total = data?.pageInfo.results ?? 0;
+  const pages = data?.pageInfo.pages ?? 1;
 
   return (
     <>
-      <PageTitle title={intl.formatMessage(messages.issues)} />
-      <div className="mb-4 flex flex-col justify-between lg:flex-row lg:items-end">
-        <Header>{intl.formatMessage(messages.issues)}</Header>
-        <div className="mt-2 flex flex-grow flex-col sm:flex-row lg:flex-grow-0">
-          <div className="mb-2 flex flex-grow sm:mb-0 sm:mr-2 lg:flex-grow-0">
-            <span className="inline-flex cursor-default items-center rounded-l-md border border-r-0 border-gray-500 bg-gray-800 px-3 text-sm text-gray-100">
-              <FunnelIcon className="h-6 w-6" />
+      <PageHeader
+        title={intl.formatMessage(messages.issues)}
+        description={intl.formatMessage(
+          seesAll ? messages.description : messages.descriptionOwn
+        )}
+      />
+      <section>
+        <div className="sh-toolbar">
+          <FilterChips<Filter>
+            aria-label={intl.formatMessage(messages.filterLabel)}
+            value={filter}
+            onChange={(value) => {
+              setFilter(value);
+              if (page !== 1) {
+                setPage(1);
+              }
+            }}
+            chips={[
+              {
+                value: 'open',
+                label: intl.formatMessage(messages.open),
+                count: counts?.open,
+              },
+              {
+                value: 'resolved',
+                label: intl.formatMessage(messages.resolved),
+                count: counts?.closed,
+              },
+              {
+                value: 'all',
+                label: intl.formatMessage(messages.all),
+                count: counts?.total,
+              },
+            ]}
+          />
+          <label className="ml-auto flex items-center gap-2">
+            <span className="text-muted">
+              {intl.formatMessage(messages.sortLabel)}
             </span>
             <select
-              id="filter"
-              name="filter"
-              onChange={(e) => {
-                setCurrentFilter(e.target.value as Filter);
-                router.push({
-                  pathname: router.pathname,
-                  query: router.query.userId
-                    ? { userId: router.query.userId }
-                    : {},
-                });
-              }}
-              value={currentFilter}
-              className="rounded-r-only"
-            >
-              <option value="all">
-                {intl.formatMessage(globalMessages.all)}
-              </option>
-              <option value="open">
-                {intl.formatMessage(globalMessages.open)}
-              </option>
-              <option value="resolved">
-                {intl.formatMessage(globalMessages.resolved)}
-              </option>
-            </select>
-          </div>
-          <div className="mb-2 flex flex-grow sm:mb-0 lg:flex-grow-0">
-            <span className="inline-flex cursor-default items-center rounded-l-md border border-r-0 border-gray-500 bg-gray-800 px-3 text-gray-100 sm:text-sm">
-              <BarsArrowDownIcon className="h-6 w-6" />
-            </span>
-            <select
-              id="sort"
-              name="sort"
-              onChange={(e) => {
-                setCurrentSort(e.target.value as Sort);
-                router.push({
-                  pathname: router.pathname,
-                  query: router.query.userId
-                    ? { userId: router.query.userId }
-                    : {},
-                });
-              }}
-              value={currentSort}
-              className="rounded-r-only"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as Sort)}
             >
               <option value="added">
                 {intl.formatMessage(messages.sortAdded)}
@@ -153,103 +170,95 @@ const IssueList = () => {
                 {intl.formatMessage(messages.sortModified)}
               </option>
             </select>
-          </div>
+          </label>
         </div>
-      </div>
-      {data.results.map((issue) => {
-        return (
-          <div className="py-2" key={`issue-item-${issue.id}`}>
-            <IssueItem issue={issue} />
-          </div>
-        );
-      })}
-      {data.results.length === 0 && (
-        <div className="flex w-full flex-col items-center justify-center py-24 text-white">
-          <span className="text-2xl text-gray-400">
-            {intl.formatMessage(globalMessages.noresults)}
-          </span>
-          {currentFilter !== Filter.ALL && (
-            <div className="mt-4">
-              <Button
-                buttonType="primary"
-                onClick={() => setCurrentFilter(Filter.ALL)}
-              >
-                {intl.formatMessage(messages.showallissues)}
-              </Button>
+
+        {!data && !error && <LoadingSpinner />}
+        {error && (
+          <Alert type="error" title={intl.formatMessage(messages.loadError)} />
+        )}
+        {data && data.results.length === 0 && (
+          <EmptyState
+            title={intl.formatMessage(
+              filter === 'open'
+                ? messages.noOpen
+                : filter === 'resolved'
+                  ? messages.noResolved
+                  : messages.noIssues
+            )}
+            action={
+              filter !== 'all' ? (
+                <Button buttonSize="sm" onClick={() => setFilter('all')}>
+                  {intl.formatMessage(messages.showAll)}
+                </Button>
+              ) : undefined
+            }
+          >
+            {intl.formatMessage(messages.noOpenNext)}
+          </EmptyState>
+        )}
+        {data && data.results.length > 0 && (
+          <>
+            <div className="sh-box sh-scroll-x">
+              <div className="sh-table" role="table">
+                <div
+                  className="sh-tr head"
+                  role="row"
+                  style={{ gridTemplateColumns: ISSUE_COLUMNS }}
+                >
+                  <div role="columnheader" aria-hidden="true" />
+                  <div role="columnheader">
+                    {intl.formatMessage(messages.colItem)}
+                  </div>
+                  <div role="columnheader">
+                    {intl.formatMessage(messages.colType)}
+                  </div>
+                  <div role="columnheader">
+                    {intl.formatMessage(messages.colReporter)}
+                  </div>
+                  <div role="columnheader">
+                    {intl.formatMessage(messages.colStatus)}
+                  </div>
+                  <div role="columnheader" className="actions">
+                    {intl.formatMessage(messages.colActions)}
+                  </div>
+                </div>
+                {data.results.map((issue) => (
+                  <IssueItem issue={issue} key={issue.id} />
+                ))}
+              </div>
             </div>
-          )}
-        </div>
-      )}
-      <div className="actions">
-        <nav
-          className="mb-3 flex flex-col items-center space-y-3 sm:flex-row sm:space-y-0"
-          aria-label="Pagination"
-        >
-          <div className="hidden lg:flex lg:flex-1">
-            <p className="text-sm">
-              {data.results.length > 0 &&
-                intl.formatMessage(globalMessages.showingresults, {
-                  from: pageIndex * currentPageSize + 1,
-                  to:
-                    data.results.length < currentPageSize
-                      ? pageIndex * currentPageSize + data.results.length
-                      : (pageIndex + 1) * currentPageSize,
-                  total: data.pageInfo.results,
-                  strong: (msg: React.ReactNode) => (
-                    <span className="font-medium">{msg}</span>
-                  ),
+            <nav
+              className="mt-4 flex items-center justify-between gap-3"
+              aria-label="Pagination"
+            >
+              <span className="font-mono text-muted">
+                {intl.formatMessage(messages.showing, {
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: Math.min(page * PAGE_SIZE, total),
+                  total,
                 })}
-            </p>
-          </div>
-          <div className="flex justify-center sm:flex-1 sm:justify-start lg:justify-center">
-            <span className="-mt-3 items-center truncate text-sm sm:mt-0">
-              {intl.formatMessage(globalMessages.resultsperpage, {
-                pageSize: (
-                  <select
-                    id="pageSize"
-                    name="pageSize"
-                    onChange={(e) => {
-                      setCurrentPageSize(Number(e.target.value));
-                      router
-                        .push({
-                          pathname: router.pathname,
-                          query: router.query.userId
-                            ? { userId: router.query.userId }
-                            : {},
-                        })
-                        .then(() => window.scrollTo(0, 0));
-                    }}
-                    value={currentPageSize}
-                    className="short inline"
-                  >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                ),
-              })}
-            </span>
-          </div>
-          <div className="flex flex-auto justify-center space-x-2 sm:flex-1 sm:justify-end">
-            <Button
-              disabled={!hasPrevPage}
-              onClick={() => updateQueryParams('page', (page - 1).toString())}
-            >
-              <ChevronLeftIcon />
-              <span>{intl.formatMessage(globalMessages.previous)}</span>
-            </Button>
-            <Button
-              disabled={!hasNextPage}
-              onClick={() => updateQueryParams('page', (page + 1).toString())}
-            >
-              <span>{intl.formatMessage(globalMessages.next)}</span>
-              <ChevronRightIcon />
-            </Button>
-          </div>
-        </nav>
-      </div>
+              </span>
+              <span className="flex gap-2">
+                <Button
+                  buttonSize="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  {intl.formatMessage(messages.previous)}
+                </Button>
+                <Button
+                  buttonSize="sm"
+                  disabled={page >= pages}
+                  onClick={() => setPage(page + 1)}
+                >
+                  {intl.formatMessage(messages.next)}
+                </Button>
+              </span>
+            </nav>
+          </>
+        )}
+      </section>
     </>
   );
 };

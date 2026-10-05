@@ -1,0 +1,79 @@
+{
+ "created": "2026-10-05T09:06:16.920Z",
+ "count": 1,
+ "offset": 0,
+ "release-groups": [
+  {
+   "id": "324f381f-ebef-4003-8885-c06659395d8b",
+   "type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+   "score": 100,
+   "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+   "artist-credit-id": "c05e09af-9963-396f-a136-03ac30bd1355",
+   "count": 2,
+   "title": "CTRL ESCAPE",
+   "first-release-date": "2026-04-15",
+   "primary-type": "Album",
+   "artist-credit": [
+    {
+     "name": "John Summit",
+     "artist": {
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "name": "John Summit",
+      "sort-name": "Summit, John",
+      "disambiguation": "EDM DJ & producer",
+      "aliases": [
+       {
+        "sort-name": "Schuster, John",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       },
+       {
+        "sort-name": "Schuster, John Walter",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Walter Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    }
+   ],
+   "releases": [
+    {
+     "id": "81cacb05-d28f-4938-8c05-a5a8ed2792c3",
+     "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+     "title": "CTRL ESCAPE",
+     "status": "Official"
+    },
+    {
+     "id": "2555fe96-7bde-4b6d-92ae-9ee09ffe71d4",
+     "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+     "title": "CTRL ESCAPE",
+     "status": "Official"
+    }
+   ],
+   "tags": [
+    {
+     "count": 1,
+     "name": "electronic"
+    },
+    {
+     "count": 1,
+     "name": "dance"
+    },
+    {
+     "count": 1,
+     "name": "house"
+    }
+   ]
+  }
+ ]
+}

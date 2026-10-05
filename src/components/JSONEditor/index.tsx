@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import 'ace-builds/src-min-noconflict/ace';
 import 'ace-builds/src-min-noconflict/mode-json';
 import 'ace-builds/src-min-noconflict/theme-dracula';
@@ -11,7 +12,7 @@ interface JSONEditorProps extends HTMLAttributes<HTMLDivElement> {
 
 const JSONEditor = ({ name, value, onUpdate, onBlur }: JSONEditorProps) => {
   return (
-    <div className="w-full overflow-hidden rounded-md">
+    <div className="w-full overflow-hidden rounded-ctl border border-line">
       <AceEditor
         mode="json"
         theme="dracula"

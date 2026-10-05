@@ -1,0 +1,152 @@
+{
+ "count": 2,
+ "offset": 0,
+ "recordings": [
+  {
+   "id": "44a2fd4f-fbfe-4822-b277-2994596b1156",
+   "title": "Get Lucky",
+   "length": 369626,
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": " feat. ",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    },
+    {
+     "name": "Pharrell Williams",
+     "joinphrase": " & ",
+     "artist": {
+      "id": "149f91ef-1287-46da-9a8e-87fee02f1471",
+      "name": "Pharrell Williams"
+     }
+    },
+    {
+     "name": "Nile Rodgers",
+     "joinphrase": "",
+     "artist": {
+      "id": "c6d571dd-c0ae-4ac8-9500-780b1b9b25e5",
+      "name": "Nile Rodgers"
+     }
+    }
+   ],
+   "releases": [
+    {
+     "id": "7d1b2d38-97e8-4fc7-b0fa-f275dcbea77a",
+     "title": "Random Access Memories",
+     "date": "2023-05-12",
+     "country": "XW",
+     "release-group": {
+      "id": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+      "title": "Random Access Memories",
+      "primary-type": "Album"
+     }
+    }
+   ]
+  },
+  {
+   "id": "833f00e1-781f-4edd-90e4-e52712618862",
+   "title": "Get Lucky",
+   "length": 369000,
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": " feat. ",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    },
+    {
+     "name": "Pharrell Williams",
+     "joinphrase": " & ",
+     "artist": {
+      "id": "149f91ef-1287-46da-9a8e-87fee02f1471",
+      "name": "Pharrell Williams"
+     }
+    },
+    {
+     "name": "Nile Rodgers",
+     "joinphrase": "",
+     "artist": {
+      "id": "c6d571dd-c0ae-4ac8-9500-780b1b9b25e5",
+      "name": "Nile Rodgers"
+     }
+    }
+   ],
+   "releases": [
+    {
+     "id": "41c0cd49-3cdc-4752-968a-88fe4fdf049f",
+     "title": "Piece by Piece - Music from the Motion Picture",
+     "date": "2024-12-20",
+     "country": "XW",
+     "release-group": {
+      "id": "f30afec7-1d77-4e4f-8207-35d558346b14",
+      "title": "Piece by Piece - Music from the Motion Picture",
+      "primary-type": "Album",
+      "secondary-types": [
+       "Compilation",
+       "Soundtrack"
+      ]
+     }
+    },
+    {
+     "id": "dbf58c42-0e3c-4f89-a6ae-e2a1060b2cc0",
+     "title": "NBA 2K14 Soundtrack",
+     "release-group": {
+      "id": "84623654-fbbe-4d4a-b5a2-52e1df72bf5d",
+      "title": "NBA 2K14 Soundtrack",
+      "primary-type": "Other",
+      "secondary-types": [
+       "Soundtrack"
+      ]
+     }
+    },
+    {
+     "id": "e967be84-9831-4578-a535-c4eb12ec8f8b",
+     "title": "Get Lucky (radio edit)",
+     "release-group": {
+      "id": "9b7ce16c-8310-4cc5-aad5-09893a5a8297",
+      "title": "Get Lucky",
+      "primary-type": "Single"
+     }
+    },
+    {
+     "id": "79215cdf-4764-4dee-b0b9-fec1643df7c5",
+     "title": "Random Access Memories",
+     "date": "2013-05-22",
+     "country": "JP",
+     "release-group": {
+      "id": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+      "title": "Random Access Memories",
+      "primary-type": "Album"
+     }
+    },
+    {
+     "id": "e69e2f55-a2c0-472e-b30b-f43b565b3fbe",
+     "title": "Random Access Memories",
+     "date": "2013-05-21",
+     "country": "CA",
+     "release-group": {
+      "id": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+      "title": "Random Access Memories",
+      "primary-type": "Album"
+     }
+    },
+    {
+     "id": "6940fcdf-6e70-4764-8782-18e2c1e600de",
+     "title": "Random Access Memories",
+     "date": "2023-05-12",
+     "country": "XE",
+     "release-group": {
+      "id": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+      "title": "Random Access Memories",
+      "primary-type": "Album"
+     }
+    }
+   ]
+  }
+ ]
+}

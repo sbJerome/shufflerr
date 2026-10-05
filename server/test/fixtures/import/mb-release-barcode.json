@@ -1,0 +1,29 @@
+{
+ "count": 1,
+ "offset": 0,
+ "releases": [
+  {
+   "id": "5000a285-b67e-4cfc-b54b-2b98f1810d2e",
+   "title": "Random Access Memories",
+   "status": "Official",
+   "date": "2013-05-17",
+   "country": "XW",
+   "barcode": "886443927087",
+   "artist-credit": [
+    {
+     "name": "Daft Punk",
+     "joinphrase": "",
+     "artist": {
+      "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+      "name": "Daft Punk"
+     }
+    }
+   ],
+   "release-group": {
+    "id": "aa997ea0-2936-40bd-884d-3af8a0e064dc",
+    "title": "Random Access Memories",
+    "primary-type": "Album"
+   }
+  }
+ ]
+}

@@ -1,0 +1,514 @@
+{
+  "MediaContainer": {
+    "size": 13,
+    "Metadata": [
+      {
+        "ratingKey": "48212",
+        "key": "/library/metadata/48212",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e420",
+        "type": "track",
+        "title": "STATUS:AWAY",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 1,
+        "parentIndex": 1,
+        "duration": 206600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://4184b019-df75-44a7-bcca-fa542b7d03cb"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90000,
+            "duration": 207000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91000,
+                "key": "/library/parts/91000/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/01.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48213",
+        "key": "/library/metadata/48213",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e421",
+        "type": "track",
+        "title": "SHADES OF BLUE",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 2,
+        "parentIndex": 1,
+        "duration": 203700,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://7f6f73f4-c45f-4ac9-bcd6-326854bc3889"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90001,
+            "duration": 203000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91001,
+                "key": "/library/parts/91001/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/02.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48214",
+        "key": "/library/metadata/48214",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e422",
+        "type": "track",
+        "title": "SATA",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 3,
+        "parentIndex": 1,
+        "duration": 182600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://3d85ec05-fd8e-44e6-9f0c-1f3c75aba5a1"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90002,
+            "duration": 183000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91002,
+                "key": "/library/parts/91002/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/03.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48215",
+        "key": "/library/metadata/48215",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e423",
+        "type": "track",
+        "title": "WITH ME",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 4,
+        "parentIndex": 1,
+        "duration": 183700,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://5bbbeeb5-bf15-44f0-a9b1-68025d69c877"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90003,
+            "duration": 183000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91003,
+                "key": "/library/parts/91003/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/04.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48216",
+        "key": "/library/metadata/48216",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e424",
+        "type": "track",
+        "title": "DON'T BELIEVE IT",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 5,
+        "parentIndex": 1,
+        "duration": 187600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://fa902ec5-6e68-4f4c-9d8a-e37a9c743678"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90004,
+            "duration": 188000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91004,
+                "key": "/library/parts/91004/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/05.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48217",
+        "key": "/library/metadata/48217",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e425",
+        "type": "track",
+        "title": "LIGHTS GO OUT",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 6,
+        "parentIndex": 1,
+        "duration": 158700,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://1d9f2452-6700-4993-b318-83662e3b9168"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90005,
+            "duration": 158000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91005,
+                "key": "/library/parts/91005/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/06.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48218",
+        "key": "/library/metadata/48218",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e426",
+        "type": "track",
+        "title": "MESS W/ ME",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 7,
+        "parentIndex": 1,
+        "duration": 249600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://8f28ecd2-2d13-4843-bb74-b6ced23abbec"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90006,
+            "duration": 250000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91006,
+                "key": "/library/parts/91006/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/07.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48219",
+        "key": "/library/metadata/48219",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e427",
+        "type": "track",
+        "title": "CHICA 305",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 8,
+        "parentIndex": 1,
+        "duration": 188700,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://5ab36fdd-1a21-4bed-b6df-a23aaf37e1a5"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90007,
+            "duration": 188000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91007,
+                "key": "/library/parts/91007/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/08.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48220",
+        "key": "/library/metadata/48220",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e428",
+        "type": "track",
+        "title": "ALL THE TIME",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 9,
+        "parentIndex": 1,
+        "duration": 179600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://43030272-e9ff-4dd7-a49c-068e3297a9b3"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90008,
+            "duration": 180000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91008,
+                "key": "/library/parts/91008/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/09.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48221",
+        "key": "/library/metadata/48221",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e429",
+        "type": "track",
+        "title": "OOO",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 10,
+        "parentIndex": 1,
+        "duration": 60700,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://828e3e9b-40b2-48c2-8d2b-a53dd36efd75"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90009,
+            "duration": 60000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91009,
+                "key": "/library/parts/91009/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/10.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48222",
+        "key": "/library/metadata/48222",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e430",
+        "type": "track",
+        "title": "SHADOWS",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 11,
+        "parentIndex": 1,
+        "duration": 201600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://d1096e2a-1fcd-45cf-bc9a-7472154366c6"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90010,
+            "duration": 202000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91010,
+                "key": "/library/parts/91010/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/11.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48223",
+        "key": "/library/metadata/48223",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e431",
+        "type": "track",
+        "title": "TIME WITH YOU",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 12,
+        "parentIndex": 1,
+        "duration": 238700,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://20bb63f4-5dd2-4c48-8657-6264c47112c1"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90011,
+            "duration": 238000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91011,
+                "key": "/library/parts/91011/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/12.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "48224",
+        "key": "/library/metadata/48224",
+        "parentRatingKey": "48211",
+        "grandparentRatingKey": "48190",
+        "guid": "plex://track/65f0c1d2a9e2f6b1c8d0e432",
+        "type": "track",
+        "title": "CYANIDE",
+        "grandparentTitle": "John Summit",
+        "parentTitle": "CTRL ESCAPE",
+        "index": 13,
+        "parentIndex": 1,
+        "duration": 198600,
+        "addedAt": 1791168600,
+        "Guid": [
+          {
+            "id": "mbid://1933e023-5f67-4469-b454-2e649cbeb627"
+          }
+        ],
+        "Media": [
+          {
+            "id": 90012,
+            "duration": 199000,
+            "bitrate": 320,
+            "audioChannels": 2,
+            "audioCodec": "mp3",
+            "container": "mp3",
+            "Part": [
+              {
+                "id": 91012,
+                "key": "/library/parts/91012/1791168535/file.mp3",
+                "file": "/data/music/John Summit/CTRL ESCAPE (2026)/13.mp3",
+                "size": 8000000,
+                "container": "mp3"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

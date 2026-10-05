@@ -1,0 +1,1017 @@
+{
+ "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+ "label-info": [
+  {
+   "label": {
+    "type": "Imprint",
+    "name": "Darkroom Records",
+    "sort-name": "Darkroom Records",
+    "type-id": "b6285b2a-3514-3d43-80df-fcf528824ded",
+    "disambiguation": "“marketing and business development consultant for Interscope Records”",
+    "id": "7c0b209a-0974-416d-bf52-b41889f5c0d3",
+    "label-code": null
+   },
+   "catalog-number": null
+  },
+  {
+   "label": {
+    "sort-name": "Experts Only",
+    "type-id": "7aaa37fe-2def-3476-b359-80245850062d",
+    "label-code": null,
+    "id": "0d08a0f5-3f08-4ebc-a948-d4fe7206baae",
+    "disambiguation": "",
+    "type": "Original Production",
+    "name": "Experts Only"
+   },
+   "catalog-number": null
+  }
+ ],
+ "id": "2555fe96-7bde-4b6d-92ae-9ee09ffe71d4",
+ "status": "Official",
+ "barcode": "198704984693",
+ "release-events": [
+  {
+   "area": {
+    "type-id": null,
+    "sort-name": "[Worldwide]",
+    "iso-3166-1-codes": [
+     "XW"
+    ],
+    "id": "525d4e18-3d00-31b9-a58b-a146a916de8f",
+    "disambiguation": "",
+    "type": null,
+    "name": "[Worldwide]"
+   },
+   "date": "2026-04-15"
+  }
+ ],
+ "cover-art-archive": {
+  "back": false,
+  "count": 1,
+  "front": true,
+  "artwork": true,
+  "darkened": false
+ },
+ "date": "2026-04-15",
+ "release-group": {
+  "first-release-date": "2026-04-15",
+  "secondary-type-ids": [],
+  "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+  "primary-type": "Album",
+  "id": "324f381f-ebef-4003-8885-c06659395d8b",
+  "secondary-types": [],
+  "disambiguation": "",
+  "artist-credit": [
+   {
+    "artist": {
+     "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+     "disambiguation": "EDM DJ & producer",
+     "country": "US",
+     "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+     "sort-name": "Summit, John",
+     "type": "Person",
+     "name": "John Summit"
+    },
+    "name": "John Summit",
+    "joinphrase": ""
+   }
+  ],
+  "title": "CTRL ESCAPE"
+ },
+ "asin": null,
+ "country": "XW",
+ "title": "CTRL ESCAPE",
+ "text-representation": {
+  "script": "Latn",
+  "language": "eng"
+ },
+ "artist-credit": [
+  {
+   "artist": {
+    "sort-name": "Summit, John",
+    "country": "US",
+    "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+    "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+    "disambiguation": "EDM DJ & producer",
+    "type": "Person",
+    "name": "John Summit"
+   },
+   "name": "John Summit",
+   "joinphrase": ""
+  }
+ ],
+ "packaging-id": "119eba76-b343-3e02-a292-f0f00644bb9b",
+ "disambiguation": "",
+ "media": [
+  {
+   "track-offset": 0,
+   "track-count": 13,
+   "tracks": [
+    {
+     "artist-credit": [
+      {
+       "artist": {
+        "type": "Person",
+        "name": "John Summit",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Summit, John"
+       },
+       "name": "John Summit",
+       "joinphrase": ""
+      }
+     ],
+     "number": "1",
+     "position": 1,
+     "id": "4184b019-df75-44a7-bcca-fa542b7d03cb",
+     "length": 207000,
+     "recording": {
+      "first-release-date": "2026-04-15",
+      "video": false,
+      "length": 206769,
+      "title": "STATUS:AWAY",
+      "artist-credit": [
+       {
+        "artist": {
+         "name": "John Summit",
+         "type": "Person",
+         "sort-name": "Summit, John",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086"
+        },
+        "joinphrase": "",
+        "name": "John Summit"
+       }
+      ],
+      "id": "d4a62b28-afa9-4c42-a1da-60dd3d56ecac",
+      "disambiguation": ""
+     },
+     "title": "STATUS:AWAY"
+    },
+    {
+     "title": "SHADES OF BLUE",
+     "recording": {
+      "first-release-date": "2026-04-15",
+      "video": false,
+      "disambiguation": "",
+      "id": "6ea95e5d-1d83-43f0-91b2-3aa6b91cc278",
+      "artist-credit": [
+       {
+        "artist": {
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "sort-name": "Summit, John",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "disambiguation": "EDM DJ & producer",
+         "name": "John Summit",
+         "type": "Person"
+        },
+        "name": "John Summit",
+        "joinphrase": ", "
+       },
+       {
+        "artist": {
+         "disambiguation": "",
+         "id": "da1fd423-e121-4d4e-a040-c9520e1bcb62",
+         "sort-name": "Devault",
+         "type-id": null,
+         "country": null,
+         "type": null,
+         "name": "Devault"
+        },
+        "joinphrase": " & ",
+        "name": "Devault"
+       },
+       {
+        "joinphrase": "",
+        "name": "Julia Church",
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "GB",
+         "sort-name": "Church, Julia",
+         "disambiguation": "London-based singer and songwriter",
+         "id": "9880688c-3b16-444c-bf3d-c11a8756064b",
+         "type": "Person",
+         "name": "Julia Church"
+        }
+       }
+      ],
+      "length": 203000,
+      "title": "SHADES OF BLUE"
+     },
+     "length": 203000,
+     "id": "7f6f73f4-c45f-4ac9-bcd6-326854bc3889",
+     "position": 2,
+     "artist-credit": [
+      {
+       "joinphrase": ", ",
+       "name": "John Summit",
+       "artist": {
+        "name": "John Summit",
+        "type": "Person",
+        "sort-name": "Summit, John",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "disambiguation": "EDM DJ & producer"
+       }
+      },
+      {
+       "artist": {
+        "name": "Devault",
+        "type": null,
+        "id": "da1fd423-e121-4d4e-a040-c9520e1bcb62",
+        "disambiguation": "",
+        "sort-name": "Devault",
+        "type-id": null,
+        "country": null
+       },
+       "name": "Devault",
+       "joinphrase": " & "
+      },
+      {
+       "joinphrase": "",
+       "name": "Julia Church",
+       "artist": {
+        "name": "Julia Church",
+        "type": "Person",
+        "id": "9880688c-3b16-444c-bf3d-c11a8756064b",
+        "disambiguation": "London-based singer and songwriter",
+        "sort-name": "Church, Julia",
+        "country": "GB",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+       }
+      }
+     ],
+     "number": "2"
+    },
+    {
+     "artist-credit": [
+      {
+       "joinphrase": " & ",
+       "name": "John Summit",
+       "artist": {
+        "type": "Person",
+        "name": "John Summit",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "disambiguation": "EDM DJ & producer",
+        "sort-name": "Summit, John",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+       }
+      },
+      {
+       "joinphrase": "",
+       "name": "Rohaan",
+       "artist": {
+        "type": "Person",
+        "name": "Rohaan",
+        "id": "82711ca4-d7ed-4782-b61f-81e309556317",
+        "disambiguation": "drum & bass artist; Rohaan Glenwright Grey",
+        "sort-name": "Rohaan",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "GB"
+       }
+      }
+     ],
+     "number": "3",
+     "id": "3d85ec05-fd8e-44e6-9f0c-1f3c75aba5a1",
+     "position": 3,
+     "length": 183000,
+     "recording": {
+      "title": "SATA",
+      "length": 182679,
+      "artist-credit": [
+       {
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US",
+         "sort-name": "Summit, John",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "disambiguation": "EDM DJ & producer",
+         "name": "John Summit",
+         "type": "Person"
+        },
+        "name": "John Summit",
+        "joinphrase": " & "
+       },
+       {
+        "name": "Rohaan",
+        "joinphrase": "",
+        "artist": {
+         "type": "Person",
+         "name": "Rohaan",
+         "id": "82711ca4-d7ed-4782-b61f-81e309556317",
+         "disambiguation": "drum & bass artist; Rohaan Glenwright Grey",
+         "sort-name": "Rohaan",
+         "country": "GB",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        }
+       }
+      ],
+      "disambiguation": "",
+      "id": "34e11944-3b08-487b-a782-9113df6a3d8a",
+      "video": false,
+      "first-release-date": "2026-03-11"
+     },
+     "title": "SATA"
+    },
+    {
+     "length": 183000,
+     "recording": {
+      "disambiguation": "",
+      "id": "264d4e2f-77aa-45e2-b714-d56196c9e56c",
+      "artist-credit": [
+       {
+        "name": "John Summit",
+        "joinphrase": " & ",
+        "artist": {
+         "type": "Person",
+         "name": "John Summit",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "disambiguation": "EDM DJ & producer",
+         "sort-name": "Summit, John",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        }
+       },
+       {
+        "artist": {
+         "disambiguation": "alternative rock singer-songwriter from New York",
+         "id": "f4e4a8c2-4ee8-42eb-9c6a-0c21a06097a6",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US",
+         "sort-name": "Wolf, Julia",
+         "type": "Person",
+         "name": "Julia Wolf"
+        },
+        "joinphrase": "",
+        "name": "Julia Wolf"
+       }
+      ],
+      "title": "WITH ME",
+      "length": 183000,
+      "video": false,
+      "first-release-date": "2026-02-25"
+     },
+     "title": "WITH ME",
+     "number": "4",
+     "artist-credit": [
+      {
+       "joinphrase": " & ",
+       "name": "John Summit",
+       "artist": {
+        "name": "John Summit",
+        "type": "Person",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "disambiguation": "EDM DJ & producer",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Summit, John"
+       }
+      },
+      {
+       "artist": {
+        "name": "Julia Wolf",
+        "type": "Person",
+        "sort-name": "Wolf, Julia",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "id": "f4e4a8c2-4ee8-42eb-9c6a-0c21a06097a6",
+        "disambiguation": "alternative rock singer-songwriter from New York"
+       },
+       "name": "Julia Wolf",
+       "joinphrase": ""
+      }
+     ],
+     "position": 4,
+     "id": "5bbbeeb5-bf15-44f0-a9b1-68025d69c877"
+    },
+    {
+     "position": 5,
+     "id": "fa902ec5-6e68-4f4c-9d8a-e37a9c743678",
+     "number": "5",
+     "artist-credit": [
+      {
+       "joinphrase": " & ",
+       "name": "John Summit",
+       "artist": {
+        "type": "Person",
+        "name": "John Summit",
+        "sort-name": "Summit, John",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "disambiguation": "EDM DJ & producer"
+       }
+      },
+      {
+       "artist": {
+        "name": "Absolutely",
+        "type": "Person",
+        "disambiguation": "Abby Lynn Keen",
+        "id": "30ef765d-f7bb-4e7e-8972-13be03aa4f2c",
+        "country": "GB",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Absolutely"
+       },
+       "name": "Absolutely",
+       "joinphrase": ""
+      }
+     ],
+     "title": "DON'T BELIEVE IT",
+     "recording": {
+      "video": false,
+      "first-release-date": "2026-04-15",
+      "disambiguation": "",
+      "id": "7b5c79a2-e9c8-4810-96cf-8bb8d81da874",
+      "artist-credit": [
+       {
+        "artist": {
+         "name": "John Summit",
+         "type": "Person",
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "sort-name": "Summit, John",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US"
+        },
+        "name": "John Summit",
+        "joinphrase": " & "
+       },
+       {
+        "artist": {
+         "name": "Absolutely",
+         "type": "Person",
+         "id": "30ef765d-f7bb-4e7e-8972-13be03aa4f2c",
+         "disambiguation": "Abby Lynn Keen",
+         "sort-name": "Absolutely",
+         "country": "GB",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        },
+        "joinphrase": "",
+        "name": "Absolutely"
+       }
+      ],
+      "title": "DON'T BELIEVE IT",
+      "length": 188000
+     },
+     "length": 188000
+    },
+    {
+     "artist-credit": [
+      {
+       "artist": {
+        "name": "John Summit",
+        "type": "Person",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "disambiguation": "EDM DJ & producer",
+        "sort-name": "Summit, John",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+       },
+       "joinphrase": "",
+       "name": "John Summit"
+      }
+     ],
+     "number": "6",
+     "id": "1d9f2452-6700-4993-b318-83662e3b9168",
+     "position": 6,
+     "title": "LIGHTS GO OUT",
+     "length": 158000,
+     "recording": {
+      "disambiguation": "",
+      "id": "5d529f9e-0355-40cf-981a-73c1920b788b",
+      "artist-credit": [
+       {
+        "artist": {
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "sort-name": "Summit, John",
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "type": "Person",
+         "name": "John Summit"
+        },
+        "name": "John Summit",
+        "joinphrase": ""
+       }
+      ],
+      "length": 158000,
+      "title": "LIGHTS GO OUT",
+      "first-release-date": "2026-01-28",
+      "video": false
+     }
+    },
+    {
+     "title": "MESS W/ ME",
+     "recording": {
+      "artist-credit": [
+       {
+        "artist": {
+         "name": "John Summit",
+         "type": "Person",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "sort-name": "Summit, John",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "disambiguation": "EDM DJ & producer"
+        },
+        "name": "John Summit",
+        "joinphrase": " & "
+       },
+       {
+        "name": "Nija",
+        "joinphrase": "",
+        "artist": {
+         "sort-name": "Nija",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "id": "1f9e0b09-9f29-48e7-a187-3c3335e14e0d",
+         "disambiguation": "US singer, songwriter and producer Nija Charles",
+         "name": "Nija",
+         "type": "Person"
+        }
+       }
+      ],
+      "id": "33ec766d-d1d5-48f0-85b6-9627d491f20a",
+      "disambiguation": "",
+      "title": "MESS W/ ME",
+      "length": 249748,
+      "video": false,
+      "first-release-date": "2026-04-15"
+     },
+     "length": 250000,
+     "position": 7,
+     "id": "8f28ecd2-2d13-4843-bb74-b6ced23abbec",
+     "number": "7",
+     "artist-credit": [
+      {
+       "artist": {
+        "type": "Person",
+        "name": "John Summit",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Summit, John"
+       },
+       "joinphrase": " & ",
+       "name": "John Summit"
+      },
+      {
+       "name": "Nija",
+       "joinphrase": "",
+       "artist": {
+        "type": "Person",
+        "name": "Nija",
+        "sort-name": "Nija",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "id": "1f9e0b09-9f29-48e7-a187-3c3335e14e0d",
+        "disambiguation": "US singer, songwriter and producer Nija Charles"
+       }
+      }
+     ]
+    },
+    {
+     "recording": {
+      "video": false,
+      "first-release-date": "2026-04-01",
+      "disambiguation": "",
+      "id": "94bd2665-9f85-4dfc-b678-82d75852afe9",
+      "artist-credit": [
+       {
+        "name": "John Summit",
+        "joinphrase": " & ",
+        "artist": {
+         "name": "John Summit",
+         "type": "Person",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "disambiguation": "EDM DJ & producer",
+         "sort-name": "Summit, John",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US"
+        }
+       },
+       {
+        "artist": {
+         "type": "Person",
+         "name": "Feid",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "CO",
+         "sort-name": "Feid",
+         "disambiguation": "Colombian singer-songwriter",
+         "id": "eaee97f6-f2e4-414a-966c-f31a1fb4696a"
+        },
+        "name": "Feid",
+        "joinphrase": ""
+       }
+      ],
+      "title": "CHICA 305",
+      "length": 188000
+     },
+     "length": 188000,
+     "title": "CHICA 305",
+     "position": 8,
+     "id": "5ab36fdd-1a21-4bed-b6df-a23aaf37e1a5",
+     "artist-credit": [
+      {
+       "artist": {
+        "name": "John Summit",
+        "type": "Person",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "sort-name": "Summit, John",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+       },
+       "joinphrase": " & ",
+       "name": "John Summit"
+      },
+      {
+       "name": "Feid",
+       "joinphrase": "",
+       "artist": {
+        "type": "Person",
+        "name": "Feid",
+        "disambiguation": "Colombian singer-songwriter",
+        "id": "eaee97f6-f2e4-414a-966c-f31a1fb4696a",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "CO",
+        "sort-name": "Feid"
+       }
+      }
+     ],
+     "number": "8"
+    },
+    {
+     "length": 180000,
+     "recording": {
+      "disambiguation": "",
+      "id": "f322fda6-e7eb-4697-b08f-dbacb7846b44",
+      "artist-credit": [
+       {
+        "artist": {
+         "sort-name": "Summit, John",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US",
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "type": "Person",
+         "name": "John Summit"
+        },
+        "name": "John Summit",
+        "joinphrase": ", "
+       },
+       {
+        "joinphrase": " & ",
+        "name": "The Chainsmokers",
+        "artist": {
+         "disambiguation": "",
+         "id": "91a81925-92f9-4fc9-b897-93cf01226282",
+         "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+         "country": "US",
+         "sort-name": "Chainsmokers, The",
+         "name": "The Chainsmokers",
+         "type": "Group"
+        }
+       },
+       {
+        "name": "Ilsey",
+        "joinphrase": "",
+        "artist": {
+         "id": "24a43e36-0435-4f04-ae9a-d5d73e52d278",
+         "disambiguation": "US | pop singer",
+         "sort-name": "Ilsey",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US",
+         "name": "Ilsey",
+         "type": "Person"
+        }
+       }
+      ],
+      "title": "ALL THE TIME",
+      "length": 180000,
+      "video": false,
+      "first-release-date": "2026-03-25"
+     },
+     "title": "ALL THE TIME",
+     "artist-credit": [
+      {
+       "artist": {
+        "type": "Person",
+        "name": "John Summit",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "sort-name": "Summit, John",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US"
+       },
+       "name": "John Summit",
+       "joinphrase": ", "
+      },
+      {
+       "artist": {
+        "id": "91a81925-92f9-4fc9-b897-93cf01226282",
+        "disambiguation": "",
+        "sort-name": "Chainsmokers, The",
+        "country": "US",
+        "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+        "type": "Group",
+        "name": "The Chainsmokers"
+       },
+       "joinphrase": " & ",
+       "name": "The Chainsmokers"
+      },
+      {
+       "name": "Ilsey",
+       "joinphrase": "",
+       "artist": {
+        "name": "Ilsey",
+        "type": "Person",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US",
+        "sort-name": "Ilsey",
+        "id": "24a43e36-0435-4f04-ae9a-d5d73e52d278",
+        "disambiguation": "US | pop singer"
+       }
+      }
+     ],
+     "number": "9",
+     "id": "43030272-e9ff-4dd7-a49c-068e3297a9b3",
+     "position": 9
+    },
+    {
+     "length": 60000,
+     "recording": {
+      "title": "OOO",
+      "length": 59536,
+      "id": "584bc8c8-d55f-40b8-bca4-1a5cb5dc15de",
+      "disambiguation": "",
+      "artist-credit": [
+       {
+        "joinphrase": "",
+        "name": "John Summit",
+        "artist": {
+         "name": "John Summit",
+         "type": "Person",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "sort-name": "Summit, John",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "disambiguation": "EDM DJ & producer"
+        }
+       }
+      ],
+      "video": false,
+      "first-release-date": "2026-04-15"
+     },
+     "title": "OOO",
+     "artist-credit": [
+      {
+       "artist": {
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US",
+        "sort-name": "Summit, John",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "type": "Person",
+        "name": "John Summit"
+       },
+       "name": "John Summit",
+       "joinphrase": ""
+      }
+     ],
+     "number": "10",
+     "id": "828e3e9b-40b2-48c2-8d2b-a53dd36efd75",
+     "position": 10
+    },
+    {
+     "id": "d1096e2a-1fcd-45cf-bc9a-7472154366c6",
+     "position": 11,
+     "artist-credit": [
+      {
+       "joinphrase": " & ",
+       "name": "John Summit",
+       "artist": {
+        "sort-name": "Summit, John",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "type": "Person",
+        "name": "John Summit"
+       }
+      },
+      {
+       "artist": {
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "DE",
+        "sort-name": "LAVINIA",
+        "disambiguation": "IT/DE pop/electronic singer Lavinia Hope",
+        "id": "ac1fae13-d4e6-40b1-b994-46eb745b5c3b",
+        "type": "Person",
+        "name": "LAVINIA"
+       },
+       "name": "LAVINIA",
+       "joinphrase": ""
+      }
+     ],
+     "number": "11",
+     "recording": {
+      "disambiguation": "",
+      "id": "54c018bc-39a2-42a6-b91f-141cca73e55f",
+      "artist-credit": [
+       {
+        "joinphrase": " & ",
+        "name": "John Summit",
+        "artist": {
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US",
+         "sort-name": "Summit, John",
+         "name": "John Summit",
+         "type": "Person"
+        }
+       },
+       {
+        "name": "LAVINIA",
+        "joinphrase": "",
+        "artist": {
+         "type": "Person",
+         "name": "LAVINIA",
+         "disambiguation": "IT/DE pop/electronic singer Lavinia Hope",
+         "id": "ac1fae13-d4e6-40b1-b994-46eb745b5c3b",
+         "country": "DE",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "sort-name": "LAVINIA"
+        }
+       }
+      ],
+      "title": "SHADOWS",
+      "length": 202000,
+      "video": false,
+      "first-release-date": "2026-02-12"
+     },
+     "length": 202000,
+     "title": "SHADOWS"
+    },
+    {
+     "position": 12,
+     "id": "20bb63f4-5dd2-4c48-8657-6264c47112c1",
+     "number": "12",
+     "artist-credit": [
+      {
+       "name": "John Summit",
+       "joinphrase": " & ",
+       "artist": {
+        "type": "Person",
+        "name": "John Summit",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "country": "US",
+        "sort-name": "Summit, John",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086"
+       }
+      },
+      {
+       "name": "KILIMANJARO",
+       "joinphrase": "",
+       "artist": {
+        "type": null,
+        "name": "KILIMANJARO",
+        "id": "0f05dbe3-3fb4-4e66-8f31-ad8445885cdd",
+        "disambiguation": "South African electronic producer",
+        "country": "GB",
+        "type-id": null,
+        "sort-name": "KILIMANJARO"
+       }
+      }
+     ],
+     "recording": {
+      "length": 238000,
+      "title": "TIME WITH YOU",
+      "id": "1eea7462-0aba-4df0-aac0-77087621471f",
+      "disambiguation": "",
+      "artist-credit": [
+       {
+        "artist": {
+         "type": "Person",
+         "name": "John Summit",
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "sort-name": "Summit, John",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        },
+        "joinphrase": " & ",
+        "name": "John Summit"
+       },
+       {
+        "artist": {
+         "type": null,
+         "name": "KILIMANJARO",
+         "disambiguation": "South African electronic producer",
+         "id": "0f05dbe3-3fb4-4e66-8f31-ad8445885cdd",
+         "sort-name": "KILIMANJARO",
+         "country": "GB",
+         "type-id": null
+        },
+        "joinphrase": "",
+        "name": "KILIMANJARO"
+       }
+      ],
+      "first-release-date": "2026-04-15",
+      "video": false
+     },
+     "length": 238000,
+     "title": "TIME WITH YOU"
+    },
+    {
+     "recording": {
+      "length": 198964,
+      "title": "CYANIDE",
+      "disambiguation": "",
+      "id": "b82cdfef-28d9-44b2-b87d-fedfdbe831e1",
+      "artist-credit": [
+       {
+        "artist": {
+         "sort-name": "Summit, John",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "country": "US",
+         "disambiguation": "EDM DJ & producer",
+         "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+         "name": "John Summit",
+         "type": "Person"
+        },
+        "joinphrase": " & ",
+        "name": "John Summit"
+       },
+       {
+        "name": "Absolutely",
+        "joinphrase": "",
+        "artist": {
+         "id": "30ef765d-f7bb-4e7e-8972-13be03aa4f2c",
+         "disambiguation": "Abby Lynn Keen",
+         "sort-name": "Absolutely",
+         "country": "GB",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "type": "Person",
+         "name": "Absolutely"
+        }
+       }
+      ],
+      "first-release-date": "2026-04-15",
+      "video": false
+     },
+     "length": 199000,
+     "title": "CYANIDE",
+     "position": 13,
+     "id": "1933e023-5f67-4469-b454-2e649cbeb627",
+     "artist-credit": [
+      {
+       "joinphrase": " & ",
+       "name": "John Summit",
+       "artist": {
+        "name": "John Summit",
+        "type": "Person",
+        "country": "US",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Summit, John",
+        "disambiguation": "EDM DJ & producer",
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086"
+       }
+      },
+      {
+       "joinphrase": "",
+       "name": "Absolutely",
+       "artist": {
+        "name": "Absolutely",
+        "type": "Person",
+        "disambiguation": "Abby Lynn Keen",
+        "id": "30ef765d-f7bb-4e7e-8972-13be03aa4f2c",
+        "country": "GB",
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Absolutely"
+       }
+      }
+     ],
+     "number": "13"
+    }
+   ],
+   "position": 1,
+   "id": "dda76def-6319-42f6-9cbe-09f48925ea15",
+   "format": "Digital Media",
+   "title": "",
+   "format-id": "907a28d9-b3b2-3ef6-89a8-7b18d91d4794"
+  }
+ ],
+ "quality": "normal",
+ "packaging": "None"
+}

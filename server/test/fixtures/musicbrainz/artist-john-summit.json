@@ -1,0 +1,488 @@
+{
+ "country": "US",
+ "tags": [
+  {
+   "name": "dance",
+   "count": 1
+  },
+  {
+   "count": 1,
+   "name": "edm"
+  },
+  {
+   "name": "house",
+   "count": 1
+  },
+  {
+   "name": "progressive house",
+   "count": 1
+  }
+ ],
+ "ipis": [],
+ "disambiguation": "EDM DJ & producer",
+ "life-span": {
+  "end": null,
+  "begin": null,
+  "ended": false
+ },
+ "name": "John Summit",
+ "type": "Person",
+ "end-area": null,
+ "begin-area": null,
+ "area": {
+  "type-id": null,
+  "sort-name": "Chicago",
+  "type": null,
+  "disambiguation": "",
+  "name": "Chicago",
+  "id": "29a709d8-0320-493e-8d0c-f2c386662b7f"
+ },
+ "isnis": [],
+ "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+ "relations": [
+  {
+   "attribute-values": {},
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url",
+   "target-credit": "",
+   "end": null,
+   "type-id": "6b3e3c85-0002-4f34-aca6-80ace0d7e846",
+   "begin": null,
+   "url": {
+    "resource": "https://www.allmusic.com/artist/mn0003769680",
+    "id": "45b0d27b-d364-4ff3-987b-51813c5b8da1"
+   },
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "allmusic"
+  },
+  {
+   "source-credit": "",
+   "attributes": [],
+   "type": "bandcamp",
+   "direction": "forward",
+   "target-type": "url",
+   "attribute-ids": {},
+   "ended": false,
+   "attribute-values": {},
+   "url": {
+    "id": "a182736d-0c51-4ec4-a1f4-3b9649d8c4b7",
+    "resource": "https://johnsummit.bandcamp.com/"
+   },
+   "begin": null,
+   "type-id": "c550166e-0548-4a18-b1d4-e2ae423a3e88",
+   "end": null,
+   "target-credit": ""
+  },
+  {
+   "url": {
+    "resource": "https://www.bandsintown.com/a/14563710",
+    "id": "e79a183c-70b3-4d3e-9faa-4f4a70c36d3d"
+   },
+   "end": null,
+   "target-credit": "",
+   "begin": null,
+   "type-id": "ea45ed3d-2d5e-456e-8c32-94b6f51426e2",
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url",
+   "attribute-values": {},
+   "type": "bandsintown",
+   "direction": "forward",
+   "source-credit": "",
+   "attributes": []
+  },
+  {
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "discogs",
+   "attribute-values": {},
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "target-credit": "",
+   "end": null,
+   "type-id": "04a5b104-a4c2-4bac-99a1-7b837c37d9e4",
+   "begin": null,
+   "url": {
+    "id": "70267567-5ad1-41f8-a2e6-2bf4b4c58f52",
+    "resource": "https://www.discogs.com/artist/6687674"
+   }
+  },
+  {
+   "source-credit": "",
+   "attributes": [],
+   "type": "discogs",
+   "direction": "forward",
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url",
+   "attribute-values": {},
+   "url": {
+    "id": "8d96324c-6427-49ba-a13f-193871468a48",
+    "resource": "https://www.discogs.com/artist/7976622"
+   },
+   "target-credit": "",
+   "end": null,
+   "type-id": "04a5b104-a4c2-4bac-99a1-7b837c37d9e4",
+   "begin": null
+  },
+  {
+   "begin": null,
+   "type-id": "769085a1-c2f7-4c24-a532-2375a77693bd",
+   "end": null,
+   "target-credit": "",
+   "url": {
+    "resource": "https://open.spotify.com/artist/7kNqXtgeIwFtelmRjWv205",
+    "id": "7e40d59a-4ae8-4fd7-9e25-0047ca9162ea"
+   },
+   "attribute-values": {},
+   "target-type": "url",
+   "ended": false,
+   "attribute-ids": {},
+   "direction": "forward",
+   "type": "free streaming",
+   "attributes": [],
+   "source-credit": ""
+  },
+  {
+   "type": "free streaming",
+   "direction": "forward",
+   "source-credit": "",
+   "attributes": [],
+   "url": {
+    "id": "ac02dbd4-330d-49e8-814b-9ad4085dd9ed",
+    "resource": "https://www.deezer.com/artist/12170972"
+   },
+   "begin": null,
+   "type-id": "769085a1-c2f7-4c24-a532-2375a77693bd",
+   "end": null,
+   "target-credit": "",
+   "target-type": "url",
+   "attribute-ids": {},
+   "ended": false,
+   "attribute-values": {}
+  },
+  {
+   "source-credit": "",
+   "attributes": [],
+   "type": "last.fm",
+   "direction": "forward",
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "attribute-values": {},
+   "url": {
+    "resource": "https://www.last.fm/music/John+Summit",
+    "id": "c71bed6b-7243-4c5f-966d-3624639d56ee"
+   },
+   "target-credit": "",
+   "end": null,
+   "type-id": "08db8098-c0df-4b78-82c3-c8697b4bba7f",
+   "begin": null
+  },
+  {
+   "type": "official homepage",
+   "direction": "forward",
+   "source-credit": "",
+   "attributes": [],
+   "url": {
+    "id": "2da4b7c3-49b6-4ef5-b796-896df3e4e40e",
+    "resource": "https://www.johnsummitmusic.com/"
+   },
+   "target-credit": "",
+   "end": null,
+   "type-id": "fe33d22f-c3b0-4d68-bd53-a856badf2b15",
+   "begin": null,
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "attribute-values": {}
+  },
+  {
+   "target-type": "url",
+   "ended": false,
+   "attribute-ids": {},
+   "attribute-values": {},
+   "url": {
+    "resource": "https://itunes.apple.com/us/artist/id1387587503",
+    "id": "4164c83b-14f1-466d-8fbc-01406be90826"
+   },
+   "type-id": "f8319a2f-f824-4617-81c8-be6560b3b203",
+   "begin": null,
+   "target-credit": "",
+   "end": null,
+   "source-credit": "",
+   "attributes": [],
+   "type": "purchase for download",
+   "direction": "forward"
+  },
+  {
+   "url": {
+    "id": "c51ca8d4-ec38-474e-ba8f-73a0950a54a3",
+    "resource": "https://open.qobuz.com/artist/3106734"
+   },
+   "target-credit": "",
+   "end": null,
+   "type-id": "f8319a2f-f824-4617-81c8-be6560b3b203",
+   "begin": null,
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url",
+   "attribute-values": {},
+   "type": "purchase for download",
+   "direction": "forward",
+   "source-credit": "",
+   "attributes": []
+  },
+  {
+   "attribute-values": {},
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "target-credit": "",
+   "end": null,
+   "type-id": "f8319a2f-f824-4617-81c8-be6560b3b203",
+   "begin": null,
+   "url": {
+    "id": "11d91db9-7aa9-4470-904c-11a24a676d2a",
+    "resource": "https://www.beatport.com/artist/john-summit/610028"
+   },
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "purchase for download"
+  },
+  {
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "attribute-values": {},
+   "url": {
+    "resource": "https://twitter.com/johnsummit",
+    "id": "892177df-b17f-44d1-9419-951b215956f8"
+   },
+   "end": null,
+   "target-credit": "",
+   "begin": null,
+   "type-id": "99429741-f3f6-484b-84f8-23af51991770",
+   "source-credit": "",
+   "attributes": [],
+   "type": "social network",
+   "direction": "forward"
+  },
+  {
+   "attribute-values": {},
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "target-credit": "",
+   "end": null,
+   "type-id": "99429741-f3f6-484b-84f8-23af51991770",
+   "begin": null,
+   "url": {
+    "id": "d6ca1ef8-5a21-4471-a0d6-20678ab47051",
+    "resource": "https://www.facebook.com/itsjohnsummit"
+   },
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "social network"
+  },
+  {
+   "direction": "forward",
+   "type": "social network",
+   "attributes": [],
+   "source-credit": "",
+   "target-credit": "",
+   "end": null,
+   "type-id": "99429741-f3f6-484b-84f8-23af51991770",
+   "begin": null,
+   "url": {
+    "resource": "https://www.instagram.com/johnsummit/",
+    "id": "1b89714d-1d9a-493e-af7f-b29c64d8655c"
+   },
+   "attribute-values": {},
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url"
+  },
+  {
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url",
+   "attribute-values": {},
+   "url": {
+    "id": "1f81e67b-5456-4a2e-9f58-d15f2f82243b",
+    "resource": "https://www.threads.com/@johnsummit"
+   },
+   "target-credit": "",
+   "end": null,
+   "type-id": "99429741-f3f6-484b-84f8-23af51991770",
+   "begin": null,
+   "source-credit": "",
+   "attributes": [],
+   "type": "social network",
+   "direction": "forward"
+  },
+  {
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "social network",
+   "attribute-values": {},
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url",
+   "end": null,
+   "target-credit": "",
+   "begin": null,
+   "type-id": "99429741-f3f6-484b-84f8-23af51991770",
+   "url": {
+    "id": "42380b1e-35a6-4f4f-af59-cf7fec39d895",
+    "resource": "https://www.tiktok.com/@johnsummit"
+   }
+  },
+  {
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "soundcloud",
+   "attribute-values": {},
+   "target-type": "url",
+   "ended": false,
+   "attribute-ids": {},
+   "begin": null,
+   "type-id": "89e4a949-0976-440d-bda1-5f772c1e5710",
+   "end": null,
+   "target-credit": "",
+   "url": {
+    "id": "4bbe19fd-40ac-43e1-8bbd-4204fe0d8191",
+    "resource": "https://soundcloud.com/johnsummit"
+   }
+  },
+  {
+   "attribute-ids": {},
+   "ended": false,
+   "target-type": "url",
+   "attribute-values": {},
+   "url": {
+    "id": "c7b3252d-50ef-4940-afa9-51d77addfaaf",
+    "resource": "https://music.apple.com/us/artist/1387587503"
+   },
+   "target-credit": "",
+   "end": null,
+   "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+   "begin": null,
+   "source-credit": "",
+   "attributes": [],
+   "type": "streaming",
+   "direction": "forward"
+  },
+  {
+   "direction": "forward",
+   "type": "streaming",
+   "attributes": [],
+   "source-credit": "",
+   "end": null,
+   "target-credit": "",
+   "begin": null,
+   "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+   "url": {
+    "resource": "https://open.qobuz.com/artist/3106734",
+    "id": "c51ca8d4-ec38-474e-ba8f-73a0950a54a3"
+   },
+   "attribute-values": {},
+   "ended": false,
+   "attribute-ids": {},
+   "target-type": "url"
+  },
+  {
+   "url": {
+    "id": "3bf18a80-81ee-4a9e-bde1-c085cf98ea7a",
+    "resource": "https://tidal.com/artist/8623544"
+   },
+   "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+   "begin": null,
+   "target-credit": "",
+   "end": null,
+   "target-type": "url",
+   "ended": false,
+   "attribute-ids": {},
+   "attribute-values": {},
+   "type": "streaming",
+   "direction": "forward",
+   "source-credit": "",
+   "attributes": []
+  },
+  {
+   "target-type": "url",
+   "attribute-ids": {},
+   "ended": false,
+   "attribute-values": {},
+   "url": {
+    "id": "8fee6e52-3b02-45fe-83f2-8a3a23298725",
+    "resource": "https://www.wikidata.org/wiki/Q120531443"
+   },
+   "begin": null,
+   "type-id": "689870a4-a1e4-4912-b17f-7b2664215698",
+   "end": null,
+   "target-credit": "",
+   "source-credit": "",
+   "attributes": [],
+   "type": "wikidata",
+   "direction": "forward"
+  },
+  {
+   "attributes": [],
+   "source-credit": "",
+   "direction": "forward",
+   "type": "youtube",
+   "attribute-values": {},
+   "target-type": "url",
+   "ended": false,
+   "attribute-ids": {},
+   "begin": null,
+   "type-id": "6a540e5b-58c6-4192-b6ba-dbc71ec8fcf0",
+   "end": null,
+   "target-credit": "",
+   "url": {
+    "resource": "https://www.youtube.com/channel/UCsIVrho83JfwUieSs_UKCmA",
+    "id": "383e01e7-5b14-487c-bef8-937e77bdbbbf"
+   }
+  }
+ ],
+ "sort-name": "Summit, John",
+ "gender": "Male",
+ "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+ "genres": [
+  {
+   "count": 1,
+   "name": "dance",
+   "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33",
+   "disambiguation": ""
+  },
+  {
+   "id": "3976e9ba-16d0-461d-b732-99408a0374ba",
+   "name": "edm",
+   "disambiguation": "",
+   "count": 1
+  },
+  {
+   "count": 1,
+   "disambiguation": "",
+   "name": "house",
+   "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3"
+  },
+  {
+   "count": 1,
+   "disambiguation": "",
+   "id": "70adb285-e1f7-458a-823f-5cbda5e291c4",
+   "name": "progressive house"
+  }
+ ],
+ "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9"
+}

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 
 import useSettings from '@app/hooks/useSettings';
 import { useUser } from '@app/hooks/useUser';
@@ -11,6 +12,9 @@ const ServiceWorkerSetup = () => {
 
   useEffect(() => {
     if ('serviceWorker' in navigator && user?.id) {
+      // Web push needs the Notification API; without it only the offline page is set up.
+      const canNotify = 'Notification' in window;
+
       navigator.serviceWorker
         .register('/sw.js')
         .then(async (registration) => {
@@ -24,6 +28,7 @@ const ServiceWorkerSetup = () => {
 
           // Reset the notifications flag if permissions were revoked
           if (
+            canNotify &&
             Notification.permission !== 'granted' &&
             pushNotificationsEnabled
           ) {
@@ -36,7 +41,7 @@ const ServiceWorkerSetup = () => {
           }
 
           // Bypass resubscribing if we have manually disabled push notifications
-          if (!pushNotificationsEnabled) {
+          if (!canNotify || !pushNotificationsEnabled) {
             return;
           }
 

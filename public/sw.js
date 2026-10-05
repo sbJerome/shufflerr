@@ -1,9 +1,11 @@
 /* eslint-disable no-undef */
+// Shufflerr service worker: offline page and web push for request updates.
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 // Incrementing OFFLINE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 // This variable is intentionally declared and unused.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const OFFLINE_VERSION = 5;
+const OFFLINE_VERSION = 6;
 const CACHE_NAME = 'offline';
 // Customize this with a different URL if needed.
 const OFFLINE_URL = '/offline.html';
@@ -75,8 +77,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: payload.message,
-    badge: 'badge-128x128.png',
-    icon: payload.image ? payload.image : 'android-chrome-192x192.png',
+    badge: '/badge-128x128.png',
+    icon: payload.image ? payload.image : '/android-chrome-192x192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -126,7 +128,9 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  event.waitUntil(self.registration.showNotification(payload.subject, options));
+  event.waitUntil(
+    self.registration.showNotification(payload.subject ?? 'Shufflerr', options)
+  );
 });
 
 self.addEventListener(

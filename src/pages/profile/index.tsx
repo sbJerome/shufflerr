@@ -1,8 +1,13 @@
 import UserProfile from '@app/components/UserProfile';
+import Overview from '@app/components/UserProfile/Overview';
 import type { NextPage } from 'next';
 
-const UserPage: NextPage = () => {
-  return <UserProfile />;
+const UserProfilePage: NextPage = () => {
+  return (
+    <UserProfile tab="overview">
+      <Overview />
+    </UserProfile>
+  );
 };
 
-export default UserPage;
+export default UserProfilePage;

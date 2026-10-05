@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Alert from '@app/components/Common/Alert';
 import defineMessages from '@app/utils/defineMessages';
 import { useIntl } from 'react-intl';
@@ -5,7 +6,7 @@ import useSWR from 'swr';
 
 const messages = defineMessages('components.AppDataWarning', {
   dockerVolumeMissingDescription:
-    'The <code>{appDataPath}</code> volume mount was not configured properly. All data will be cleared when the container is stopped or restarted.',
+    'The data folder <code>{appDataPath}</code> is not a mounted volume. Settings, users and requests will be lost when the container stops. Mount a volume at that path and restart.',
 });
 
 const AppDataWarning = () => {
@@ -26,9 +27,10 @@ const AppDataWarning = () => {
     <>
       {!data.appData && (
         <Alert
+          type="warning"
           title={intl.formatMessage(messages.dockerVolumeMissingDescription, {
             code: (msg: React.ReactNode) => (
-              <code className="bg-gray-800/50">{msg}</code>
+              <code className="font-mono">{msg}</code>
             ),
             appDataPath: data.appDataPath,
           })}

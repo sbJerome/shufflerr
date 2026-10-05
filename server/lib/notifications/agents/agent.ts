@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import type Issue from '@server/entity/Issue';
 import type IssueComment from '@server/entity/IssueComment';
 import type Media from '@server/entity/Media';

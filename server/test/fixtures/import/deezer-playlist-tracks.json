@@ -1,0 +1,80 @@
+{
+ "data": [
+  {
+   "id": 2300783195,
+   "title": "Where You Are (Mixed)",
+   "isrc": "NLF712304446",
+   "duration": 106,
+   "artist": {
+    "id": 12170972,
+    "name": "John Summit"
+   },
+   "album": {
+    "id": 446378885,
+    "title": "Live at EDC Las Vegas 2023 (Highlights)",
+    "cover_medium": "https://cdn-images.dzcdn.net/images/cover/7437e821e49b68bb295b22c183078b93/250x250-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 2310378425,
+   "title": "Where You Are (Gorgon City Remix)",
+   "isrc": "USUG12301345",
+   "duration": 282,
+   "artist": {
+    "id": 12170972,
+    "name": "John Summit"
+   },
+   "album": {
+    "id": 448658205,
+    "title": "Where You Are (Gorgon City Remix)",
+    "cover_medium": "https://cdn-images.dzcdn.net/images/cover/d04dfc8d52ae0abb8685ea947031569f/250x250-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 2300220835,
+   "title": "Where You Are (GRiZ Remix)",
+   "isrc": "USUG12301342",
+   "duration": 240,
+   "artist": {
+    "id": 12170972,
+    "name": "John Summit"
+   },
+   "album": {
+    "id": 446202755,
+    "title": "Where You Are (GRiZ Remix)",
+    "cover_medium": "https://cdn-images.dzcdn.net/images/cover/d65fb1c766c56636815e8ad126099220/250x250-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 2377626875,
+   "title": "Where You Are (Zedd Remix)",
+   "isrc": "USUG12304061",
+   "duration": 185,
+   "artist": {
+    "id": 12170972,
+    "name": "John Summit"
+   },
+   "album": {
+    "id": 467099825,
+    "title": "Where You Are (Zedd Remix)",
+    "cover_medium": "https://cdn-images.dzcdn.net/images/cover/2ca7aef4f10bc4425efef8d9bc624fba/250x250-000000-80-0-0.jpg"
+   }
+  },
+  {
+   "id": 2164533907,
+   "title": "Where You Are",
+   "isrc": "USUG12301338",
+   "duration": 236,
+   "artist": {
+    "id": 12170972,
+    "name": "John Summit"
+   },
+   "album": {
+    "id": 411113987,
+    "title": "Where You Are",
+    "cover_medium": "https://cdn-images.dzcdn.net/images/cover/e70f7518f5dbe0b0be643cbabc87ca4b/250x250-000000-80-0-0.jpg"
+   }
+  }
+ ],
+ "total": 5
+}

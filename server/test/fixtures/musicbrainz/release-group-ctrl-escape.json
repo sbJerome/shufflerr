@@ -1,0 +1,313 @@
+{
+ "first-release-date": "2026-04-15",
+ "genres": [
+  {
+   "name": "dance",
+   "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33",
+   "disambiguation": "",
+   "count": 1
+  },
+  {
+   "id": "89255676-1f14-4dd8-bbad-fca839d6aff4",
+   "disambiguation": "",
+   "name": "electronic",
+   "count": 1
+  },
+  {
+   "count": 1,
+   "name": "house",
+   "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3",
+   "disambiguation": ""
+  }
+ ],
+ "id": "324f381f-ebef-4003-8885-c06659395d8b",
+ "secondary-type-ids": [],
+ "releases": [
+  {
+   "date": "2026-04-15",
+   "release-events": [
+    {
+     "date": "2026-04-15",
+     "area": {
+      "id": "525d4e18-3d00-31b9-a58b-a146a916de8f",
+      "disambiguation": "",
+      "iso-3166-1-codes": [
+       "XW"
+      ],
+      "sort-name": "[Worldwide]",
+      "type-id": null,
+      "name": "[Worldwide]",
+      "type": null
+     }
+    }
+   ],
+   "genres": [],
+   "barcode": "198704984693",
+   "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+   "status": "Official",
+   "id": "2555fe96-7bde-4b6d-92ae-9ee09ffe71d4",
+   "quality": "normal",
+   "media": [
+    {
+     "track-count": 13,
+     "title": "",
+     "format-id": "907a28d9-b3b2-3ef6-89a8-7b18d91d4794",
+     "id": "dda76def-6319-42f6-9cbe-09f48925ea15",
+     "position": 1,
+     "format": "Digital Media"
+    }
+   ],
+   "packaging": "None",
+   "tags": [],
+   "text-representation": {
+    "language": "eng",
+    "script": "Latn"
+   },
+   "title": "CTRL ESCAPE",
+   "country": "XW",
+   "disambiguation": "",
+   "artist-credit": [
+    {
+     "name": "John Summit",
+     "joinphrase": "",
+     "artist": {
+      "genres": [
+       {
+        "count": 1,
+        "name": "dance",
+        "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33",
+        "disambiguation": ""
+       },
+       {
+        "count": 1,
+        "id": "3976e9ba-16d0-461d-b732-99408a0374ba",
+        "disambiguation": "",
+        "name": "edm"
+       },
+       {
+        "count": 1,
+        "name": "house",
+        "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3",
+        "disambiguation": ""
+       },
+       {
+        "count": 1,
+        "id": "70adb285-e1f7-458a-823f-5cbda5e291c4",
+        "disambiguation": "",
+        "name": "progressive house"
+       }
+      ],
+      "name": "John Summit",
+      "type": "Person",
+      "tags": [
+       {
+        "count": 1,
+        "name": "dance"
+       },
+       {
+        "count": 1,
+        "name": "edm"
+       },
+       {
+        "name": "house",
+        "count": 1
+       },
+       {
+        "count": 1,
+        "name": "progressive house"
+       }
+      ],
+      "sort-name": "Summit, John",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "country": "US",
+      "disambiguation": "EDM DJ & producer",
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086"
+     }
+    }
+   ],
+   "packaging-id": "119eba76-b343-3e02-a292-f0f00644bb9b"
+  },
+  {
+   "barcode": "826194714994",
+   "genres": [],
+   "release-events": [
+    {
+     "date": "2026-04-15",
+     "area": {
+      "sort-name": "[Worldwide]",
+      "type-id": null,
+      "disambiguation": "",
+      "id": "525d4e18-3d00-31b9-a58b-a146a916de8f",
+      "iso-3166-1-codes": [
+       "XW"
+      ],
+      "name": "[Worldwide]",
+      "type": null
+     }
+    }
+   ],
+   "date": "2026-04-15",
+   "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+   "status": "Official",
+   "id": "81cacb05-d28f-4938-8c05-a5a8ed2792c3",
+   "media": [
+    {
+     "title": "",
+     "format-id": "907a28d9-b3b2-3ef6-89a8-7b18d91d4794",
+     "position": 1,
+     "id": "41b12696-67ae-4ab5-a009-7bb33dd65240",
+     "format": "Digital Media",
+     "track-count": 13
+    }
+   ],
+   "quality": "normal",
+   "tags": [],
+   "packaging": "None",
+   "country": "XW",
+   "title": "CTRL ESCAPE",
+   "text-representation": {
+    "language": "eng",
+    "script": "Latn"
+   },
+   "artist-credit": [
+    {
+     "artist": {
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "disambiguation": "EDM DJ & producer",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "country": "US",
+      "sort-name": "Summit, John",
+      "tags": [
+       {
+        "name": "dance",
+        "count": 1
+       },
+       {
+        "name": "edm",
+        "count": 1
+       },
+       {
+        "name": "house",
+        "count": 1
+       },
+       {
+        "name": "progressive house",
+        "count": 1
+       }
+      ],
+      "name": "John Summit",
+      "type": "Person",
+      "genres": [
+       {
+        "disambiguation": "",
+        "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33",
+        "name": "dance",
+        "count": 1
+       },
+       {
+        "id": "3976e9ba-16d0-461d-b732-99408a0374ba",
+        "disambiguation": "",
+        "name": "edm",
+        "count": 1
+       },
+       {
+        "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3",
+        "disambiguation": "",
+        "name": "house",
+        "count": 1
+       },
+       {
+        "id": "70adb285-e1f7-458a-823f-5cbda5e291c4",
+        "disambiguation": "",
+        "name": "progressive house",
+        "count": 1
+       }
+      ]
+     },
+     "name": "John Summit",
+     "joinphrase": ""
+    }
+   ],
+   "packaging-id": "119eba76-b343-3e02-a292-f0f00644bb9b",
+   "disambiguation": "extended/original mixes"
+  }
+ ],
+ "tags": [
+  {
+   "count": 1,
+   "name": "dance"
+  },
+  {
+   "name": "electronic",
+   "count": 1
+  },
+  {
+   "count": 1,
+   "name": "house"
+  }
+ ],
+ "title": "CTRL ESCAPE",
+ "artist-credit": [
+  {
+   "artist": {
+    "disambiguation": "EDM DJ & producer",
+    "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+    "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+    "country": "US",
+    "sort-name": "Summit, John",
+    "tags": [
+     {
+      "name": "dance",
+      "count": 1
+     },
+     {
+      "name": "edm",
+      "count": 1
+     },
+     {
+      "count": 1,
+      "name": "house"
+     },
+     {
+      "name": "progressive house",
+      "count": 1
+     }
+    ],
+    "type": "Person",
+    "name": "John Summit",
+    "genres": [
+     {
+      "count": 1,
+      "name": "dance",
+      "disambiguation": "",
+      "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33"
+     },
+     {
+      "name": "edm",
+      "id": "3976e9ba-16d0-461d-b732-99408a0374ba",
+      "disambiguation": "",
+      "count": 1
+     },
+     {
+      "name": "house",
+      "disambiguation": "",
+      "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3",
+      "count": 1
+     },
+     {
+      "count": 1,
+      "name": "progressive house",
+      "disambiguation": "",
+      "id": "70adb285-e1f7-458a-823f-5cbda5e291c4"
+     }
+    ]
+   },
+   "name": "John Summit",
+   "joinphrase": ""
+  }
+ ],
+ "secondary-types": [],
+ "disambiguation": "",
+ "primary-type": "Album",
+ "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc"
+}

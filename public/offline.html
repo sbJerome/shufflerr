@@ -1,65 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0C101B" />
-
-    <title>You are offline</title>
-
-    <!-- Inline the page's stylesheet. -->
+    <title>Shufflerr is offline</title>
     <style>
       body {
-        font-family: helvetica, arial, sans-serif;
-        margin: 2em;
-        background-color: #0C101B;
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        background: #0c101b;
+        color: #e9eef4;
       }
-
+      main {
+        max-width: 420px;
+      }
       h1 {
-        color: #FF1744;
+        font-size: 30px;
+        margin: 0 0 8px;
+        letter-spacing: -0.03em;
       }
-
       p {
-        margin-block: 1rem;
+        margin: 0 0 24px;
+        color: #9ca8b0;
       }
-
       button {
-        display: block;
+        min-height: 46px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 8px;
+        background: #ff1744;
+        color: #0c101b;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:focus-visible {
+        outline: 2px solid #ff1744;
+        outline-offset: 2px;
       }
     </style>
   </head>
   <body>
-    <h1>You are offline</h1>
-
-    <button type="button">↻ Reload</button>
-
-    <!-- Inline the page's JavaScript file. -->
+    <main>
+      <h1>Shufflerr can't be reached</h1>
+      <p>
+        Either this device is offline or the server is down. This page reloads
+        by itself when the connection is back.
+      </p>
+      <button type="button">Reload now</button>
+    </main>
     <script>
-      // Manual reload feature.
       document.querySelector('button').addEventListener('click', () => {
         window.location.reload();
       });
 
-      // Listen to changes in the network state, reload when online.
-      // This handles the case when the device is completely offline.
       window.addEventListener('online', () => {
         window.location.reload();
       });
 
-      // Check if the server is responding and reload the page if it is.
-      // This handles the case when the device is online, but the server
-      // is offline or misbehaving.
+      // The device may be online while the server is not: poll until it answers.
       async function checkNetworkAndReload() {
         try {
           const response = await fetch('.');
-          // Verify we get a valid response from the server
           if (response.status >= 200 && response.status < 500) {
             window.location.reload();
             return;
           }
         } catch {
-          // Unable to connect to the server, ignore.
+          // Still unreachable.
         }
         window.setTimeout(checkNetworkAndReload, 2500);
       }

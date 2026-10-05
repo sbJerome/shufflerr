@@ -7,6 +7,7 @@ import { UserType } from '@server/constants/user';
 import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
 import { startJobs } from '@server/job/schedule';
+import { authRateLimit } from '@server/lib/auth/rateLimit';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -17,11 +18,63 @@ import { getAppVersion } from '@server/utils/appVersion';
 import { getHostname } from '@server/utils/getHostname';
 import axios from 'axios';
 import { Router } from 'express';
+import gravatarUrl from 'gravatar-url';
 import net from 'net';
 import validator from 'validator';
 import { z } from 'zod';
 
 const authRoutes = Router();
+
+// Exact copy from docs/AUTH.md — the login page shows these as they are.
+export const AUTH_MESSAGES = {
+  localEmpty: 'Enter your email and password.',
+  localUnknown:
+    'No Shufflerr account uses that email. Try signing in with Plex or Jellyfin.',
+  localNoPasswordPlex:
+    'This account signs in with Plex. Use the Plex button, or set a password in your profile first.',
+  localNoPasswordJellyfin:
+    'This account signs in with Jellyfin. Use the Jellyfin button, or set a password in your profile first.',
+  localNoPassword:
+    'This account doesn\'t have a password yet. Use "Forgot password?" to set one.',
+  localWrongPassword:
+    'That password isn\'t right. Try again, or use "Forgot password?".',
+  localDisabled:
+    'Signing in with a Shufflerr account is turned off. Use Plex or Jellyfin.',
+  plexDisabled: 'Signing in with Plex is turned off.',
+  plexUnknown:
+    "Your Plex account doesn't have a Shufflerr account yet. Ask the server owner to import you.",
+  plexNoAccess:
+    "Your Plex account doesn't have access to this server. Ask the server owner to share it with you.",
+  plexFailed: "Plex didn't confirm that sign-in. Try again.",
+  jellyfinDisabled: 'Signing in with Jellyfin is turned off.',
+  jellyfinNotSetUp:
+    "Jellyfin isn't connected yet. Ask an admin to set it up in Settings.",
+  jellyfinUnknown:
+    "Your Jellyfin account doesn't have a Shufflerr account yet. Ask an admin to import you.",
+  jellyfinInvalid: "Jellyfin didn't accept that username and password.",
+  jellyfinEmpty: 'Enter your Jellyfin username and password.',
+  passwordTooShort: 'The password needs at least 8 characters.',
+  invalidEmail: 'Enter a valid email address.',
+  setupDone:
+    'Shufflerr already has an owner. Sign in with that account instead.',
+} as const;
+
+const plexLoginEnabled = (): boolean => {
+  const settings = getSettings();
+  return settings.main.mediaServerLogin && settings.plex.loginEnabled;
+};
+
+const jellyfinLoginEnabled = (): boolean => {
+  const settings = getSettings();
+  return settings.main.mediaServerLogin && settings.jellyfin.loginEnabled;
+};
+
+/** Jellyfin and Emby share one connection; the owner's setup choice says which it is. */
+const isEmby = (): boolean =>
+  getSettings().main.mediaServerType === MediaServerType.EMBY;
+
+const jellyfinUserType = (): UserType =>
+  isEmby() ? UserType.EMBY : UserType.JELLYFIN;
 
 export const quickConnectSecret = z.object({
   secret: z
@@ -65,24 +118,22 @@ authRoutes.get('/me', isAuthenticated(), async (req, res) => {
   });
 });
 
-authRoutes.post('/plex', async (req, res, next) => {
+authRoutes.post('/plex', authRateLimit, async (req, res, next) => {
   const settings = getSettings();
   const userRepository = getRepository(User);
   const body = req.body as { authToken?: string };
 
   if (!body.authToken) {
     return next({
-      status: 500,
-      message: 'Authentication token required.',
+      status: 400,
+      message: AUTH_MESSAGES.plexFailed,
     });
   }
 
-  if (
-    settings.main.mediaServerType != MediaServerType.NOT_CONFIGURED &&
-    (settings.main.mediaServerLogin === false ||
-      settings.main.mediaServerType != MediaServerType.PLEX)
-  ) {
-    return res.status(500).json({ error: 'Plex login is disabled' });
+  // The very first sign-in creates the owner, whatever the switches say.
+  const firstRun = !(await userRepository.count());
+  if (!firstRun && !plexLoginEnabled()) {
+    return next({ status: 403, message: AUTH_MESSAGES.plexDisabled });
   }
   try {
     // First we need to use this auth token to get the user's email from plex.tv
@@ -98,7 +149,7 @@ authRoutes.post('/plex', async (req, res, next) => {
       })
       .getOne();
 
-    if (!user && !(await userRepository.count())) {
+    if (firstRun) {
       user = new User({
         email: account.email,
         plexUsername: account.username,
@@ -119,6 +170,10 @@ authRoutes.post('/plex', async (req, res, next) => {
         select: { id: true, plexToken: true, plexId: true, email: true },
         where: { id: 1 },
       });
+      // The owner's token answers "does this account have access to the
+      // server?". An owner who never linked Plex can't answer it, so only
+      // accounts already known to Shufflerr get in.
+      const ownerHasPlex = !!mainUser.plexToken;
       const mainPlexTv = new PlexTvAPI(mainUser.plexToken ?? '');
 
       if (!account.id) {
@@ -138,7 +193,9 @@ authRoutes.post('/plex', async (req, res, next) => {
       if (
         account.id === mainUser.plexId ||
         (account.email === mainUser.email && !mainUser.plexId) ||
-        (await mainPlexTv.checkUserAccess(account.id))
+        (ownerHasPlex
+          ? await mainPlexTv.checkUserAccess(account.id)
+          : !!user?.plexId && user.plexId === account.id)
       ) {
         if (user) {
           if (!user.plexId) {
@@ -176,7 +233,7 @@ authRoutes.post('/plex', async (req, res, next) => {
           );
           return next({
             status: 403,
-            message: 'Access denied.',
+            message: AUTH_MESSAGES.plexUnknown,
           });
         } else {
           logger.info(
@@ -214,7 +271,9 @@ authRoutes.post('/plex', async (req, res, next) => {
         );
         return next({
           status: 403,
-          message: 'Access denied.',
+          message: ownerHasPlex
+            ? AUTH_MESSAGES.plexNoAccess
+            : AUTH_MESSAGES.plexUnknown,
         });
       }
     }
@@ -233,7 +292,7 @@ authRoutes.post('/plex', async (req, res, next) => {
     });
     return next({
       status: 500,
-      message: 'Unable to authenticate.',
+      message: AUTH_MESSAGES.plexFailed,
     });
   }
 });
@@ -242,7 +301,7 @@ function getUserAvatarUrl(user: User): string {
   return `/avatarproxy/${user.jellyfinUserId}?v=${user.avatarVersion}`;
 }
 
-authRoutes.post('/jellyfin', async (req, res, next) => {
+authRoutes.post('/jellyfin', authRateLimit, async (req, res, next) => {
   const settings = getSettings();
   const userRepository = getRepository(User);
   const body = req.body as {
@@ -256,31 +315,34 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
     serverType?: number;
   };
 
-  //Make sure jellyfin login is enabled, but only if jellyfin && Emby is not already configured
-  if (
-    // media server not configured, allow login for setup
-    settings.main.mediaServerType != MediaServerType.NOT_CONFIGURED &&
-    (settings.main.mediaServerLogin === false ||
-      // media server is neither jellyfin or emby
-      (settings.main.mediaServerType !== MediaServerType.JELLYFIN &&
-        settings.main.mediaServerType !== MediaServerType.EMBY))
-  ) {
-    return res.status(500).json({ error: 'Jellyfin login is disabled' });
+  // First run: the owner signs in with a hostname and Shufflerr stores the
+  // connection. Afterwards the sign-in switch decides, and the connection
+  // comes from settings only.
+  const firstRun = !(await userRepository.count());
+  if (!firstRun && !jellyfinLoginEnabled()) {
+    return next({ status: 403, message: AUTH_MESSAGES.jellyfinDisabled });
   }
 
   if (!body.username) {
-    return res.status(500).json({ error: 'You must provide an username' });
-  } else if (settings.jellyfin.ip !== '' && body.hostname) {
-    return res
-      .status(500)
-      .json({ error: 'Jellyfin hostname already configured' });
+    return next({ status: 400, message: AUTH_MESSAGES.jellyfinEmpty });
+  } else if (!firstRun && body.hostname) {
+    return next({
+      status: 400,
+      message:
+        'The Jellyfin server is already set. Change it in Settings, not at sign-in.',
+    });
   } else if (settings.jellyfin.ip === '' && !body.hostname) {
-    return res.status(500).json({ error: 'No hostname provided.' });
+    return next({
+      status: firstRun ? 400 : 403,
+      message: firstRun
+        ? 'Enter the address of your Jellyfin server.'
+        : AUTH_MESSAGES.jellyfinNotSetUp,
+    });
   }
 
   try {
     const hostname =
-      settings.jellyfin.ip !== ''
+      !firstRun || !body.hostname
         ? getHostname()
         : getHostname({
             useSsl: body.useSsl,
@@ -332,11 +394,12 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       where: { jellyfinUserId: account.User.Id },
     });
 
-    const missingAdminUser = !user && !(await userRepository.count());
-    if (
-      missingAdminUser ||
-      settings.main.mediaServerType === MediaServerType.NOT_CONFIGURED
-    ) {
+    // Only the very first sign-in may create the owner and store the
+    // connection. (Seerr also re-ran this while the media server type was
+    // unset; in Shufflerr an owner can be a local account, and that path would
+    // overwrite them with whoever signed in.)
+    const missingAdminUser = firstRun;
+    if (missingAdminUser) {
       // Check if user is admin on jellyfin
       if (account.User.Policy.IsAdministrator === false) {
         throw new ApiError(403, ApiErrorCode.NotAdmin);
@@ -424,11 +487,14 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
 
       settings.jellyfin.name = serverName;
       settings.jellyfin.serverId = account.User.ServerId;
-      settings.jellyfin.ip = body.hostname ?? '';
-      settings.jellyfin.port = body.port ?? 8096;
-      settings.jellyfin.urlBase = body.urlBase ?? '';
-      settings.jellyfin.useSsl = body.useSsl ?? false;
+      if (body.hostname) {
+        settings.jellyfin.ip = body.hostname;
+        settings.jellyfin.port = body.port ?? 8096;
+        settings.jellyfin.urlBase = body.urlBase ?? '';
+        settings.jellyfin.useSsl = body.useSsl ?? false;
+      }
       settings.jellyfin.apiKey = apiKey;
+      settings.jellyfin.loginEnabled = true;
       await settings.save();
       startJobs();
     }
@@ -452,13 +518,15 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       );
       user.avatar = getUserAvatarUrl(user);
       user.jellyfinUsername = account.User.Name;
+      user.jellyfinAuthToken = account.AccessToken;
+      user.jellyfinDeviceId = deviceId;
 
       if (user.username === account.User.Name) {
         user.username = '';
       }
 
       await userRepository.save(user);
-    } else if (!settings.main.newPlexLogin) {
+    } else if (!settings.jellyfin.newLogin) {
       logger.warn(
         'Failed sign-in attempt by unimported Jellyfin user with access to the media server',
         {
@@ -470,7 +538,7 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       );
       return next({
         status: 403,
-        message: 'Access denied.',
+        message: AUTH_MESSAGES.jellyfinUnknown,
       });
     } else if (!user) {
       logger.info(
@@ -483,23 +551,17 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       );
 
       user = new User({
-        email: body.email,
+        email: body.email || account.User.Name,
         jellyfinUsername: account.User.Name,
         jellyfinUserId: account.User.Id,
         jellyfinDeviceId: deviceId,
+        jellyfinAuthToken: account.AccessToken,
         permissions: settings.main.defaultPermissions,
-        userType:
-          settings.main.mediaServerType === MediaServerType.JELLYFIN
-            ? UserType.JELLYFIN
-            : UserType.EMBY,
+        userType: jellyfinUserType(),
       });
       user.avatar = getUserAvatarUrl(user);
-
-      //initialize Jellyfin/Emby users with local login
-      const passedExplicitPassword = body.password && body.password.length > 0;
-      if (passedExplicitPassword) {
-        await user.setPassword(body.password ?? '');
-      }
+      // No Shufflerr password is derived from the media-server password; the
+      // user can set one in their profile.
       await userRepository.save(user);
     }
 
@@ -592,8 +654,9 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
           }
         );
         return next({
-          status: e.statusCode,
-          message: e.errorCode,
+          status: 401,
+          message: AUTH_MESSAGES.jellyfinInvalid,
+          errors: [e.errorCode],
         });
 
       case ApiErrorCode.NotAdmin:
@@ -638,10 +701,12 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
   }
 });
 
-authRoutes.post('/jellyfin/quickconnect/initiate', async (req, res, next) => {
-  const settings = getSettings();
+/** Quick Connect needs a connected Jellyfin (Emby doesn't have it). */
+const quickConnectAvailable = (): boolean =>
+  getSettings().jellyfin.ip !== '' && !isEmby();
 
-  if (settings.main.mediaServerType !== MediaServerType.JELLYFIN) {
+authRoutes.post('/jellyfin/quickconnect/initiate', async (req, res, next) => {
+  if (!quickConnectAvailable()) {
     return next({
       status: 403,
       message: 'Quick Connect is only supported by Jellyfin.',
@@ -675,9 +740,7 @@ authRoutes.post('/jellyfin/quickconnect/initiate', async (req, res, next) => {
 });
 
 authRoutes.get('/jellyfin/quickconnect/check', async (req, res, next) => {
-  const settings = getSettings();
-
-  if (settings.main.mediaServerType !== MediaServerType.JELLYFIN) {
+  if (!quickConnectAvailable()) {
     return next({
       status: 403,
       message: 'Quick Connect is only supported by Jellyfin.',
@@ -715,6 +778,7 @@ authRoutes.get('/jellyfin/quickconnect/check', async (req, res, next) => {
 
 authRoutes.post(
   '/jellyfin/quickconnect/authenticate',
+  authRateLimit,
   async (req, res, next) => {
     const settings = getSettings();
     const userRepository = getRepository(User);
@@ -728,21 +792,22 @@ authRoutes.post(
 
     const { secret } = result.data;
 
-    if (
-      settings.main.mediaServerType === MediaServerType.NOT_CONFIGURED ||
-      !(await userRepository.count())
-    ) {
+    if (settings.jellyfin.ip === '' || !(await userRepository.count())) {
       return next({
         status: 403,
         message: 'Quick Connect is not available during initial setup.',
       });
     }
 
-    if (settings.main.mediaServerType !== MediaServerType.JELLYFIN) {
+    if (!quickConnectAvailable()) {
       return next({
         status: 403,
         message: 'Quick Connect is only supported by Jellyfin.',
       });
+    }
+
+    if (!jellyfinLoginEnabled()) {
+      return next({ status: 403, message: AUTH_MESSAGES.jellyfinDisabled });
     }
 
     try {
@@ -775,7 +840,7 @@ authRoutes.post(
         user.jellyfinDeviceId = deviceId;
         user.avatar = getUserAvatarUrl(user);
         await userRepository.save(user);
-      } else if (!settings.main.newPlexLogin) {
+      } else if (!settings.jellyfin.newLogin) {
         logger.warn(
           'Failed Quick Connect sign-in attempt by unimported Jellyfin user',
           {
@@ -787,7 +852,7 @@ authRoutes.post(
         );
         return next({
           status: 403,
-          message: 'Access denied.',
+          message: AUTH_MESSAGES.jellyfinUnknown,
         });
       } else {
         logger.info(
@@ -804,6 +869,7 @@ authRoutes.post(
           jellyfinUsername: account.User.Name,
           jellyfinUserId: account.User.Id,
           jellyfinDeviceId: deviceId,
+          jellyfinAuthToken: account.AccessToken,
           permissions: settings.main.defaultPermissions,
           userType: UserType.JELLYFIN,
         });
@@ -851,44 +917,144 @@ authRoutes.post(
   }
 );
 
-authRoutes.post('/local', async (req, res, next) => {
+/**
+ * First-run only: create the owner as a Shufflerr (email + password) account,
+ * so the app can be set up without Plex or Jellyfin. Refused once any user
+ * exists.
+ */
+// `/setup-local` is the name the setup UI calls; `/setup` is kept as an alias.
+authRoutes.post(
+  ['/setup-local', '/setup'],
+  authRateLimit,
+  async (req, res, next) => {
+    const userRepository = getRepository(User);
+    const settings = getSettings();
+    const body = req.body as {
+      username?: string;
+      email?: string;
+      password?: string;
+    };
+
+    try {
+      if (await userRepository.count()) {
+        return next({ status: 403, message: AUTH_MESSAGES.setupDone });
+      }
+
+      const email = (body.email ?? '').trim().toLowerCase();
+      if (!validator.isEmail(email, { require_tld: false })) {
+        return next({ status: 400, message: AUTH_MESSAGES.invalidEmail });
+      }
+      if (!body.password || body.password.length < 8) {
+        return next({ status: 400, message: AUTH_MESSAGES.passwordTooShort });
+      }
+
+      const user = new User({
+        email,
+        username: body.username?.trim() || undefined,
+        permissions: Permission.ADMIN,
+        avatar: gravatarUrl(email, { default: 'mm', size: 200 }),
+        userType: UserType.LOCAL,
+      });
+      await user.setPassword(body.password);
+      await userRepository.save(user);
+
+      // A local owner must be able to sign in again.
+      if (!settings.main.localLogin) {
+        settings.main.localLogin = true;
+        await settings.save();
+      }
+
+      logger.info('Created the owner account as a Shufflerr account', {
+        label: 'Auth',
+        ip: req.ip,
+        userId: user.id,
+      });
+
+      if (req.session) {
+        req.session.userId = user.id;
+      }
+
+      return res.status(201).json(user.filter());
+    } catch (e) {
+      logger.error('Something went wrong creating the owner account', {
+        label: 'Auth',
+        errorMessage: e.message,
+        ip: req.ip,
+      });
+      return next({ status: 500, message: 'Could not create the account.' });
+    }
+  }
+);
+
+authRoutes.post('/local', authRateLimit, async (req, res, next) => {
   const settings = getSettings();
   const userRepository = getRepository(User);
   const body = req.body as { email?: string; password?: string };
 
   if (!settings.main.localLogin) {
-    return res.status(500).json({ error: 'Password sign-in is disabled.' });
+    return next({ status: 403, message: AUTH_MESSAGES.localDisabled });
   } else if (!body.email || !body.password) {
-    return res.status(500).json({
-      error: 'You must provide both an email address and a password.',
-    });
+    return next({ status: 400, message: AUTH_MESSAGES.localEmpty });
   }
   try {
     const user = await userRepository
       .createQueryBuilder('user')
-      .select(['user.id', 'user.email', 'user.password', 'user.plexId'])
-      .where('user.email = :email', { email: body.email.toLowerCase() })
+      .select([
+        'user.id',
+        'user.email',
+        'user.password',
+        'user.plexId',
+        'user.jellyfinUserId',
+        'user.userType',
+      ])
+      .where('user.email = :email', { email: body.email.trim().toLowerCase() })
       .getOne();
 
-    if (!user || !(await user.passwordMatch(body.password))) {
+    if (!user) {
+      logger.warn('Failed sign-in attempt for an unknown email address', {
+        label: 'API',
+        ip: req.ip,
+        email: body.email,
+      });
+      return next({ status: 403, message: AUTH_MESSAGES.localUnknown });
+    }
+
+    if (!user.password) {
+      return next({
+        status: 403,
+        message:
+          user.userType === UserType.PLEX || user.plexId
+            ? AUTH_MESSAGES.localNoPasswordPlex
+            : user.userType === UserType.JELLYFIN ||
+                user.userType === UserType.EMBY ||
+                user.jellyfinUserId
+              ? AUTH_MESSAGES.localNoPasswordJellyfin
+              : AUTH_MESSAGES.localNoPassword,
+      });
+    }
+
+    if (!(await user.passwordMatch(body.password))) {
       logger.warn('Failed sign-in attempt using invalid Shufflerr password', {
         label: 'API',
         ip: req.ip,
         email: body.email,
-        userId: user?.id,
+        userId: user.id,
       });
-      return next({
-        status: 403,
-        message: 'Access denied.',
-      });
+      return next({ status: 403, message: AUTH_MESSAGES.localWrongPassword });
     }
 
     // Set logged in session
-    if (user && req.session) {
+    if (req.session) {
       req.session.userId = user.id;
     }
 
-    return res.status(200).json(user?.filter() ?? {});
+    // Reload so the response carries the full (filtered) user, not just the
+    // columns needed to check the password.
+    const fullUser = await userRepository.findOneOrFail({
+      where: { id: user.id },
+    });
+
+    return res.status(200).json(fullUser.filter());
   } catch (e) {
     logger.error(
       'Something went wrong authenticating with Shufflerr password',
@@ -901,7 +1067,7 @@ authRoutes.post('/local', async (req, res, next) => {
     );
     return next({
       status: 500,
-      message: 'Unable to authenticate.',
+      message: 'Something went wrong signing you in. Try again.',
     });
   }
 });
@@ -915,8 +1081,7 @@ authRoutes.post('/logout', async (req, res, next) => {
 
     const settings = getSettings();
     const isJellyfinOrEmby =
-      settings.main.mediaServerType === MediaServerType.JELLYFIN ||
-      settings.main.mediaServerType === MediaServerType.EMBY;
+      settings.jellyfin.ip !== '' && !!settings.jellyfin.apiKey;
 
     if (isJellyfinOrEmby) {
       const user = await getRepository(User)
@@ -983,15 +1148,25 @@ authRoutes.post('/logout', async (req, res, next) => {
   }
 });
 
-authRoutes.post('/reset-password', async (req, res, next) => {
+authRoutes.post('/reset-password', authRateLimit, async (req, res, next) => {
   const userRepository = getRepository(User);
   const body = req.body as { email?: string };
 
   if (!body.email) {
     return next({
-      status: 500,
-      message: 'Email address required.',
+      status: 400,
+      message: 'Enter your email address.',
     });
+  }
+
+  // The link is emailed; without the email agent nothing can be sent. The
+  // answer is the same either way so addresses can't be probed.
+  if (!getSettings().notifications.agents.email.enabled) {
+    logger.warn('Password reset requested but email notifications are off', {
+      label: 'API',
+      ip: req.ip,
+    });
+    return res.status(200).json({ status: 'ok' });
   }
 
   const user = await userRepository
@@ -1008,73 +1183,78 @@ authRoutes.post('/reset-password', async (req, res, next) => {
       email: body.email,
     });
   } else {
-    logger.error('Something went wrong sending password reset link', {
+    logger.warn('Password reset requested for an unknown email address', {
       label: 'API',
       ip: req.ip,
-      email: body.email,
     });
   }
 
   return res.status(200).json({ status: 'ok' });
 });
 
-authRoutes.post('/reset-password/:guid', async (req, res, next) => {
-  const userRepository = getRepository(User);
+authRoutes.post(
+  '/reset-password/:guid',
+  authRateLimit,
+  async (req, res, next) => {
+    const userRepository = getRepository(User);
 
-  if (!req.body.password || req.body.password?.length < 8) {
-    logger.warn('Failed password reset attempt using invalid new password', {
-      label: 'API',
-      ip: req.ip,
-      guid: req.params.guid,
-    });
-    return next({
-      status: 500,
-      message: 'Password must be at least 8 characters long.',
-    });
-  }
+    if (!req.body.password || req.body.password?.length < 8) {
+      logger.warn('Failed password reset attempt using invalid new password', {
+        label: 'API',
+        ip: req.ip,
+        guid: req.params.guid,
+      });
+      return next({
+        status: 400,
+        message: AUTH_MESSAGES.passwordTooShort,
+      });
+    }
 
-  const user = await userRepository.findOne({
-    where: { resetPasswordGuid: req.params.guid },
-  });
-
-  if (!user) {
-    logger.warn('Failed password reset attempt using invalid recovery link', {
-      label: 'API',
-      ip: req.ip,
-      guid: req.params.guid,
+    const user = await userRepository.findOne({
+      where: { resetPasswordGuid: String(req.params.guid) },
     });
-    return next({
-      status: 500,
-      message: 'Invalid password reset link.',
-    });
-  }
 
-  if (
-    !user.recoveryLinkExpirationDate ||
-    user.recoveryLinkExpirationDate <= new Date()
-  ) {
-    logger.warn('Failed password reset attempt using expired recovery link', {
+    if (!user) {
+      logger.warn('Failed password reset attempt using invalid recovery link', {
+        label: 'API',
+        ip: req.ip,
+        guid: req.params.guid,
+      });
+      return next({
+        status: 400,
+        message:
+          'That reset link is no longer valid. Ask for a new one from the sign-in page.',
+      });
+    }
+
+    if (
+      !user.recoveryLinkExpirationDate ||
+      user.recoveryLinkExpirationDate <= new Date()
+    ) {
+      logger.warn('Failed password reset attempt using expired recovery link', {
+        label: 'API',
+        ip: req.ip,
+        guid: req.params.guid,
+        email: user.email,
+      });
+      return next({
+        status: 400,
+        message:
+          'That reset link is no longer valid. Ask for a new one from the sign-in page.',
+      });
+    }
+    user.recoveryLinkExpirationDate = null;
+    await user.setPassword(req.body.password);
+    await userRepository.save(user);
+    logger.info('Successfully reset password', {
       label: 'API',
       ip: req.ip,
       guid: req.params.guid,
       email: user.email,
     });
-    return next({
-      status: 500,
-      message: 'Invalid password reset link.',
-    });
-  }
-  user.recoveryLinkExpirationDate = null;
-  await user.setPassword(req.body.password);
-  await userRepository.save(user);
-  logger.info('Successfully reset password', {
-    label: 'API',
-    ip: req.ip,
-    guid: req.params.guid,
-    email: user.email,
-  });
 
-  return res.status(200).json({ status: 'ok' });
-});
+    return res.status(200).json({ status: 'ok' });
+  }
+);
 
 export default authRoutes;

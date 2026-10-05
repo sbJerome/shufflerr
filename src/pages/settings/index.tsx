@@ -1,16 +1,15 @@
 import SettingsLayout from '@app/components/Settings/SettingsLayout';
-import SettingsMain from '@app/components/Settings/SettingsMain';
-import useRouteGuard from '@app/hooks/useRouteGuard';
-import { Permission } from '@app/hooks/useUser';
 import type { NextPage } from 'next';
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
-const SettingsPage: NextPage = () => {
-  useRouteGuard(Permission.ADMIN);
-  return (
-    <SettingsLayout>
-      <SettingsMain />
-    </SettingsLayout>
-  );
+/** /settings opens the General page. */
+const SettingsIndexPage: NextPage = () => {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/settings/general');
+  }, [router]);
+  return <SettingsLayout>{null}</SettingsLayout>;
 };
 
-export default SettingsPage;
+export default SettingsIndexPage;

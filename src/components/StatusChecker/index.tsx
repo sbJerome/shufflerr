@@ -1,3 +1,4 @@
+// Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Modal from '@app/components/Common/Modal';
 import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
@@ -10,13 +11,13 @@ import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.StatusChecker', {
-  appUpdated: '{applicationTitle} Updated',
+  appUpdated: '{applicationTitle} was updated',
   appUpdatedDescription:
-    'Please click the button below to reload the application.',
+    'Reload to get the new version. Anything playing will stop.',
   reloadApp: 'Reload {applicationTitle}',
-  restartRequired: 'Server Restart Required',
+  restartRequired: 'Restart the server',
   restartRequiredDescription:
-    'Please restart the server to apply the updated settings.',
+    'Some settings you changed only take effect after the server restarts.',
 });
 
 const StatusChecker = () => {

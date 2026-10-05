@@ -1,0 +1,430 @@
+{
+ "created": "2026-10-05T09:06:18.608Z",
+ "count": 3,
+ "offset": 0,
+ "recordings": [
+  {
+   "id": "c2b8c3d1-ba80-4a86-b070-01d57bd3640a",
+   "score": 100,
+   "artist-credit-id": "726513f4-a37e-4336-832f-061919fc1f73",
+   "title": "SHADES OF BLUE",
+   "length": 190000,
+   "disambiguation": "part of “Today’s Hits: May 2026” DJ‐mix",
+   "video": null,
+   "artist-credit": [
+    {
+     "joinphrase": ", ",
+     "name": "Julia Church",
+     "artist": {
+      "id": "9880688c-3b16-444c-bf3d-c11a8756064b",
+      "name": "Julia Church",
+      "sort-name": "Church, Julia",
+      "disambiguation": "London-based singer and songwriter"
+     }
+    },
+    {
+     "joinphrase": " & ",
+     "name": "John Summit",
+     "artist": {
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "name": "John Summit",
+      "sort-name": "Summit, John",
+      "disambiguation": "EDM DJ & producer",
+      "aliases": [
+       {
+        "sort-name": "Schuster, John",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       },
+       {
+        "sort-name": "Schuster, John Walter",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Walter Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    },
+    {
+     "name": "Devault",
+     "artist": {
+      "id": "da1fd423-e121-4d4e-a040-c9520e1bcb62",
+      "name": "Devault",
+      "sort-name": "Devault",
+      "aliases": [
+       {
+        "sort-name": "DeVault, Sage",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "Sage DeVault",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    }
+   ],
+   "first-release-date": "2026-05-01",
+   "releases": [
+    {
+     "id": "c8ed1c51-80ba-483f-8f39-37e283361981",
+     "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+     "artist-credit-id": "587282e2-bff1-4fa0-8f20-c8b59d07e6a7",
+     "count": 1,
+     "title": "Today’s Hits: May 2026",
+     "status": "Official",
+     "artist-credit": [
+      {
+       "name": "Apple Music Resident DJ",
+       "artist": {
+        "id": "8a1d5a9a-b889-4358-8370-8c10e6541440",
+        "name": "Apple Music Resident DJ",
+        "sort-name": "Apple Music Resident DJ"
+       }
+      }
+     ],
+     "release-group": {
+      "id": "ec19a4eb-aacf-4e99-b1ed-2fa8dec9d38b",
+      "type-id": "dd2a21e1-0c00-3729-a7a0-de60b84eb5d1",
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "title": "Today’s Hits: May 2026",
+      "primary-type": "Album",
+      "secondary-types": [
+       "Compilation",
+       "DJ-mix"
+      ],
+      "secondary-type-ids": [
+       "dd2a21e1-0c00-3729-a7a0-de60b84eb5d1",
+       "0d47f47a-3fe5-3d69-ac9d-d566c23968bf"
+      ]
+     },
+     "track-count": 22,
+     "media": [
+      {
+       "id": "6ec81d7d-3cd7-4dc3-8ef2-aed0ce35bf54",
+       "position": 1,
+       "format": "Digital Media",
+       "track": [
+        {
+         "id": "f7457c9e-4254-47f7-bf1c-676629ec901d",
+         "number": "7",
+         "title": "SHADES OF BLUE",
+         "length": 190000
+        }
+       ],
+       "track-count": 22,
+       "track-offset": 6
+      }
+     ]
+    }
+   ],
+   "isrcs": [
+    "US23A8692614"
+   ]
+  },
+  {
+   "id": "6ea95e5d-1d83-43f0-91b2-3aa6b91cc278",
+   "score": 100,
+   "artist-credit-id": "2993c642-de49-4b9b-816e-7b4c16c26002",
+   "title": "SHADES OF BLUE",
+   "length": 203000,
+   "video": null,
+   "artist-credit": [
+    {
+     "joinphrase": ", ",
+     "name": "John Summit",
+     "artist": {
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "name": "John Summit",
+      "sort-name": "Summit, John",
+      "disambiguation": "EDM DJ & producer",
+      "aliases": [
+       {
+        "sort-name": "Schuster, John",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       },
+       {
+        "sort-name": "Schuster, John Walter",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Walter Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    },
+    {
+     "joinphrase": " & ",
+     "name": "Devault",
+     "artist": {
+      "id": "da1fd423-e121-4d4e-a040-c9520e1bcb62",
+      "name": "Devault",
+      "sort-name": "Devault",
+      "aliases": [
+       {
+        "sort-name": "DeVault, Sage",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "Sage DeVault",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    },
+    {
+     "name": "Julia Church",
+     "artist": {
+      "id": "9880688c-3b16-444c-bf3d-c11a8756064b",
+      "name": "Julia Church",
+      "sort-name": "Church, Julia",
+      "disambiguation": "London-based singer and songwriter"
+     }
+    }
+   ],
+   "first-release-date": "2026-04-15",
+   "releases": [
+    {
+     "id": "2555fe96-7bde-4b6d-92ae-9ee09ffe71d4",
+     "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+     "artist-credit-id": "c05e09af-9963-396f-a136-03ac30bd1355",
+     "count": 1,
+     "title": "CTRL ESCAPE",
+     "status": "Official",
+     "artist-credit": [
+      {
+       "name": "John Summit",
+       "artist": {
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "name": "John Summit",
+        "sort-name": "Summit, John",
+        "disambiguation": "EDM DJ & producer"
+       }
+      }
+     ],
+     "release-group": {
+      "id": "324f381f-ebef-4003-8885-c06659395d8b",
+      "type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "title": "CTRL ESCAPE",
+      "primary-type": "Album"
+     },
+     "date": "2026-04-15",
+     "country": "XW",
+     "release-events": [
+      {
+       "date": "2026-04-15",
+       "area": {
+        "id": "525d4e18-3d00-31b9-a58b-a146a916de8f",
+        "name": "[Worldwide]",
+        "sort-name": "[Worldwide]",
+        "iso-3166-1-codes": [
+         "XW"
+        ]
+       }
+      }
+     ],
+     "track-count": 13,
+     "media": [
+      {
+       "id": "dda76def-6319-42f6-9cbe-09f48925ea15",
+       "position": 1,
+       "format": "Digital Media",
+       "track": [
+        {
+         "id": "7f6f73f4-c45f-4ac9-bcd6-326854bc3889",
+         "number": "2",
+         "title": "SHADES OF BLUE",
+         "length": 203000
+        }
+       ],
+       "track-count": 13,
+       "track-offset": 1
+      }
+     ]
+    }
+   ],
+   "isrcs": [
+    "USA2P2605964"
+   ],
+   "tags": [
+    {
+     "count": 1,
+     "name": "house"
+    },
+    {
+     "count": 1,
+     "name": "progressive house"
+    },
+    {
+     "count": 1,
+     "name": "electro house"
+    },
+    {
+     "count": 1,
+     "name": "happy"
+    }
+   ]
+  },
+  {
+   "id": "80ce7b50-0dcd-457d-a0a5-a916548f52ad",
+   "score": 86,
+   "artist-credit-id": "2993c642-de49-4b9b-816e-7b4c16c26002",
+   "title": "SHADES OF BLUE (extended mix)",
+   "length": 254884,
+   "video": null,
+   "artist-credit": [
+    {
+     "joinphrase": ", ",
+     "name": "John Summit",
+     "artist": {
+      "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+      "name": "John Summit",
+      "sort-name": "Summit, John",
+      "disambiguation": "EDM DJ & producer",
+      "aliases": [
+       {
+        "sort-name": "Schuster, John",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       },
+       {
+        "sort-name": "Schuster, John Walter",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "John Walter Schuster",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    },
+    {
+     "joinphrase": " & ",
+     "name": "Devault",
+     "artist": {
+      "id": "da1fd423-e121-4d4e-a040-c9520e1bcb62",
+      "name": "Devault",
+      "sort-name": "Devault",
+      "aliases": [
+       {
+        "sort-name": "DeVault, Sage",
+        "type-id": "d4dcd0c0-b341-3612-a332-c0ce797b25cf",
+        "name": "Sage DeVault",
+        "locale": null,
+        "type": "Legal name",
+        "primary": null,
+        "begin-date": null,
+        "end-date": null
+       }
+      ]
+     }
+    },
+    {
+     "name": "Julia Church",
+     "artist": {
+      "id": "9880688c-3b16-444c-bf3d-c11a8756064b",
+      "name": "Julia Church",
+      "sort-name": "Church, Julia",
+      "disambiguation": "London-based singer and songwriter"
+     }
+    }
+   ],
+   "first-release-date": "2026-04-15",
+   "releases": [
+    {
+     "id": "81cacb05-d28f-4938-8c05-a5a8ed2792c3",
+     "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+     "artist-credit-id": "c05e09af-9963-396f-a136-03ac30bd1355",
+     "count": 1,
+     "title": "CTRL ESCAPE",
+     "status": "Official",
+     "disambiguation": "extended/original mixes",
+     "artist-credit": [
+      {
+       "name": "John Summit",
+       "artist": {
+        "id": "2547c5e3-314c-4332-981d-f18c902a4086",
+        "name": "John Summit",
+        "sort-name": "Summit, John",
+        "disambiguation": "EDM DJ & producer"
+       }
+      }
+     ],
+     "release-group": {
+      "id": "324f381f-ebef-4003-8885-c06659395d8b",
+      "type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "title": "CTRL ESCAPE",
+      "primary-type": "Album"
+     },
+     "date": "2026-04-15",
+     "country": "XW",
+     "release-events": [
+      {
+       "date": "2026-04-15",
+       "area": {
+        "id": "525d4e18-3d00-31b9-a58b-a146a916de8f",
+        "name": "[Worldwide]",
+        "sort-name": "[Worldwide]",
+        "iso-3166-1-codes": [
+         "XW"
+        ]
+       }
+      }
+     ],
+     "track-count": 13,
+     "media": [
+      {
+       "id": "41b12696-67ae-4ab5-a009-7bb33dd65240",
+       "position": 1,
+       "format": "Digital Media",
+       "track": [
+        {
+         "id": "5ce463c4-2c09-4757-b666-733cf9373915",
+         "number": "2",
+         "title": "SHADES OF BLUE (extended mix)",
+         "length": 254884
+        }
+       ],
+       "track-count": 13,
+       "track-offset": 1
+      }
+     ]
+    }
+   ],
+   "isrcs": [
+    "USA2P2622132"
+   ]
+  }
+ ]
+}

@@ -1,49 +1,515 @@
-// STREAM(SV1): implement. Mounted at /api/v1/discover (see docs/API_CONTRACT.md).
-import { notImplemented } from '@server/routes/_stub';
+// Mounted at /api/v1/discover (see docs/API_CONTRACT.md).
+// Every row is real data: library index, request log, ListenBrainz, the Event cache.
+import { getArtistImages } from '@server/api/fanart';
+import ListenBrainzAPI from '@server/api/listenbrainz';
+import {
+  MediaRequestStatus,
+  MediaStatus,
+  MediaType,
+  RequestScope,
+} from '@server/constants/media';
+import { getRepository } from '@server/datasource';
+import Event from '@server/entity/Event';
+import Media from '@server/entity/Media';
+import { MediaRequest } from '@server/entity/MediaRequest';
+import ScrobbleQueue from '@server/entity/ScrobbleQueue';
+import Track from '@server/entity/Track';
+import type { User } from '@server/entity/User';
+import type {
+  DiscoverAlbumsResponse,
+  DiscoverArtistsResponse,
+  DiscoverConcertsResponse,
+  DiscoverFeaturedResponse,
+  DiscoverRecentRequestsResponse,
+  DiscoverStatsResponse,
+} from '@server/interfaces/api/discoverInterfaces';
+import type { RequestResult } from '@server/interfaces/api/requestInterfaces';
+import downloadTracker from '@server/lib/downloadtracker';
+import { firstPlayableTrackId } from '@server/lib/metadata/details';
+import { coverUrlFor, isMbid } from '@server/lib/metadata/index';
+import {
+  IN_LIBRARY_STATUSES,
+  albumsFromMedia,
+  canSeeAllRequests,
+  mergeAlbumLibrary,
+  mergeArtistLibrary,
+} from '@server/lib/metadata/library';
+import { yearOf } from '@server/lib/metadata/mappers';
+import { Permission } from '@server/lib/permissions';
+import { getSettings } from '@server/lib/settings';
+import logger from '@server/logger';
+import type { AlbumResult, ArtistResult } from '@server/models/music';
+import { libraryArtistsQuery } from '@server/routes/library';
 import { Router } from 'express';
+import { In, MoreThanOrEqual } from 'typeorm';
 
 const router = Router();
 
-// GET /discover/stats · signed in
-//   in:  —
-//   out: DiscoverStatsResponse
-//   Real counts from the library index
-router.get('/stats', notImplemented('SV1'));
+const takeParam = (value: unknown, fallback: number, max = 50): number =>
+  Math.min(max, Math.max(1, Number(value) || fallback));
 
-// GET /discover/featured · signed in
-//   in:  —
-//   out: DiscoverFeaturedResponse
-//   `album: null` when there is nothing real to feature
-router.get('/featured', notImplemented('SV1'));
+const recentlyAddedMedia = (take: number): Promise<Media[]> =>
+  getRepository(Media).find({
+    where: {
+      mediaType: MediaType.RELEASE_GROUP,
+      status: In(IN_LIBRARY_STATUSES),
+    },
+    order: { mediaAddedAt: 'DESC', id: 'DESC' },
+    take,
+  });
+
+/**
+ * "Trending new releases": the release groups ListenBrainz users played most
+ * this week, with the ones released in the last 60 days first. Real listening
+ * data, merged with library status.
+ */
+const trendingAlbums = async (take: number): Promise<AlbumResult[]> => {
+  const lb = new ListenBrainzAPI();
+  const sitewide = await lb.getSitewideReleaseGroups('week', 100);
+  const fresh = await lb
+    .getFreshReleaseIndex(60)
+    .then((index) => index.groups)
+    .catch((e) => {
+      logger.debug('ListenBrainz fresh releases unavailable', {
+        label: 'Discover',
+        errorMessage: e.message,
+      });
+      return {} as Record<
+        string,
+        { date?: string; primaryType?: string; secondaryType?: string }
+      >;
+    });
+
+  const seen = new Set<string>();
+  const recent: AlbumResult[] = [];
+  const older: AlbumResult[] = [];
+  for (const group of sitewide) {
+    const mbid = group.release_group_mbid;
+    if (!isMbid(mbid) || seen.has(mbid)) {
+      continue;
+    }
+    seen.add(mbid);
+    const info = fresh[mbid];
+    const year = yearOf(info?.date);
+    const album: AlbumResult = {
+      mbid,
+      title: group.release_group_name,
+      artistMbid: group.artist_mbids?.[0] ?? '',
+      artistName: group.artist_name,
+      ...(info?.primaryType ? { primaryType: info.primaryType } : {}),
+      secondaryTypes: info?.secondaryType ? [info.secondaryType] : [],
+      ...(info?.date ? { firstReleaseDate: info.date } : {}),
+      ...(year ? { year } : {}),
+      coverUrl: coverUrlFor(mbid, 500),
+      status: MediaStatus.UNKNOWN,
+    };
+    (info ? recent : older).push(album);
+  }
+
+  // New releases lead; long-running favourites only fill what is left.
+  const albums = [...recent, ...older].slice(0, take * 2);
+  await mergeAlbumLibrary(albums);
+  const visible = getSettings().main.hideAvailable
+    ? albums.filter((a) => a.status !== MediaStatus.AVAILABLE)
+    : albums;
+  return visible.slice(0, take);
+};
+
+// GET /discover/stats · signed in → DiscoverStatsResponse (real counts from the library index)
+router.get<never, DiscoverStatsResponse>('/stats', async (_req, res, next) => {
+  try {
+    const mediaRepository = getRepository(Media);
+    const [albums, artistRow, tracks, approved] = await Promise.all([
+      mediaRepository.count({
+        where: {
+          mediaType: MediaType.RELEASE_GROUP,
+          status: In(IN_LIBRARY_STATUSES),
+        },
+      }),
+      mediaRepository
+        .createQueryBuilder('media')
+        .select('COUNT(DISTINCT media.artistMbid)', 'count')
+        .where('media.mediaType = :type', { type: MediaType.RELEASE_GROUP })
+        .andWhere('media.status IN (:...statuses)', {
+          statuses: IN_LIBRARY_STATUSES,
+        })
+        .getRawOne<{ count: string | number }>(),
+      getRepository(Track).count({ where: { status: MediaStatus.AVAILABLE } }),
+      getRepository(MediaRequest).count({
+        where: { status: MediaRequestStatus.APPROVED },
+      }),
+    ]);
+    // Prefer what Lidarr is really pulling right now; before the first queue
+    // sync, approved-and-not-finished requests are the honest number.
+    const queued = downloadTracker.getDownloadingCount();
+    return res.status(200).json({
+      albums,
+      artists: Number(artistRow?.count ?? 0),
+      tracks,
+      downloading: queued > 0 ? queued : approved,
+    });
+  } catch (e) {
+    return next({ status: 500, message: e.message });
+  }
+});
+
+// GET /discover/featured · signed in → DiscoverFeaturedResponse
+//   Most recently added album that still has gaps → most recently added → top trending → null.
+router.get<never, DiscoverFeaturedResponse>(
+  '/featured',
+  async (req, res, next) => {
+    try {
+      const canSeeRecent = req.user?.hasPermission(Permission.RECENT_VIEW);
+      let album: DiscoverFeaturedResponse['album'] = null;
+
+      if (canSeeRecent) {
+        const recent = await recentlyAddedMedia(12);
+        const pick =
+          recent.find((m) => m.status === MediaStatus.PARTIALLY_AVAILABLE) ??
+          recent[0];
+        if (pick) {
+          const [withRequest] = await albumsFromMedia([pick]);
+          const images = pick.artistMbid
+            ? await getArtistImages(pick.artistMbid)
+            : null;
+          const firstTrack = await firstPlayableTrackId(pick.id);
+          album = {
+            ...withRequest,
+            artistImageUrl: images?.background ?? images?.thumb ?? null,
+            source: 'recently-added',
+            ...(firstTrack !== undefined
+              ? { firstPlayableTrackId: firstTrack }
+              : {}),
+          };
+        }
+      }
+
+      if (!album && getSettings().discover.listenbrainzTrending.enabled) {
+        try {
+          const [top] = await trendingAlbums(1);
+          if (top) {
+            const images = top.artistMbid
+              ? await getArtistImages(top.artistMbid)
+              : null;
+            album = {
+              ...top,
+              artistImageUrl: images?.background ?? images?.thumb ?? null,
+              source: 'trending',
+            };
+          }
+        } catch (e) {
+          logger.debug('No trending release to feature', {
+            label: 'Discover',
+            errorMessage: e.message,
+          });
+        }
+      }
+
+      return res.status(200).json({ album });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
+  }
+);
 
 // GET /discover/recently-added · signed in (RECENT_VIEW; otherwise `enabled:false`)
-//   in:  query `take` (20)
-//   out: DiscoverAlbumsResponse
-//   From Media.mediaAddedAt
-router.get('/recently-added', notImplemented('SV1'));
+router.get<never, DiscoverAlbumsResponse>(
+  '/recently-added',
+  async (req, res, next) => {
+    if (!req.user?.hasPermission(Permission.RECENT_VIEW)) {
+      return res.status(200).json({
+        enabled: false,
+        reason: 'Your account cannot see recently added music.',
+        results: [],
+      });
+    }
+    try {
+      const rows = await recentlyAddedMedia(takeParam(req.query.take, 20));
+      return res
+        .status(200)
+        .json({ enabled: true, results: await albumsFromMedia(rows) });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
+  }
+);
 
-// GET /discover/trending · signed in
-//   in:  query `take` (20)
-//   out: DiscoverAlbumsResponse
-//   ListenBrainz fresh releases / iTunes chart; `enabled:false` when both are off
-router.get('/trending', notImplemented('SV1'));
+// GET /discover/trending · signed in → ListenBrainz fresh releases; `enabled:false` when off
+router.get<never, DiscoverAlbumsResponse>('/trending', async (req, res) => {
+  if (!getSettings().discover.listenbrainzTrending.enabled) {
+    return res.status(200).json({
+      enabled: false,
+      reason:
+        'ListenBrainz trending is off. Turn it on in Settings to see new releases here.',
+      results: [],
+    });
+  }
+  try {
+    return res.status(200).json({
+      enabled: true,
+      results: await trendingAlbums(takeParam(req.query.take, 20)),
+    });
+  } catch (e) {
+    logger.warn('Could not load trending releases from ListenBrainz', {
+      label: 'Discover',
+      errorMessage: e.message,
+    });
+    return res.status(200).json({
+      enabled: true,
+      reason: 'ListenBrainz could not be reached. The row fills in when it responds again.',
+      results: [],
+    });
+  }
+});
+
+/** Library artists ranked by plays (90 days), requests and albums held. */
+const popularLibraryArtists = async (take: number): Promise<ArtistResult[]> => {
+  const artists = await libraryArtistsQuery().getRawMany<{
+    mbid: string;
+    name: string | null;
+    albums: string | number;
+  }>();
+  if (artists.length === 0) {
+    return [];
+  }
+
+  const [requestRows, playRows] = await Promise.all([
+    getRepository(MediaRequest)
+      .createQueryBuilder('request')
+      .innerJoin('request.media', 'media')
+      .select('media.artistMbid', 'mbid')
+      .addSelect('COUNT(*)', 'count')
+      .where('media.artistMbid IS NOT NULL')
+      .groupBy('media.artistMbid')
+      .getRawMany<{ mbid: string; count: string | number }>(),
+    getRepository(ScrobbleQueue)
+      .createQueryBuilder('play')
+      .select('LOWER(play.artist)', 'artist')
+      .addSelect('COUNT(*)', 'count')
+      .where('play.playedAt >= :since', {
+        since: new Date(Date.now() - 90 * 86400 * 1000),
+      })
+      .groupBy('LOWER(play.artist)')
+      .getRawMany<{ artist: string; count: string | number }>(),
+  ]);
+  const requests = new Map(requestRows.map((r) => [r.mbid, Number(r.count)]));
+  const plays = new Map(playRows.map((r) => [r.artist, Number(r.count)]));
+
+  const ranked = artists
+    .map((a) => {
+      const name = a.name ?? '';
+      // track credits may list several artists: count plays that start with this one
+      let played = plays.get(name.toLowerCase()) ?? 0;
+      if (name) {
+        for (const [credit, count] of plays) {
+          if (credit !== name.toLowerCase() && credit.startsWith(`${name.toLowerCase()},`)) {
+            played += count;
+          }
+        }
+      }
+      return {
+        mbid: a.mbid,
+        name,
+        albums: Number(a.albums),
+        score: played * 3 + (requests.get(a.mbid) ?? 0) * 2 + Number(a.albums),
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, take);
+
+  return Promise.all(
+    ranked.map(async (a) => ({
+      mbid: a.mbid,
+      name: a.name,
+      imageUrl: (await getArtistImages(a.mbid)).thumb,
+      status: MediaStatus.AVAILABLE,
+      albumsInLibrary: a.albums,
+    }))
+  );
+};
 
 // GET /discover/popular-artists · signed in
-//   in:  query `take` (20)
-//   out: DiscoverArtistsResponse
-//   Library artists ranked by plays/requests; ListenBrainz sitewide when on
-router.get('/popular-artists', notImplemented('SV1'));
+//   Library artists ranked by plays/requests; ListenBrainz sitewide when on.
+router.get<never, DiscoverArtistsResponse>(
+  '/popular-artists',
+  async (req, res, next) => {
+    const take = takeParam(req.query.take, 20);
+    try {
+      if (getSettings().discover.listenbrainzTrending.enabled) {
+        try {
+          const sitewide = await new ListenBrainzAPI().getSitewideArtists(
+            'week',
+            Math.min(100, take * 2)
+          );
+          const results: ArtistResult[] = sitewide
+            .filter((a) => isMbid(a.artist_mbid))
+            .slice(0, take)
+            .map((a) => ({
+              mbid: a.artist_mbid as string,
+              name: a.artist_name,
+              imageUrl: null,
+              status: MediaStatus.UNKNOWN,
+            }));
+          if (results.length > 0) {
+            return res
+              .status(200)
+              .json({ enabled: true, results: await mergeArtistLibrary(results) });
+          }
+        } catch (e) {
+          logger.debug('ListenBrainz sitewide artists failed, using the library', {
+            label: 'Discover',
+            errorMessage: e.message,
+          });
+        }
+      }
+      return res
+        .status(200)
+        .json({ enabled: true, results: await popularLibraryArtists(take) });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
+  }
+);
 
-// GET /discover/recent-requests · signed in
-//   in:  query `take` (10)
-//   out: DiscoverRecentRequestsResponse
-//   Own requests unless REQUEST_VIEW / MANAGE_REQUESTS
-router.get('/recent-requests', notImplemented('SV1'));
+const lastChange = (request: MediaRequest): string => {
+  switch (request.status) {
+    case MediaRequestStatus.FAILED:
+      return 'Failed after approval';
+    case MediaRequestStatus.DECLINED:
+      return request.modifiedBy
+        ? `Declined by ${request.modifiedBy.displayName}`
+        : 'Declined';
+    case MediaRequestStatus.APPROVED:
+    case MediaRequestStatus.COMPLETED:
+      if (request.isAutoApproved) {
+        return 'Approved automatically';
+      }
+      return request.modifiedBy
+        ? `Approved by ${request.modifiedBy.displayName}`
+        : 'Approved';
+    default:
+      return 'No changes yet';
+  }
+};
 
-// GET /discover/concerts · signed in
-//   in:  query `take` (20)
-//   out: DiscoverConcertsResponse
-//   Reads the Event cache (filled by SV6 `concerts-refresh`), filtered by the viewer's region
-router.get('/concerts', notImplemented('SV1'));
+const toRequestResult = async (
+  request: MediaRequest,
+  viewer: User
+): Promise<RequestResult> => {
+  const canManage = viewer.hasPermission(Permission.MANAGE_REQUESTS);
+  const isOwn = request.requestedBy?.id === viewer.id;
+  const media = request.media;
+  const coverUrl =
+    request.scope === RequestScope.DISCOGRAPHY ||
+    media?.mediaType === MediaType.ARTIST
+      ? media?.mbid
+        ? (await getArtistImages(media.mbid)).thumb
+        : null
+      : media?.mbid
+        ? coverUrlFor(media.mbid, 250)
+        : null;
+  const requestedTracks = (request.tracks ?? []).map((t) => t.track);
+  const playable =
+    request.scope === RequestScope.TRACKS
+      ? requestedTracks.length > 0 &&
+        requestedTracks.every((t) => t?.status === MediaStatus.AVAILABLE)
+      : media?.status === MediaStatus.AVAILABLE &&
+        media.mediaType === MediaType.RELEASE_GROUP;
+  return {
+    ...request,
+    coverUrl,
+    canManage,
+    canRemove:
+      canManage || (isOwn && request.status === MediaRequestStatus.PENDING),
+    lastChange: lastChange(request),
+    playable,
+  };
+};
+
+// GET /discover/recent-requests · signed in → own requests unless REQUEST_VIEW / MANAGE_REQUESTS
+router.get<never, DiscoverRecentRequestsResponse>(
+  '/recent-requests',
+  async (req, res, next) => {
+    const user = req.user as User;
+    const ownOnly = !canSeeAllRequests(user);
+    try {
+      const requests = await getRepository(MediaRequest).find({
+        where: ownOnly ? { requestedBy: { id: user.id } } : {},
+        order: { id: 'DESC' },
+        take: takeParam(req.query.take, 10),
+      });
+      return res.status(200).json({
+        enabled: true,
+        ownOnly,
+        results: await Promise.all(
+          requests.map((r) => toRequestResult(r, user))
+        ),
+      });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
+  }
+);
+
+// GET /discover/concerts · signed in → the Event cache, filtered by the viewer's region
+router.get<never, DiscoverConcertsResponse>(
+  '/concerts',
+  async (req, res, next) => {
+    const settings = getSettings();
+    const { ticketmaster, skiddle } = settings.discover;
+    const providers: ('ticketmaster' | 'skiddle')[] = [];
+    if (ticketmaster.enabled && ticketmaster.apiKey) {
+      providers.push('ticketmaster');
+    }
+    if (skiddle.enabled && skiddle.apiKey) {
+      providers.push('skiddle');
+    }
+    if (providers.length === 0) {
+      return res.status(200).json({
+        enabled: false,
+        reason: 'No concert source is on. Add Ticketmaster or Skiddle in Settings.',
+        results: [],
+        attribution: [],
+      });
+    }
+
+    const region = (
+      req.user?.settings?.discoverRegion ||
+      settings.main.discoverRegion ||
+      ''
+    ).toUpperCase();
+
+    try {
+      const events = await getRepository(Event).find({
+        where: {
+          provider: In(providers),
+          startsAt: MoreThanOrEqual(new Date()),
+          ...(region ? { country: region } : {}),
+        },
+        order: { startsAt: 'ASC' },
+        take: takeParam(req.query.take, 20),
+      });
+      return res.status(200).json({
+        enabled: true,
+        results: events.map((e) => ({
+          id: e.id,
+          provider: e.provider,
+          artistMbid: e.artistMbid ?? null,
+          artistName: e.artistName,
+          name: e.name ?? null,
+          venue: e.venue ?? null,
+          city: e.city ?? null,
+          country: e.country ?? null,
+          startsAt: new Date(e.startsAt).toISOString(),
+          url: e.url,
+          imageUrl: e.imageUrl ?? null,
+        })),
+        attribution: [...new Set(events.map((e) => e.provider))],
+      });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
+  }
+);
 
 export default router;

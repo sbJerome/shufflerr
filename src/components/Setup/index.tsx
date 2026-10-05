@@ -1,61 +1,106 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import AppDataWarning from '@app/components/AppDataWarning';
-import Alert from '@app/components/Common/Alert';
 import PageTitle from '@app/components/Common/PageTitle';
 import AuthShell from '@app/components/Login/AuthShell';
 import SettingsJellyfin from '@app/components/Settings/SettingsJellyfin';
+import SettingsLidarr from '@app/components/Settings/SettingsLidarr';
+import SettingsLocal from '@app/components/Settings/SettingsLocal';
+import SettingsNavidrome from '@app/components/Settings/SettingsNavidrome';
 import SettingsPlex from '@app/components/Settings/SettingsPlex';
-import SettingsServices from '@app/components/Settings/SettingsServices';
+import LocalAdminSetup from '@app/components/Setup/LocalAdminSetup';
 import SetupSteps from '@app/components/Setup/SetupSteps';
 import useLocale from '@app/hooks/useLocale';
 import useSettings from '@app/hooks/useSettings';
+import { useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import { MediaServerType } from '@server/constants/server';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
-import useSWR, { mutate } from 'swr';
+import { mutate } from 'swr';
 import SetupLogin from './SetupLogin';
 
 const messages = defineMessages('components.Setup', {
   setup: 'Set up',
   welcome: 'Welcome to Shufflerr',
   subtitle:
-    'Pick the media server you listen with. You sign in with it, and Shufflerr reads its music libraries to know what you already have.',
-  configplex: 'Set up with Plex',
-  configjellyfin: 'Set up with Jellyfin',
-  configemby: 'Set up with Emby',
-  servertype: 'Choose a media server',
-  signin: 'Sign in',
-  configuremediaserver: 'Pick music libraries',
-  configureservices: 'Connect Lidarr',
-  librariestitle: 'Pick music libraries',
-  librariessub:
-    'Turn on the music libraries Shufflerr should scan. You can change this later in Settings.',
+    'Start by creating the owner account. Sign in with the media server you listen with, or make a local admin account.',
+  configplex: 'Sign in with Plex',
+  configjellyfin: 'Sign in with Jellyfin',
+  configemby: 'Sign in with Emby',
+  configlocal: 'Create a local admin account',
+  stepOwner: 'Create the owner',
+  stepSources: 'Add your music',
+  stepLidarr: 'Connect Lidarr',
+  sourcestitle: 'Where is your music?',
+  sourcessub:
+    'Turn on every place Shufflerr should look to know what you already have. You can change this later in Settings.',
+  sourceLabel: 'Library sources',
+  plex: 'Plex',
+  jellyfin: 'Jellyfin',
+  emby: 'Emby',
+  navidrome: 'Navidrome',
+  local: 'Local files',
   servicestitle: 'Connect Lidarr',
   servicessub:
     'Approved requests are sent to Lidarr to download. Add your Lidarr server now, or skip and do it later in Settings → Lidarr.',
   continue: 'Continue',
+  skip: 'Skip for now',
+  back: 'Back',
   finish: 'Finish setup',
   finishing: 'Finishing…',
   finisherror:
     'Setup couldn’t be finished. Check the Shufflerr logs and try again.',
-  librarieserror:
-    'Shufflerr couldn’t load libraries from your media server. Check that it is reachable and the connection details are right.',
 });
+
+type OwnerChoice = MediaServerType | 'local' | null;
+type Source = 'plex' | 'jellyfin' | 'navidrome' | 'local';
 
 const Setup = () => {
   const intl = useIntl();
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [finishError, setFinishError] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [mediaServerType, setMediaServerType] = useState(
-    MediaServerType.NOT_CONFIGURED
-  );
   const router = useRouter();
   const { locale } = useLocale();
   const settings = useSettings();
+  const { user, revalidate } = useUser();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [ownerChoice, setOwnerChoice] = useState<OwnerChoice>(null);
+  const [source, setSource] = useState<Source | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [finishError, setFinishError] = useState(false);
+
+  const serverType = settings.currentSettings.mediaServerType;
+  const jellyfinName =
+    serverType === MediaServerType.EMBY || ownerChoice === MediaServerType.EMBY
+      ? messages.emby
+      : messages.jellyfin;
+
+  useEffect(() => {
+    if (settings.currentSettings.initialized) {
+      router.push('/');
+    }
+  }, [settings.currentSettings.initialized, router]);
+
+  // Once an owner is signed in (also after a reload), step 1 is done.
+  useEffect(() => {
+    if (user && currentStep === 1) {
+      setCurrentStep(2);
+    }
+  }, [user, currentStep]);
+
+  // Open the source that matches how the owner signed in.
+  useEffect(() => {
+    if (currentStep === 2 && source === null) {
+      setSource(
+        serverType === MediaServerType.PLEX
+          ? 'plex'
+          : serverType === MediaServerType.JELLYFIN ||
+              serverType === MediaServerType.EMBY
+            ? 'jellyfin'
+            : 'local'
+      );
+    }
+  }, [currentStep, source, serverType]);
 
   const finishSetup = async () => {
     setIsUpdating(true);
@@ -66,7 +111,7 @@ const Setup = () => {
       );
       if (response.data.initialized) {
         await axios.post('/api/v1/settings/main', { locale });
-        mutate('/api/v1/settings/public');
+        await mutate('/api/v1/settings/public');
         router.push('/');
         return;
       }
@@ -78,50 +123,16 @@ const Setup = () => {
     }
   };
 
-  const mediaServerSettingsEndpoint: Record<MediaServerType, string | null> = {
-    [MediaServerType.JELLYFIN]: '/api/v1/settings/jellyfin',
-    [MediaServerType.EMBY]: '/api/v1/settings/jellyfin',
-    [MediaServerType.PLEX]: '/api/v1/settings/plex',
-    [MediaServerType.NOT_CONFIGURED]: null,
-  };
+  if (settings.currentSettings.initialized) {
+    return <></>;
+  }
 
-  const { data: mediaServerSettings, error: mediaServerSettingsError } =
-    useSWR<{ libraries: { enabled: boolean }[] }>(
-      currentStep === 3 ? mediaServerSettingsEndpoint[mediaServerType] : null,
-      { refreshInterval: 3000 }
-    );
-
-  const mediaServerSettingsComplete = !!mediaServerSettings?.libraries?.some(
-    (library) => library.enabled
-  );
-
-  useEffect(() => {
-    if (settings.currentSettings.initialized) {
-      router.push('/');
-    }
-
-    if (
-      settings.currentSettings.mediaServerType !==
-      MediaServerType.NOT_CONFIGURED
-    ) {
-      setMediaServerType(settings.currentSettings.mediaServerType);
-      if (currentStep < 3) {
-        setCurrentStep(3);
-      }
-    }
-  }, [
-    settings.currentSettings.mediaServerType,
-    settings.currentSettings.initialized,
-    router,
-    currentStep,
-  ]);
-
-  if (settings.currentSettings.initialized) return <></>;
-
-  const choose = (type: MediaServerType) => {
-    setMediaServerType(type);
-    setCurrentStep(2);
-  };
+  const sources: { key: Source; label: string }[] = [
+    { key: 'plex', label: intl.formatMessage(messages.plex) },
+    { key: 'jellyfin', label: intl.formatMessage(jellyfinName) },
+    { key: 'navidrome', label: intl.formatMessage(messages.navidrome) },
+    { key: 'local', label: intl.formatMessage(messages.local) },
+  ];
 
   return (
     <AuthShell footer={false}>
@@ -132,32 +143,26 @@ const Setup = () => {
           <ol className="sh-steps">
             <SetupSteps
               stepNumber={1}
-              description={intl.formatMessage(messages.servertype)}
+              description={intl.formatMessage(messages.stepOwner)}
               active={currentStep === 1}
               completed={currentStep > 1}
             />
             <SetupSteps
               stepNumber={2}
-              description={intl.formatMessage(messages.signin)}
+              description={intl.formatMessage(messages.stepSources)}
               active={currentStep === 2}
               completed={currentStep > 2}
             />
             <SetupSteps
               stepNumber={3}
-              description={intl.formatMessage(messages.configuremediaserver)}
+              description={intl.formatMessage(messages.stepLidarr)}
               active={currentStep === 3}
-              completed={currentStep > 3}
-            />
-            <SetupSteps
-              stepNumber={4}
-              description={intl.formatMessage(messages.configureservices)}
-              active={currentStep === 4}
               isLastStep
             />
           </ol>
         </nav>
 
-        {currentStep === 1 && (
+        {currentStep === 1 && ownerChoice === null && (
           <div className="flex flex-col gap-[18px]">
             <h1>{intl.formatMessage(messages.welcome)}</h1>
             <p className="lede">{intl.formatMessage(messages.subtitle)}</p>
@@ -165,7 +170,7 @@ const Setup = () => {
               <button
                 type="button"
                 className="sh-btn plex"
-                onClick={() => choose(MediaServerType.PLEX)}
+                onClick={() => setOwnerChoice(MediaServerType.PLEX)}
                 data-testid="setup-plex"
               >
                 {intl.formatMessage(messages.configplex)}
@@ -173,7 +178,7 @@ const Setup = () => {
               <button
                 type="button"
                 className="sh-btn jellyfin"
-                onClick={() => choose(MediaServerType.JELLYFIN)}
+                onClick={() => setOwnerChoice(MediaServerType.JELLYFIN)}
                 data-testid="setup-jellyfin"
               >
                 {intl.formatMessage(messages.configjellyfin)}
@@ -181,49 +186,91 @@ const Setup = () => {
               <button
                 type="button"
                 className="sh-btn min-h-[52px]"
-                onClick={() => choose(MediaServerType.EMBY)}
+                onClick={() => setOwnerChoice(MediaServerType.EMBY)}
                 data-testid="setup-emby"
               >
                 {intl.formatMessage(messages.configemby)}
+              </button>
+              <button
+                type="button"
+                className="sh-btn min-h-[52px]"
+                onClick={() => setOwnerChoice('local')}
+                data-testid="setup-local"
+              >
+                {intl.formatMessage(messages.configlocal)}
               </button>
             </div>
           </div>
         )}
 
-        {currentStep === 2 && (
-          <SetupLogin
-            serverType={mediaServerType}
-            onCancel={() => {
-              setMediaServerType(MediaServerType.NOT_CONFIGURED);
-              setCurrentStep(1);
+        {currentStep === 1 && ownerChoice === 'local' && (
+          <LocalAdminSetup
+            onCancel={() => setOwnerChoice(null)}
+            onCreated={async () => {
+              const { data: me } = await axios.get('/api/v1/auth/me');
+              await revalidate(me, false);
+              await mutate('/api/v1/settings/public');
+              setCurrentStep(2);
             }}
-            onComplete={() => setCurrentStep(3)}
           />
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 1 &&
+          ownerChoice !== null &&
+          ownerChoice !== 'local' && (
+            <SetupLogin
+              serverType={ownerChoice}
+              onCancel={() => setOwnerChoice(null)}
+              onComplete={() => {
+                mutate('/api/v1/settings/public');
+                setCurrentStep(2);
+              }}
+            />
+          )}
+
+        {currentStep === 2 && (
           <div className="flex flex-col gap-[18px]">
-            <h2 className="text-[22px] font-semibold text-white">
-              {intl.formatMessage(messages.librariestitle)}
+            <h2 className="text-[22px] font-semibold">
+              {intl.formatMessage(messages.sourcestitle)}
             </h2>
-            <p className="lede">{intl.formatMessage(messages.librariessub)}</p>
-            {!!mediaServerSettingsError && (
-              <Alert
-                title={intl.formatMessage(messages.librarieserror)}
-                type="error"
-              />
-            )}
-            {mediaServerType === MediaServerType.PLEX ? (
-              <SettingsPlex isSetupSettings />
-            ) : (
-              <SettingsJellyfin isSetupSettings />
-            )}
-            <div className="flex justify-end">
+            <p className="lede">{intl.formatMessage(messages.sourcessub)}</p>
+            <div
+              className="sh-subnav-pills"
+              role="group"
+              aria-label={intl.formatMessage(messages.sourceLabel)}
+            >
+              {sources.map((item) => (
+                <a
+                  key={item.key}
+                  href={`#${item.key}`}
+                  role="button"
+                  aria-current={source === item.key ? 'page' : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSource(item.key);
+                  }}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+            {source === 'plex' && <SettingsPlex isSetupSettings />}
+            {source === 'jellyfin' && <SettingsJellyfin isSetupSettings />}
+            {source === 'navidrome' && <SettingsNavidrome isSetupSettings />}
+            {source === 'local' && <SettingsLocal isSetupSettings />}
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                className="sh-btn"
+                onClick={() => setCurrentStep(3)}
+              >
+                {intl.formatMessage(messages.skip)}
+              </button>
               <button
                 type="button"
                 className="sh-btn primary"
-                disabled={!mediaServerSettingsComplete}
-                onClick={() => setCurrentStep(4)}
+                onClick={() => setCurrentStep(3)}
+                data-testid="setup-continue"
               >
                 {intl.formatMessage(messages.continue)}
               </button>
@@ -231,19 +278,26 @@ const Setup = () => {
           </div>
         )}
 
-        {currentStep === 4 && (
+        {currentStep === 3 && (
           <div className="flex flex-col gap-[18px]">
-            <h2 className="text-[22px] font-semibold text-white">
+            <h2 className="text-[22px] font-semibold">
               {intl.formatMessage(messages.servicestitle)}
             </h2>
             <p className="lede">{intl.formatMessage(messages.servicessub)}</p>
-            <SettingsServices />
+            <SettingsLidarr isSetupSettings />
             {finishError && (
               <p className="sh-err" role="alert">
                 {intl.formatMessage(messages.finisherror)}
               </p>
             )}
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                className="sh-btn"
+                onClick={() => setCurrentStep(2)}
+              >
+                {intl.formatMessage(messages.back)}
+              </button>
               <button
                 type="button"
                 className="sh-btn primary"

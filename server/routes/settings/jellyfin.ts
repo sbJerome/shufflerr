@@ -1,164 +1,232 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 // Original: server/routes/settings/index.ts at commit 2cfbcf8940225f1597d44f507fd78040887c5597
-// STREAM(SV3): adapt — music libraries, enabled/login switches, test, scan panel
+// Jellyfin / Emby as a library source: connection, music libraries, scan panel
 // (docs/API_CONTRACT.md §SV3). Paths are relative to /api/v1/settings.
-import type { JellyfinLibrary } from '@server/api/jellyfin';
 import JellyfinAPI from '@server/api/jellyfin';
-import { ApiErrorCode } from '@server/constants/error';
 import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
-import { jellyfinFullScanner } from '@server/lib/scanners/jellyfin';
-import type { Library } from '@server/lib/settings';
-import { getSettings } from '@server/lib/settings';
+import type { ConnectionTestResponse } from '@server/interfaces/api/settingsInterfaces';
+import type { ImportableUser } from '@server/interfaces/api/userInterfaces';
+import { Permission } from '@server/lib/permissions';
+import {
+  jellyfinFullScanner,
+  jellyfinRecentScanner,
+} from '@server/lib/scanners/jellyfin';
+import type { JellyfinSettings, Library } from '@server/lib/settings';
+import {
+  getSettings,
+  maskSecrets,
+  mergeWithSecrets,
+} from '@server/lib/settings';
 import logger from '@server/logger';
-import { ApiError } from '@server/types/error';
+import { isAuthenticated } from '@server/middleware/auth';
 import { getHostname } from '@server/utils/getHostname';
 import { Router } from 'express';
 import { z } from 'zod';
+import { addScanRoutes } from './scanPanel';
 
 const settingsRoutes = Router();
+
+const SECRET_PATHS = ['apiKey'];
 
 const libraryUpdateSchema = z.object({
   enabled: z.boolean(),
 });
 
-settingsRoutes.get('/jellyfin', (_req, res) => {
-  const settings = getSettings();
+const connectionSchema = z
+  .object({
+    enabled: z.boolean(),
+    loginEnabled: z.boolean(),
+    newLogin: z.boolean(),
+    /** Convenience: a full server URL, split into ip / port / useSsl / urlBase. */
+    url: z.string().trim(),
+    ip: z.string().trim(),
+    port: z.coerce.number().int().min(1).max(65535),
+    useSsl: z.boolean(),
+    urlBase: z.string().trim(),
+    externalHostname: z.string().trim(),
+    jellyfinForgotPasswordUrl: z.string().trim(),
+    apiKey: z.string().trim(),
+  })
+  .partial();
 
-  res.status(200).json(settings.jellyfin);
+type ConnectionBody = z.infer<typeof connectionSchema>;
+
+/** Accept `url` and turn it into Seerr's ip / port / useSsl / urlBase fields. */
+const splitUrl = (body: ConnectionBody): Partial<JellyfinSettings> => {
+  const { url, ...rest } = body;
+  if (url === undefined || url === '') {
+    return rest;
+  }
+  const parsed = new URL(/^https?:\/\//i.test(url) ? url : `http://${url}`);
+  const useSsl = parsed.protocol === 'https:';
+
+  return {
+    ...rest,
+    ip: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : useSsl ? 443 : 8096,
+    useSsl,
+    urlBase: parsed.pathname.replace(/\/+$/, ''),
+  };
+};
+
+const owner = (): Promise<User | null> =>
+  getRepository(User).findOne({
+    select: { id: true, jellyfinUserId: true, jellyfinDeviceId: true },
+    where: { id: 1 },
+  });
+
+const clientFor = async (
+  jellyfinSettings: JellyfinSettings
+): Promise<JellyfinAPI> => {
+  const admin = await owner();
+  const client = new JellyfinAPI(
+    getHostname(jellyfinSettings),
+    jellyfinSettings.apiKey,
+    admin?.jellyfinDeviceId
+  );
+  if (admin?.jellyfinUserId) {
+    client.setUserId(admin.jellyfinUserId);
+  }
+  return client;
+};
+
+const probe = async (
+  jellyfinSettings: JellyfinSettings
+): Promise<ConnectionTestResponse & { serverId?: string }> => {
+  if (!jellyfinSettings.ip) {
+    return { ok: false, message: 'Enter the server URL.' };
+  }
+  if (!jellyfinSettings.apiKey) {
+    return {
+      ok: false,
+      message:
+        'Enter an API key. You can make one under Dashboard → API keys in Jellyfin.',
+    };
+  }
+  try {
+    const client = await clientFor(jellyfinSettings);
+    const info = await client.getSystemInfo();
+    if (!info?.Id) {
+      return {
+        ok: false,
+        message:
+          'That address answered, but not like a Jellyfin server. Check the server URL.',
+      };
+    }
+    return {
+      ok: true,
+      name: info.ServerName,
+      version: info.Version,
+      serverId: info.Id,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      message:
+        e.statusCode === 401 || e.errorCode === 'INVALID_AUTH_TOKEN'
+          ? "The server didn't accept that API key. Check it under Dashboard → API keys."
+          : `Couldn't reach the server at ${getHostname(jellyfinSettings)}. Check the server URL.`,
+    };
+  }
+};
+
+const masked = (): JellyfinSettings =>
+  maskSecrets(getSettings().jellyfin, SECRET_PATHS);
+
+settingsRoutes.get('/jellyfin', (_req, res) => {
+  res.status(200).json(masked());
 });
+
+const parseBody = (
+  body: unknown
+): { data?: Partial<JellyfinSettings>; error?: string } => {
+  const parsed = connectionSchema.safeParse(body ?? {});
+  if (!parsed.success) {
+    return {
+      error:
+        'Check the server fields: the port must be a number between 1 and 65535.',
+    };
+  }
+  try {
+    return { data: splitUrl(parsed.data) };
+  } catch {
+    return {
+      error:
+        "That server URL isn't valid. Use something like http://192.168.1.10:8096.",
+    };
+  }
+};
 
 settingsRoutes.post('/jellyfin', async (req, res, next) => {
-  const userRepository = getRepository(User);
+  const { data, error } = parseBody(req.body);
+  if (!data) {
+    return next({ status: 400, message: error });
+  }
   const settings = getSettings();
+  const candidate = mergeWithSecrets(settings.jellyfin, data, SECRET_PATHS);
 
-  try {
-    const admin = await userRepository.findOneOrFail({
-      where: { id: 1 },
-      select: ['id', 'jellyfinUserId', 'jellyfinDeviceId'],
-      order: { id: 'ASC' },
+  if (candidate.enabled && !candidate.ip) {
+    return next({
+      status: 400,
+      message: 'Enter the server URL before turning this on.',
     });
+  }
 
-    const tempJellyfinSettings = { ...settings.jellyfin, ...req.body };
-
-    const jellyfinClient = new JellyfinAPI(
-      getHostname(tempJellyfinSettings),
-      tempJellyfinSettings.apiKey,
-      admin.jellyfinDeviceId ?? ''
-    );
-
-    const result = await jellyfinClient.getSystemInfo();
-
-    if (!result?.Id) {
-      throw new ApiError(result?.status, ApiErrorCode.InvalidUrl);
+  // Validate the connection whenever there is one to validate
+  if (candidate.ip && candidate.apiKey) {
+    const result = await probe(candidate);
+    if (result.ok) {
+      candidate.serverId = result.serverId ?? candidate.serverId;
+      candidate.name = result.name ?? candidate.name;
+    } else if (candidate.enabled) {
+      return next({ status: 400, message: result.message });
     }
-
-    Object.assign(settings.jellyfin, req.body);
-    settings.jellyfin.serverId = result.Id;
-    settings.jellyfin.name = result.ServerName;
-    await settings.save();
-  } catch (e) {
-    if (e instanceof ApiError) {
-      logger.error('Something went wrong testing Jellyfin connection', {
-        label: 'API',
-        status: e.statusCode,
-        errorMessage: ApiErrorCode.InvalidUrl,
-      });
-
-      return next({
-        status: e.statusCode,
-        message: ApiErrorCode.InvalidUrl,
-      });
-    } else {
-      logger.error('Something went wrong', {
-        label: 'API',
-        errorMessage: e.message,
-      });
-
-      return next({
-        status: e.statusCode ?? 500,
-        message: ApiErrorCode.Unknown,
-      });
-    }
+  } else if (candidate.enabled) {
+    return next({
+      status: 400,
+      message:
+        'Enter an API key before turning this on. You can make one under Dashboard → API keys in Jellyfin.',
+    });
   }
 
-  return res.status(200).json(settings.jellyfin);
-});
-
-settingsRoutes.get('/jellyfin/library', (_req, res) => {
-  const settings = getSettings();
-
-  return res.status(200).json(settings.jellyfin.libraries);
-});
-
-settingsRoutes.put('/jellyfin/library/:libraryId', async (req, res, next) => {
-  const settings = getSettings();
-
-  const bodyResult = libraryUpdateSchema.safeParse(req.body);
-
-  if (!bodyResult.success) {
-    return next({ status: 400, message: 'Invalid request body.' });
-  }
-
-  const library = settings.jellyfin.libraries.find(
-    (l) => l.id === req.params.libraryId
-  );
-
-  if (!library) {
-    return next({ status: 404, message: 'Library does not exist.' });
-  }
-
-  library.enabled = bodyResult.data.enabled;
+  settings.jellyfin = candidate;
   await settings.save();
 
-  return res.status(200).json(library);
+  return res.status(200).json(masked());
 });
 
-settingsRoutes.post('/jellyfin/library/sync', async (_req, res, next) => {
-  const settings = getSettings();
-
-  const userRepository = getRepository(User);
-  const admin = await userRepository.findOneOrFail({
-    select: ['id', 'jellyfinDeviceId', 'jellyfinUserId'],
-    where: { id: 1 },
-    order: { id: 'ASC' },
-  });
-  const jellyfinClient = new JellyfinAPI(
-    getHostname(),
-    settings.jellyfin.apiKey,
-    admin.jellyfinDeviceId ?? ''
+settingsRoutes.post('/jellyfin/test', async (req, res, next) => {
+  const { data, error } = parseBody(req.body);
+  if (!data) {
+    return next({ status: 400, message: error });
+  }
+  const { ok, name, version, message } = await probe(
+    mergeWithSecrets(getSettings().jellyfin, data, SECRET_PATHS)
   );
 
-  jellyfinClient.setUserId(admin.jellyfinUserId ?? '');
+  return res
+    .status(200)
+    .json({ ok, name, version, message } satisfies ConnectionTestResponse);
+});
 
-  let libraries: JellyfinLibrary[];
+const syncLibraries = async (): Promise<Library[]> => {
+  const settings = getSettings();
+  const client = await clientFor(settings.jellyfin);
+  let libraries;
 
   try {
-    libraries = await jellyfinClient.getLibraries();
-
-    if (libraries.length === 0) {
-      // Check if no libraries are found due to the fallback to user views
-      // This only affects LDAP users
-      const account = await jellyfinClient.getUser();
-
-      // Automatic Library grouping is not supported when user views are used to get library
-      if (account.Configuration.GroupedFolders?.length > 0) {
-        return next({
-          status: 501,
-          message: ApiErrorCode.SyncErrorGroupedFolders,
-        });
-      }
-
-      return next({ status: 404, message: ApiErrorCode.SyncErrorNoLibraries });
-    }
+    libraries = await client.getLibraries();
   } catch (e) {
-    return next({
-      status: e.statusCode ?? 500,
-      message: e.errorCode ?? ApiErrorCode.Unknown,
-    });
+    throw Object.assign(
+      new Error(
+        "Couldn't load the libraries from the server. Check the connection and try again."
+      ),
+      { statusCode: e.statusCode ?? 502 }
+    );
   }
 
-  const newLibraries: Library[] = libraries.map((library) => {
+  settings.jellyfin.libraries = libraries.map((library) => {
     const existing = settings.jellyfin.libraries.find(
       (l) => l.id === library.key
     );
@@ -171,51 +239,103 @@ settingsRoutes.post('/jellyfin/library/sync', async (_req, res, next) => {
       lastScan: existing?.lastScan,
     };
   });
+  await settings.save();
 
-  settings.jellyfin.libraries = newLibraries;
+  return settings.jellyfin.libraries;
+};
+
+settingsRoutes.get('/jellyfin/library', async (req, res, next) => {
+  if (req.query.sync) {
+    try {
+      await syncLibraries();
+    } catch (e) {
+      return next({ status: e.statusCode ?? 500, message: e.message });
+    }
+  }
+
+  return res.status(200).json(getSettings().jellyfin.libraries);
+});
+
+settingsRoutes.put('/jellyfin/library/:libraryId', async (req, res, next) => {
+  const settings = getSettings();
+  const bodyResult = libraryUpdateSchema.safeParse(req.body);
+
+  if (!bodyResult.success) {
+    return next({
+      status: 400,
+      message: 'Send { enabled: true } or { enabled: false }.',
+    });
+  }
+
+  const library = settings.jellyfin.libraries.find(
+    (l) => l.id === req.params.libraryId
+  );
+
+  if (!library) {
+    return next({
+      status: 404,
+      message: "That library isn't in the list. Sync libraries and try again.",
+    });
+  }
+
+  library.enabled = bodyResult.data.enabled;
   await settings.save();
 
   return res.status(200).json(settings.jellyfin.libraries);
 });
 
-settingsRoutes.get('/jellyfin/users', async (req, res) => {
-  const settings = getSettings();
-
-  const userRepository = getRepository(User);
-  const admin = await userRepository.findOneOrFail({
-    select: ['id', 'jellyfinDeviceId', 'jellyfinUserId'],
-    where: { id: 1 },
-    order: { id: 'ASC' },
-  });
-  const jellyfinClient = new JellyfinAPI(
-    getHostname(),
-    settings.jellyfin.apiKey,
-    admin.jellyfinDeviceId ?? ''
-  );
-
-  jellyfinClient.setUserId(admin.jellyfinUserId ?? '');
-  const resp = await jellyfinClient.getUsers();
-  const users = resp.users.map((user) => ({
-    username: user.Name,
-    id: user.Id,
-    thumb: `/avatarproxy/${user.Id}`,
-    email: user.Name,
-  }));
-
-  return res.status(200).json(users);
-});
-
-settingsRoutes.get('/jellyfin/sync', (_req, res) => {
-  return res.status(200).json(jellyfinFullScanner.status());
-});
-
-settingsRoutes.post('/jellyfin/sync', (req, res) => {
-  if (req.body.cancel) {
-    jellyfinFullScanner.cancel();
-  } else if (req.body.start) {
-    jellyfinFullScanner.run();
+settingsRoutes.post('/jellyfin/library/sync', async (_req, res, next) => {
+  try {
+    return res.status(200).json(await syncLibraries());
+  } catch (e) {
+    return next({ status: e.statusCode ?? 500, message: e.message });
   }
-  return res.status(200).json(jellyfinFullScanner.status());
 });
+
+settingsRoutes.get(
+  '/jellyfin/users',
+  isAuthenticated(Permission.MANAGE_USERS),
+  async (_req, res, next) => {
+    try {
+      const client = await clientFor(getSettings().jellyfin);
+      const resp = await client.getUsers();
+      const existing = new Set(
+        (
+          await getRepository(User).find({
+            select: { id: true, jellyfinUserId: true },
+          })
+        )
+          .map((user) => user.jellyfinUserId)
+          .filter(Boolean)
+      );
+      const users: ImportableUser[] = resp.users
+        .filter((user) => !existing.has(user.Id))
+        .map((user) => ({
+          id: user.Id,
+          username: user.Name,
+          thumb: `/avatarproxy/${user.Id}`,
+        }));
+
+      return res.status(200).json(users);
+    } catch (e) {
+      logger.error('Something went wrong getting unimported Jellyfin users', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message:
+          "Couldn't load the list of users from the server. Check the connection and try again.",
+      });
+    }
+  }
+);
+
+addScanRoutes(
+  settingsRoutes,
+  '/jellyfin',
+  jellyfinFullScanner,
+  jellyfinRecentScanner
+);
 
 export default settingsRoutes;

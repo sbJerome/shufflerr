@@ -15,6 +15,8 @@ export interface ImportMatch {
   matchedBy: 'upc' | 'isrc' | 'name' | 'none';
   /** MusicBrainz album with live library status; null when no match was found. */
   album: AlbumResult | null;
+  /** True while this album is still being matched to MusicBrainz (poll the job). */
+  pending?: boolean;
 }
 
 /** POST /import/resolve { url } */
@@ -25,6 +27,15 @@ export interface ImportResolveResponse {
   title?: string;
   url: string;
   matches: ImportMatch[];
+  /**
+   * Matching runs at MusicBrainz's pace (about one album a second), so a long
+   * playlist comes back as 'resolving' with `pending` entries: poll
+   * GET /import/jobs/:id until it is 'ready' (or 'failed', see `error`).
+   */
+  status?: 'resolving' | 'ready' | 'requested' | 'failed';
+  error?: string | null;
+  /** Albums behind the link that were left out because the link has more than the per-import cap. */
+  truncated?: number;
 }
 
 /** POST /import/request { jobId?, mbids: string[] } — each goes through the request engine with scope album. */
@@ -69,6 +80,8 @@ export interface ImportSourcesResponse {
 export interface ImportSpotifySavedResponse {
   linked: boolean;
   matches: ImportMatch[];
+  /** Saved albums still being matched in the background; ask again in a few seconds. */
+  pending?: number;
 }
 
 export interface ImportJobSummary {

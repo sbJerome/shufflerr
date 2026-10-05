@@ -1,0 +1,28 @@
+{
+  "MediaContainer": {
+    "size": 1,
+    "totalSize": 1,
+    "Metadata": [
+      {
+        "ratingKey": "48211",
+        "key": "/library/metadata/48211/children",
+        "parentRatingKey": "48190",
+        "guid": "plex://album/65f0c1d2a9e2f6b1c8d0e411",
+        "parentGuid": "plex://artist/5d07bcb0403c6402904a5ec9",
+        "type": "album",
+        "title": "CTRL ESCAPE",
+        "parentTitle": "John Summit",
+        "year": 2026,
+        "leafCount": 13,
+        "addedAt": 1791168600,
+        "updatedAt": 1791168700,
+        "thumb": "/library/metadata/48211/thumb/1791168700",
+        "Guid": [
+          {
+            "id": "mbid://2555fe96-7bde-4b6d-92ae-9ee09ffe71d4"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,4 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-// STREAM(SV5): reword for music (types, copy, payload variables).
 import {
   DISCORD_SNOWFLAKE_REGEX,
   EmbedColors,
