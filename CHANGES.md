@@ -1398,3 +1398,5 @@ Notes written after this merge (for example the UI integration pass) are in `cha
   MusicBrainz's relevance order, not by popularity; a Last.fm key would allow a popularity order.
 - **v0.1.4, artist photos:** order is fanart.tv, then Lidarr, then Deezer (exact-name match,
   because Deezer has no MusicBrainz ids).
+- **v0.1.5, top navigation:** the mockup's left icon rail is replaced by a top bar (owner
+  request). Deviation from the mockup; the classic pages are unaffected.

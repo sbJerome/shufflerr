@@ -1,6 +1,5 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-import Rail from '@app/components/Layout/Rail';
-import TopBar from '@app/components/Layout/TopBar';
+import TopNav from '@app/components/Layout/TopNav';
 import UserWarnings from '@app/components/Layout/UserWarnings';
 import Player from '@app/components/Player';
 import { PlayerProvider } from '@app/context/PlayerContext';
@@ -67,9 +66,8 @@ const Shell = ({ children }: LayoutProps) => {
         {intl.formatMessage(messages.skip)}
       </a>
       <div className="sh-app">
-        <Rail pendingCount={pending} />
+        <TopNav pendingCount={pending} />
         <div className="sh-main">
-          <TopBar pendingCount={pending} />
           <main className="sh-view" id="sh-view" tabIndex={-1} ref={mainRef}>
             <UserWarnings />
             {children}
@@ -81,7 +79,7 @@ const Shell = ({ children }: LayoutProps) => {
   );
 };
 
-/** App shell: icon rail, top bar, page content and the docked player. */
+/** App shell: top navigation, page content and the docked player. */
 const Layout = ({ children }: LayoutProps) => (
   <PlayerProvider>
     <Shell>{children}</Shell>

@@ -1,6 +1,7 @@
 import Button from '@app/components/Common/Button';
 import FilterChips from '@app/components/Common/FilterChips';
 import CoverArt from '@app/components/CoverArt';
+import Pager from '@app/components/Library/Pager';
 import usePlayback from '@app/components/Playback';
 import RequestButton from '@app/components/RequestButton';
 import {
@@ -14,7 +15,7 @@ import type { MediaRequestStatus } from '@server/constants/media';
 import { MediaStatus } from '@server/constants/media';
 import type { AlbumResult } from '@server/models/music';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.ArtistDetails.Discography', {
@@ -40,6 +41,8 @@ const messages = defineMessages('components.ArtistDetails.Discography', {
   emptyfilter: 'No releases of this type. Try another filter.',
 });
 
+const PAGE_SIZE = 10;
+
 const COLUMNS =
   '56px minmax(220px,2fr) 100px 64px 64px 170px minmax(150px,auto)';
 
@@ -61,6 +64,8 @@ const Discography = ({ releases }: DiscographyProps) => {
   const { hasPermission } = useUser();
   const { playAlbum } = usePlayback();
   const [filter, setFilter] = useState<TypeFilter>('all');
+  const [page, setPage] = useState(1);
+  const top = useRef<HTMLElement>(null);
 
   const canRequestAlbums = hasPermission(
     [Permission.REQUEST, Permission.REQUEST_ALBUM],
@@ -81,9 +86,22 @@ const Discography = ({ releases }: DiscographyProps) => {
     return result;
   }, [releases]);
 
-  const rows = releases.filter(
+  const filtered = releases.filter(
     (release) => filter === 'all' || typeOf(release) === filter
   );
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, pages);
+  const rows = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+
+  const goTo = (next: number) => {
+    setPage(next);
+    top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+
+  // a new filter starts again from the first page
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   const labels: Record<TypeFilter, string> = {
     all: intl.formatMessage(messages.all),
@@ -97,7 +115,7 @@ const Discography = ({ releases }: DiscographyProps) => {
     .map((value) => ({ value, label: labels[value], count: counts[value] }));
 
   return (
-    <section aria-labelledby="artist-discography">
+    <section aria-labelledby="artist-discography" ref={top}>
       <div className="sh-sec-head">
         <h2 className="sh-h-section" id="artist-discography">
           {intl.formatMessage(messages.discography)}
@@ -248,6 +266,11 @@ const Discography = ({ releases }: DiscographyProps) => {
           )}
         </div>
       </div>
+      {pages > 1 && (
+        <div className="mt-4">
+          <Pager page={current} pages={pages} onPage={goTo} />
+        </div>
+      )}
     </section>
   );
 };

@@ -6,6 +6,25 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-05
+
+### Changed
+
+- **Top navigation** replaces the left icon rail (`src/components/Layout/TopNav.tsx`): brand,
+  primary links with labels, search, pending pill, theme toggle and account in one sticky bar.
+  Labels drop below 1300px, the links fold into a menu below 1000px, and the search box takes
+  its own row on phones. Users, Issues, Blocklist and Settings are icon-only in the bar.
+- **Artist page:** the photo now fills most of the viewport (up to 88vh) with the name and
+  top albums over its lower part, closer to the Rekord artist page.
+- **Discography** on the artist page is paged, 10 releases at a time, with Previous / Next and
+  a page counter; changing the type filter returns to page 1.
+- Responsive pass across Discover, Artist, Album, Requests, Search, Settings and Users at
+  1440 / 1100 / 820 / 390px: no horizontal page scroll at any width.
+
+### Removed
+
+- `src/components/Layout/Rail.tsx` (replaced by `TopNav.tsx`).
+
 ## [0.1.4] - 2026-10-05
 
 ### Added
@@ -143,7 +162,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/sbJerome/shufflerr/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/sbJerome/shufflerr/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/sbJerome/shufflerr/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/sbJerome/shufflerr/compare/v0.1.1...v0.1.2

@@ -1,13 +1,17 @@
+import TopBar from '@app/components/Layout/TopBar';
 import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import { importEnabled } from '@app/utils/publicSettings';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
-const messages = defineMessages('components.Layout.Rail', {
+const messages = defineMessages('components.Layout.TopNav', {
+  menu: 'Menu',
+  closemenu: 'Close menu',
   primary: 'Primary',
   home: 'Shufflerr home',
   discover: 'Discover',
@@ -16,7 +20,7 @@ const messages = defineMessages('components.Layout.Rail', {
   albums: 'Albums',
   requests: 'Requests',
   requestspending: 'Requests, {count} waiting',
-  import: 'Import playlists',
+  import: 'Import',
   users: 'Users',
   issues: 'Issues',
   issuesopen: 'Issues, {count} open',
@@ -95,6 +99,8 @@ const ICONS = {
       <path d="m5.6 5.6 12.8 12.8" />
     </>
   ),
+  menu: icon(<path d="M4 7h16M4 12h16M4 17h16" />),
+  close: icon(<path d="M6 6l12 12M18 6 6 18" />),
   settings: icon(
     <>
       <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
@@ -104,17 +110,46 @@ const ICONS = {
   ),
 };
 
-interface RailProps {
+type NavKey = Exclude<keyof typeof ICONS, 'menu' | 'close'>;
+
+interface TopNavProps {
   pendingCount: number;
 }
 
-/** 76px icon rail; becomes a sticky horizontal bar below 760px. */
-const Rail = ({ pendingCount }: RailProps) => {
+/**
+ * Sticky top navigation: brand, the primary links, then search, pending pill,
+ * theme toggle and account. Below 1100px the links fold into a menu button.
+ */
+const TopNav = ({ pendingCount }: TopNavProps) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const intl = useIntl();
   const router = useRouter();
   const { hasPermission } = useUser();
   const { currentSettings } = useSettings();
   const path = router.pathname;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [path, router.asPath]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  }, [open]);
 
   const canSeeIssues = hasPermission(
     [Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES],
@@ -127,24 +162,20 @@ const Rail = ({ pendingCount }: RailProps) => {
   const openIssues = issueCount?.open ?? 0;
 
   const items: {
-    key: keyof typeof ICONS;
+    key: Exclude<keyof typeof ICONS, 'menu' | 'close'>;
     href: string;
     label: string;
     active: RegExp;
     show?: boolean;
     count?: number;
+    /** Icon only in the bar (label still read out and shown in the menu). */
+    compact?: boolean;
   }[] = [
     {
       key: 'discover',
       href: '/discover',
       label: intl.formatMessage(messages.discover),
       active: /^\/(discover)?$/,
-    },
-    {
-      key: 'search',
-      href: '/search',
-      label: intl.formatMessage(messages.search),
-      active: /^\/search/,
     },
     {
       key: 'artists',
@@ -176,6 +207,7 @@ const Rail = ({ pendingCount }: RailProps) => {
     },
     {
       key: 'users',
+      compact: true,
       href: '/users',
       label: intl.formatMessage(messages.users),
       active: /^\/users/,
@@ -183,6 +215,7 @@ const Rail = ({ pendingCount }: RailProps) => {
     },
     {
       key: 'issues',
+      compact: true,
       href: '/issues',
       label: openIssues
         ? intl.formatMessage(messages.issuesopen, { count: openIssues })
@@ -200,6 +233,7 @@ const Rail = ({ pendingCount }: RailProps) => {
     },
     {
       key: 'blocklist',
+      compact: true,
       href: '/blocklist',
       label: intl.formatMessage(messages.blocklist),
       active: /^\/blocklist/,
@@ -208,52 +242,75 @@ const Rail = ({ pendingCount }: RailProps) => {
         { type: 'or' }
       ),
     },
+    {
+      key: 'settings',
+      compact: true,
+      href: '/settings',
+      label: intl.formatMessage(messages.settings),
+      active: /^\/settings/,
+      show: hasPermission(Permission.MANAGE_SETTINGS),
+    },
   ];
+  const shown = items.filter((item) => item.show !== false);
 
   return (
-    <nav className="sh-rail" aria-label={intl.formatMessage(messages.primary)}>
-      <Link
-        className="sh-brand"
-        href="/discover"
-        aria-label={intl.formatMessage(messages.home)}
-      >
-        s/
-      </Link>
-      {items
-        .filter((item) => item.show !== false)
-        .map((item) => (
-          <Link
-            key={item.key}
-            className="nav"
-            href={item.href}
-            aria-label={item.label}
-            title={item.label}
-            aria-current={item.active.test(path) ? 'page' : undefined}
-            data-testid={`rail-${item.key}`}
-          >
-            {ICONS[item.key]}
-            {!!item.count && (
-              <span className="count" aria-hidden="true">
-                {item.count > 99 ? '99+' : item.count}
-              </span>
-            )}
-          </Link>
-        ))}
-      <div className="grow" />
-      {hasPermission(Permission.MANAGE_SETTINGS) && (
+    <header className="sh-topnav">
+      <div className="sh-topnav-row">
         <Link
-          className="nav"
-          href="/settings"
-          aria-label={intl.formatMessage(messages.settings)}
-          title={intl.formatMessage(messages.settings)}
-          aria-current={/^\/settings/.test(path) ? 'page' : undefined}
-          data-testid="rail-settings"
+          className="sh-brand"
+          href="/discover"
+          aria-label={intl.formatMessage(messages.home)}
         >
-          {ICONS.settings}
+          <span className="tile">s/</span>
+          <span className="word">
+            SHUFFLE<em>RR</em>
+          </span>
         </Link>
-      )}
-    </nav>
+        <div className="sh-navwrap" ref={menuRef}>
+          <button
+            type="button"
+            className="sh-menu-btn"
+            aria-expanded={open}
+            aria-controls="sh-primary-nav"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? ICONS.close : ICONS.menu}
+            <span>
+              {intl.formatMessage(open ? messages.closemenu : messages.menu)}
+            </span>
+          </button>
+          <nav
+            id="sh-primary-nav"
+            className={`sh-nav ${open ? 'open' : ''}`}
+            aria-label={intl.formatMessage(messages.primary)}
+          >
+            {shown.map((item) => (
+              <Link
+                key={item.key}
+                className={`nav ${item.compact ? 'compact' : ''}`}
+                href={item.href}
+                title={item.compact ? item.label : undefined}
+                aria-label={item.label}
+                aria-current={item.active.test(path) ? 'page' : undefined}
+                data-testid={`rail-${item.key}`}
+              >
+                {ICONS[item.key]}
+                <span className="label">
+                  {intl.formatMessage(messages[item.key as NavKey])}
+                </span>
+                {!!item.count && (
+                  <span className="count" aria-hidden="true">
+                    {item.count > 99 ? '99+' : item.count}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <TopBar pendingCount={pendingCount} />
+      </div>
+    </header>
   );
 };
 
-export default Rail;
+export default TopNav;

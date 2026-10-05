@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: shufflerr
-          image: localhost/shufflerr:0.1.4
+          image: localhost/shufflerr:0.1.5
           imagePullPolicy: Never
           env:
             - name: TZ

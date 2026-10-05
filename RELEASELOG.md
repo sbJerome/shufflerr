@@ -3,6 +3,15 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.5 — 2026-10-05
+
+- **Navigation moved to the top.** One bar holds the links, search and your account; on
+  smaller screens the links fold into a menu.
+- **Bigger artist photos.** The artist page photo now fills most of the screen, with the name
+  and top albums over it.
+- **Discography in pages of 10,** with Previous and Next.
+- **Works at every size.** Checked on desktop, laptop, tablet and phone widths.
+
 ## v0.1.4 — 2026-10-05
 
 - **New album page.** The cover sits over a blurred version of itself, and the tracklist is a

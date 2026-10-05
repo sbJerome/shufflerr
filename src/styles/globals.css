@@ -4259,3 +4259,288 @@
     }
   }
 }
+
+/* Top navigation (replaces the icon rail). */
+@layer components {
+  .sh-app {
+    display: block;
+  }
+  .sh-topnav {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgb(var(--c-rail) / 0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .sh-topnav-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 64px;
+    padding: 8px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .sh-topnav .sh-brand {
+    width: auto;
+    height: auto;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    color: var(--text);
+    flex: none;
+  }
+  .sh-topnav .sh-brand .tile {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font: 700 15px var(--mono);
+    letter-spacing: -0.04em;
+  }
+  .sh-topnav .sh-brand .word {
+    font: 700 13px var(--mono);
+    letter-spacing: 0.22em;
+    color: var(--text);
+  }
+  .sh-topnav .sh-brand .word em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .sh-navwrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .sh-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .sh-nav a.nav {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .sh-nav a.nav svg {
+    width: 18px;
+    height: 18px;
+  }
+  .sh-nav a.nav:hover {
+    background: var(--hover);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .sh-nav a.nav[aria-current='page'] {
+    color: var(--text);
+  }
+  .sh-nav a.nav[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 2px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+  }
+  .sh-nav .count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font: 700 10px/18px var(--mono);
+    text-align: center;
+  }
+  .sh-menu-btn {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .sh-menu-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .sh-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  .sh-tools .sh-searchbox {
+    flex: 0 1 280px;
+    min-width: 160px;
+    height: 44px;
+  }
+  .sh-nav a.nav.compact .label {
+    display: none;
+  }
+  .sh-nav a.nav.compact {
+    padding: 0 11px;
+  }
+  .sh-nav a.nav.compact svg {
+    width: 20px;
+    height: 20px;
+  }
+  .sh-tools .spacer {
+    display: none;
+  }
+
+  /* Below 1300px the link labels go; icons stay. */
+  @media (max-width: 1300px) {
+    .sh-nav a.nav .label {
+      display: none;
+    }
+    .sh-nav a.nav {
+      padding: 0 10px;
+    }
+    .sh-nav a.nav svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  /* Below 1000px the links fold into a menu. */
+  @media (max-width: 1000px) {
+    .sh-topnav-row {
+      padding: 8px 20px;
+    }
+    .sh-menu-btn {
+      display: inline-flex;
+    }
+    .sh-nav {
+      display: none;
+    }
+    .sh-nav.open {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 2px;
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      min-width: 240px;
+      padding: 8px;
+      border-radius: 14px;
+      background: var(--raised);
+      border: 1px solid var(--line-2);
+      box-shadow: 0 24px 60px rgb(0 0 0 / 0.45);
+      z-index: 40;
+    }
+    .sh-nav.open a.nav .label {
+      display: inline;
+    }
+    .sh-nav.open a.nav[aria-current='page'] {
+      background: var(--hover);
+    }
+    .sh-nav.open a.nav[aria-current='page']::after {
+      display: none;
+    }
+    .sh-nav.open .count {
+      margin-left: auto;
+    }
+  }
+  @media (max-width: 760px) {
+    .sh-topnav-row {
+      flex-wrap: wrap;
+      padding: 8px 16px;
+      gap: 8px 10px;
+    }
+    .sh-topnav .sh-brand .word {
+      display: none;
+    }
+    .sh-menu-btn span {
+      display: none;
+    }
+    .sh-tools {
+      flex-basis: 100%;
+      order: 10;
+    }
+    .sh-tools .sh-searchbox {
+      flex: 1 1 auto;
+    }
+    .sh-tools .sh-searchbox kbd {
+      display: none;
+    }
+    .sh-tools .sh-pill {
+      padding: 0 10px;
+    }
+    .sh-topnav .sh-skip {
+      display: none;
+    }
+  }
+
+  /* Artist hero: let the photo carry the page. */
+  .sh-rx-hero {
+    min-height: clamp(620px, 88vh, 960px);
+    justify-content: flex-end;
+    gap: 36px;
+  }
+  .sh-rx-hero .art {
+    object-position: center 18%;
+  }
+  .sh-rx-hero .veil {
+    background:
+      radial-gradient(
+        ellipse at 50% 42%,
+        rgb(0 0 0 / 0.1) 0%,
+        rgb(0 0 0 / 0.5) 75%
+      ),
+      linear-gradient(
+        180deg,
+        rgb(0 0 0 / 0.4) 0%,
+        transparent 22%,
+        transparent 55%,
+        rgb(var(--c-bg) / 0.8) 85%,
+        rgb(var(--c-bg)) 100%
+      );
+  }
+  .sh-rx-hero .sh-crumb {
+    position: absolute;
+    top: 20px;
+    left: 32px;
+  }
+  .sh-rx-hero .copy {
+    flex: 1;
+    justify-content: flex-end;
+    padding-bottom: 0;
+  }
+  .sh-rx-hero h1 {
+    font-size: clamp(36px, 6.2vw, 84px);
+  }
+  @media (max-width: 760px) {
+    .sh-rx-hero {
+      min-height: clamp(520px, 80vh, 760px);
+    }
+    .sh-rx-hero .sh-crumb {
+      left: 16px;
+      top: 14px;
+    }
+  }
+}

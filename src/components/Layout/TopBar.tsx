@@ -61,7 +61,7 @@ const TopBar = ({ pendingCount }: TopBarProps) => {
   }, []);
 
   return (
-    <header className="sh-top">
+    <div className="sh-tools">
       <form
         className="sh-searchbox"
         role="search"
@@ -140,7 +140,7 @@ const TopBar = ({ pendingCount }: TopBarProps) => {
         </svg>
       </button>
       <AccountMenu />
-    </header>
+    </div>
   );
 };
 
