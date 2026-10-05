@@ -102,7 +102,7 @@ router.get<never, LibraryArtistsResponse>(
         pageRows.map(async (row) => ({
           mbid: row.mbid,
           name: row.name ?? '',
-          imageUrl: (await getArtistImages(row.mbid)).thumb,
+          imageUrl: (await getArtistImages(row.mbid, row.name)).thumb,
           status: MediaStatus.AVAILABLE,
           albumsInLibrary: Number(row.albums),
         }))

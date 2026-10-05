@@ -451,7 +451,7 @@ export const getArtistDetails = async (
   );
 
   const [images, bio, similar, lidarr, discographyRequest] = await Promise.all([
-    getArtistImages(mbid),
+    getArtistImages(mbid, artist.name),
     artistBio(mbid, artist.name),
     similarArtists(mbid, artist.name),
     getLidarrArtistState(mbid),

@@ -228,6 +228,18 @@ class MusicBrainz extends ExternalAPI {
     );
   }
 
+  /** Raw Lucene artist search, e.g. `tag:"house"` for genre pages. */
+  public searchArtistsRaw(
+    luceneQuery: string,
+    { limit = 10, offset = 0 }: SearchPage = {}
+  ): Promise<MbArtistSearch> {
+    return this.fetch<MbArtistSearch>(
+      '/artist',
+      { query: luceneQuery, limit, offset },
+      SEARCH_TTL
+    );
+  }
+
   public searchReleasesRaw(
     luceneQuery: string,
     { limit = 10, offset = 0 }: SearchPage = {}

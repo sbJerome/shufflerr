@@ -1,21 +1,16 @@
-import AlbumCard from '@app/components/AlbumCard';
 import { SERVER_LINKS, linkLabel } from '@app/components/AlbumDetails/links';
 import Discography from '@app/components/ArtistDetails/Discography';
 import Button from '@app/components/Common/Button';
 import EmptyState from '@app/components/Common/EmptyState';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
-import Carousel from '@app/components/Discover/Carousel';
+import CoverArt from '@app/components/CoverArt';
 import ManageSlideOver from '@app/components/ManageSlideOver';
 import RequestButton from '@app/components/RequestButton';
 import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import {
-  MediaRequestStatus,
-  MediaStatus,
-  RequestScope,
-} from '@server/constants/media';
+import { MediaRequestStatus, RequestScope } from '@server/constants/media';
 import type { ArtistDetails as ArtistDetailsType } from '@server/models/music';
 import axios from 'axios';
 import Link from 'next/link';
@@ -24,8 +19,7 @@ import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
-const messages = defineMessages('components.ArtistDetails', {
-  topalbums: 'Top albums',
+const messages = defineMessages('components.ArtistDetailsClassic', {
   artist: 'Artist',
   artists: 'Artists',
   activesince: 'Active since {year}',
@@ -65,7 +59,7 @@ const messages = defineMessages('components.ArtistDetails', {
   searchmusic: 'Search music',
 });
 
-const ArtistDetails = () => {
+const ArtistDetailsClassic = () => {
   const intl = useIntl();
   const router = useRouter();
   const { addToast } = useToasts();
@@ -168,36 +162,42 @@ const ArtistDetails = () => {
   const openIn = (name: string) =>
     intl.formatMessage(messages.openin, { name });
 
-  const heroImage = artist.backgroundUrl ?? artist.imageUrl;
-  const inLibrary = (status: MediaStatus) =>
-    status === MediaStatus.AVAILABLE ||
-    status === MediaStatus.PARTIALLY_AVAILABLE;
-  // What is already in the library first, then studio albums, newest first
-  // (the discography arrives newest first).
-  const rank = (album: (typeof artist.discography)[number]) =>
-    (inLibrary(album.status) ? 0 : 2) +
-    (album.primaryType === 'Album' && !album.secondaryTypes?.length ? 0 : 1);
-  const topAlbums = [...artist.discography]
-    .sort((x, y) => rank(x) - rank(y))
-    .slice(0, 12);
-
   return (
     <>
       <PageTitle title={artist.name} />
-      <section className="sh-rx-hero" aria-labelledby="artist-name">
-        {heroImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="art" src={heroImage} alt="" aria-hidden="true" />
-        )}
-        <div className="veil" aria-hidden="true" />
-        <p className="sh-crumb">
-          <Link href="/artists">{intl.formatMessage(messages.artists)}</Link> /{' '}
-          {artist.name}
-        </p>
-        <div className="copy">
+      <p className="sh-crumb">
+        <Link href="/artists">{intl.formatMessage(messages.artists)}</Link> /{' '}
+        {artist.name}
+      </p>
+
+      <section className="sh-detail" aria-labelledby="artist-name">
+        <div className="art">
+          <CoverArt
+            round
+            showInitials
+            src={artist.imageUrl}
+            mbid={artist.mbid}
+            title={artist.name}
+            loading="eager"
+          />
+        </div>
+        <div className="info">
+          {metaLine && <span className="sh-feat">{metaLine}</span>}
           <h1 id="artist-name">{artist.name}</h1>
-          {metaLine && <p className="sub">{metaLine}</p>}
-          <div className="cta">
+          {!!artist.tags?.length && (
+            <div className="sh-tags">
+              {artist.tags.slice(0, 6).map((tag) => (
+                <Link
+                  className="sh-tag"
+                  key={tag}
+                  href={`/genre/${encodeURIComponent(tag)}`}
+                >
+                  {tag}
+                </Link>
+              ))}
+            </div>
+          )}
+          <div className="mt-1.5 flex flex-wrap gap-2.5">
             {discoRequest ? (
               <Button type="button" disabled>
                 {intl.formatMessage(
@@ -254,64 +254,30 @@ const ArtistDetails = () => {
               </Button>
             )}
           </div>
-          {!!artist.tags?.length && (
-            <div className="tags">
-              {artist.tags.slice(0, 6).map((tag) => (
-                <Link
-                  className="sh-tag"
-                  key={tag}
-                  href={`/genre/${encodeURIComponent(tag)}`}
-                >
-                  {tag}
-                </Link>
-              ))}
-            </div>
-          )}
         </div>
-        {topAlbums.length > 0 && (
-          <Carousel
-            className="tiles"
-            title={intl.formatMessage(messages.topalbums)}
-          >
-            {topAlbums.map((album) => (
-              <AlbumCard
-                key={album.mbid}
-                mbid={album.mbid}
-                title={album.title}
-                year={album.firstReleaseDate}
-                status={album.status}
-                imageSrc={album.coverUrl}
-                meta={[album.primaryType, album.firstReleaseDate?.slice(0, 4)]
-                  .filter(Boolean)
-                  .join(', ')}
-              />
-            ))}
-          </Carousel>
-        )}
+        <dl className="sh-facts">
+          <div>
+            <dt>{intl.formatMessage(messages.factreleases)}</dt>
+            <dd>{intl.formatNumber(artist.facts.releases)}</dd>
+          </div>
+          <div>
+            <dt>{intl.formatMessage(messages.factinlibrary)}</dt>
+            <dd className="text-st-available">
+              {intl.formatNumber(artist.facts.inLibrary)}
+            </dd>
+          </div>
+          <div>
+            <dt>{intl.formatMessage(messages.factdownloading)}</dt>
+            <dd className="text-st-processing">
+              {intl.formatNumber(artist.facts.downloading)}
+            </dd>
+          </div>
+          <div>
+            <dt>{intl.formatMessage(messages.factalbums)}</dt>
+            <dd>{intl.formatNumber(artist.facts.albums)}</dd>
+          </div>
+        </dl>
       </section>
-
-      <dl className="sh-facts sh-rx-facts">
-        <div>
-          <dt>{intl.formatMessage(messages.factreleases)}</dt>
-          <dd>{intl.formatNumber(artist.facts.releases)}</dd>
-        </div>
-        <div>
-          <dt>{intl.formatMessage(messages.factinlibrary)}</dt>
-          <dd className="text-st-available">
-            {intl.formatNumber(artist.facts.inLibrary)}
-          </dd>
-        </div>
-        <div>
-          <dt>{intl.formatMessage(messages.factdownloading)}</dt>
-          <dd className="text-st-processing">
-            {intl.formatNumber(artist.facts.downloading)}
-          </dd>
-        </div>
-        <div>
-          <dt>{intl.formatMessage(messages.factalbums)}</dt>
-          <dd>{intl.formatNumber(artist.facts.albums)}</dd>
-        </div>
-      </dl>
 
       <section className="sh-two" aria-labelledby="artist-about">
         <div className="wide" style={{ flex: '2 1 480px' }}>
@@ -429,4 +395,4 @@ const ArtistDetails = () => {
   );
 };
 
-export default ArtistDetails;
+export default ArtistDetailsClassic;

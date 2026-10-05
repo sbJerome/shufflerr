@@ -1391,3 +1391,10 @@ Notes written after this merge (for example the UI integration pass) are in `cha
   the mockup's version of the page remains at `/discover/classic`. No Rekord code, CSS, fonts,
   icons or images are used.
 - **v0.1.3, album placeholder:** original SVG drawing instead of an empty tinted slot.
+- **v0.1.4, Album and Artist pages:** rebuilt to follow the Rekord album and artist pages
+  (deviation from the mockup; classic versions kept at `/album/<mbid>/classic` and
+  `/artist/<mbid>/classic`). No Rekord code or assets are used.
+- **v0.1.4, genre pages:** backlog item 8, built on MusicBrainz tags. Results come back in
+  MusicBrainz's relevance order, not by popularity; a Last.fm key would allow a popularity order.
+- **v0.1.4, artist photos:** order is fanart.tv, then Lidarr, then Deezer (exact-name match,
+  because Deezer has no MusicBrainz ids).

@@ -1,4 +1,4 @@
-import TrackBars from '@app/components/AlbumDetails/TrackBars';
+import Tracklist from '@app/components/AlbumDetails/Tracklist';
 import { linkLabel } from '@app/components/AlbumDetails/links';
 import Button from '@app/components/Common/Button';
 import EmptyState from '@app/components/Common/EmptyState';
@@ -16,11 +16,6 @@ import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import { formatDuration } from '@app/utils/format';
 import {
-  AdjustmentsHorizontalIcon,
-  ArrowTopRightOnSquareIcon,
-  FlagIcon,
-} from '@heroicons/react/24/outline';
-import {
   MediaRequestStatus,
   MediaStatus,
   RequestScope,
@@ -32,7 +27,7 @@ import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
-const messages = defineMessages('components.AlbumDetails', {
+const messages = defineMessages('components.AlbumDetailsClassic', {
   album: 'Album',
   artists: 'Artists',
   metareleased: '{type}, released {date}',
@@ -69,12 +64,10 @@ const messages = defineMessages('components.AlbumDetails', {
     'The link may be wrong, or MusicBrainz is unreachable right now. Search for the album to try again.',
   searchmusic: 'Search music',
   links: 'Links',
-  genres: 'Genres',
-  moregenre: 'More {genre} music',
   openin: 'Open in {name}',
 });
 
-const AlbumDetails = () => {
+const AlbumDetailsClassic = () => {
   const intl = useIntl();
   const router = useRouter();
   const { user, hasPermission } = useUser();
@@ -214,187 +207,138 @@ const AlbumDetails = () => {
   const canManage = hasPermission(Permission.MANAGE_REQUESTS);
   const externalLinks = album.links.filter((l) => !!l.url);
 
-  const musicBrainz = externalLinks.find((l) => l.type === 'musicbrainz');
-  const hero = album.coverUrl ?? null;
-
   return (
     <>
       <PageTitle title={[album.title, album.artistName]} />
+      <p className="sh-crumb">
+        <Link href={`/artist/${album.artistMbid}`}>{album.artistName}</Link> /{' '}
+        {album.title}
+      </p>
 
-      <section className="sh-ax-hero" aria-labelledby="album-title">
-        {hero && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="art" src={hero} alt="" aria-hidden="true" />
-        )}
-        <div className="veil" aria-hidden="true" />
-        <div className="sh-ax-col">
-          <p className="sh-crumb">
-            <Link href={`/artist/${album.artistMbid}`}>{album.artistName}</Link>{' '}
-            / {album.title}
-          </p>
+      {banner}
 
-          {banner}
-
-          <div className="top">
-            <div className="cover">
-              <CoverArt
-                src={album.coverUrl}
-                mbid={album.mbid}
-                title={album.title}
-                loading="eager"
-              />
-            </div>
-            <div className="info">
-              <span className="kicker">{metaLine}</span>
-              <h1 id="album-title">{album.title}</h1>
-              <Link href={`/artist/${album.artistMbid}`} className="by">
-                {album.artistName}
-              </Link>
-              <div className="sh-meta">
-                {total > 0 && (
-                  <span>
-                    {intl.formatMessage(messages.trackcount, { count: total })}
-                  </span>
-                )}
-                {!!album.totalLengthMs && (
-                  <span>{formatDuration(album.totalLengthMs)}</span>
-                )}
-                <StatusBadge status={libraryStatus} />
-                {total > 0 && (
-                  <span>
-                    {intl.formatMessage(messages.inlibrary, { have, total })}
-                  </span>
-                )}
-              </div>
-              {total > 0 && (
-                <ProgressBar
-                  value={(have / total) * 100}
-                  tone={complete ? 'available' : 'partial'}
-                  label={intl.formatMessage(messages.progresslabel, {
-                    have,
-                    total,
-                  })}
-                />
-              )}
-              <div className="cta">
-                {queue.length > 0 && (
-                  <Button
-                    type="button"
-                    buttonType="primary"
-                    onClick={() => playTracks(queue, 0)}
-                  >
-                    {intl.formatMessage(messages.playalbum)}
-                  </Button>
-                )}
-                {!complete && !active && (
-                  <RequestButton
-                    album={toModalAlbum(album)}
-                    defaultScope={
-                      have > 0 ? RequestScope.TRACKS : RequestScope.ALBUM
-                    }
-                    buttonType={queue.length > 0 ? 'default' : 'primary'}
-                    buttonSize="default"
-                  >
-                    {intl.formatMessage(
-                      have > 0 ? messages.requestmissing : messages.requestalbum
-                    )}
-                  </RequestButton>
-                )}
-              </div>
-              {!!album.genres?.length && (
-                <ul
-                  className="sh-ax-genres"
-                  aria-label={intl.formatMessage(messages.genres)}
-                >
-                  {album.genres.slice(0, 6).map((genre) => (
-                    <li key={genre}>
-                      <Link
-                        href={`/genre/${encodeURIComponent(genre)}`}
-                        title={intl.formatMessage(messages.moregenre, {
-                          genre,
-                        })}
-                      >
-                        {genre}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="tools">
-              {canReport && (
-                <button
-                  type="button"
-                  onClick={() => setShowIssue(true)}
-                  aria-label={intl.formatMessage(messages.report)}
-                  title={intl.formatMessage(messages.report)}
-                >
-                  <FlagIcon aria-hidden="true" />
-                </button>
-              )}
-              {canManage && (
-                <button
-                  type="button"
-                  onClick={() => setShowManage(true)}
-                  aria-label={intl.formatMessage(messages.manage)}
-                  title={intl.formatMessage(messages.manage)}
-                >
-                  <AdjustmentsHorizontalIcon aria-hidden="true" />
-                </button>
-              )}
-              {musicBrainz && (
-                <a
-                  href={musicBrainz.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={intl.formatMessage(messages.openin, {
-                    name: 'MusicBrainz',
-                  })}
-                  title={intl.formatMessage(messages.openin, {
-                    name: 'MusicBrainz',
-                  })}
-                >
-                  <ArrowTopRightOnSquareIcon aria-hidden="true" />
-                </a>
-              )}
-            </div>
+      <section className="sh-detail" aria-labelledby="album-title">
+        <div className="art">
+          <CoverArt
+            src={album.coverUrl}
+            mbid={album.mbid}
+            title={album.title}
+            loading="eager"
+          />
+        </div>
+        <div className="info">
+          <span className="sh-feat">{metaLine}</span>
+          <h1 id="album-title">{album.title}</h1>
+          <Link
+            href={`/artist/${album.artistMbid}`}
+            className="text-lg font-semibold text-ink"
+          >
+            {album.artistName}
+          </Link>
+          <div className="sh-meta">
+            {total > 0 && (
+              <span>
+                {intl.formatMessage(messages.trackcount, { count: total })}
+              </span>
+            )}
+            {!!album.totalLengthMs && (
+              <span>{formatDuration(album.totalLengthMs)}</span>
+            )}
+            <StatusBadge status={libraryStatus} />
+            {total > 0 && (
+              <span>
+                {intl.formatMessage(messages.inlibrary, { have, total })}
+              </span>
+            )}
           </div>
+          {total > 0 && (
+            <ProgressBar
+              value={(have / total) * 100}
+              tone={complete ? 'available' : 'partial'}
+              label={intl.formatMessage(messages.progresslabel, {
+                have,
+                total,
+              })}
+            />
+          )}
+          <div className="mt-1.5 flex flex-wrap gap-2.5">
+            {!complete && !active && (
+              <RequestButton
+                album={toModalAlbum(album)}
+                defaultScope={
+                  have > 0 ? RequestScope.TRACKS : RequestScope.ALBUM
+                }
+                buttonType="primary"
+                buttonSize="default"
+              >
+                {intl.formatMessage(
+                  have > 0 ? messages.requestmissing : messages.requestalbum
+                )}
+              </RequestButton>
+            )}
+            {queue.length > 0 && (
+              <Button type="button" onClick={() => playTracks(queue, 0)}>
+                {intl.formatMessage(messages.playalbum)}
+              </Button>
+            )}
+            {canReport && (
+              <Button type="button" onClick={() => setShowIssue(true)}>
+                {intl.formatMessage(messages.report)}
+              </Button>
+            )}
+            {canManage && (
+              <Button type="button" onClick={() => setShowManage(true)}>
+                {intl.formatMessage(messages.manage)}
+              </Button>
+            )}
+          </div>
+          {!!album.genres?.length && (
+            <div className="sh-tags">
+              {album.genres.slice(0, 6).map((genre) => (
+                <span className="sh-tag" key={genre}>
+                  {genre}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="sh-ax-col" aria-labelledby="album-tracklist">
-        <h2 className="sr-only" id="album-tracklist">
+      <section aria-labelledby="album-tracklist">
+        <h2 className="sh-h-section mb-[18px]" id="album-tracklist">
           {intl.formatMessage(messages.tracklist)}
         </h2>
         {album.tracks.length ? (
-          <TrackBars album={album} hasActiveRequest={!!active} />
+          <Tracklist album={album} />
         ) : (
-          <div className="sh-ax-none">
+          <div className="sh-box p-7 text-center text-muted">
             {intl.formatMessage(messages.notracklist)}
           </div>
         )}
-
-        {externalLinks.length > 0 && (
-          <div className="sh-ax-links">
-            <h2 id="album-links">{intl.formatMessage(messages.links)}</h2>
-            <div className="sh-chips">
-              {externalLinks.map((link) => (
-                <a
-                  key={`${link.type}-${link.url}`}
-                  className="sh-chip inline-flex items-center text-ink"
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {linkLabel(link, (name) =>
-                    intl.formatMessage(messages.openin, { name })
-                  )}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
+
+      {externalLinks.length > 0 && (
+        <section aria-labelledby="album-links">
+          <h2 className="sh-h-section mb-3.5" id="album-links">
+            {intl.formatMessage(messages.links)}
+          </h2>
+          <div className="sh-chips">
+            {externalLinks.map((link) => (
+              <a
+                key={`${link.type}-${link.url}`}
+                className="sh-chip inline-flex items-center text-ink"
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {linkLabel(link, (name) =>
+                  intl.formatMessage(messages.openin, { name })
+                )}
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <IssueModal
         mediaType="release-group"
@@ -412,4 +356,4 @@ const AlbumDetails = () => {
   );
 };
 
-export default AlbumDetails;
+export default AlbumDetailsClassic;

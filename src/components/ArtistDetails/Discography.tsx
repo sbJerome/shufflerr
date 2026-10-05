@@ -10,7 +10,7 @@ import {
 import StatusBadge from '@app/components/StatusBadge';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
-import type { MediaRequestStatus} from '@server/constants/media';
+import type { MediaRequestStatus } from '@server/constants/media';
 import { MediaStatus } from '@server/constants/media';
 import type { AlbumResult } from '@server/models/music';
 import Link from 'next/link';
@@ -145,7 +145,10 @@ const Discography = ({ releases }: DiscographyProps) => {
           {rows.length ? (
             rows.map((release) => {
               const active = hasActiveRequest(release);
-              const type = [release.primaryType, ...(release.secondaryTypes ?? [])]
+              const type = [
+                release.primaryType,
+                ...(release.secondaryTypes ?? []),
+              ]
                 .filter(Boolean)
                 .join(', ');
               let action: React.ReactNode = null;
@@ -212,7 +215,9 @@ const Discography = ({ releases }: DiscographyProps) => {
                     {type}
                   </span>
                   <span role="cell" className="num">
-                    {release.year ?? release.firstReleaseDate?.slice(0, 4) ?? ''}
+                    {release.year ??
+                      release.firstReleaseDate?.slice(0, 4) ??
+                      ''}
                   </span>
                   <span role="cell" className="num">
                     {release.trackCount ?? release.mediaInfo?.trackCount ?? '–'}

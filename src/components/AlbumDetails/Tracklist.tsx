@@ -30,7 +30,10 @@ const COLUMNS = '44px minmax(240px,3fr) 64px 130px 170px minmax(100px,auto)';
 
 const trackState = (
   track: AlbumTrack
-): { tone: StatusTone; message: (typeof statusMessages)[keyof typeof statusMessages] } => {
+): {
+  tone: StatusTone;
+  message: (typeof statusMessages)[keyof typeof statusMessages];
+} => {
   if (track.status === MediaStatus.AVAILABLE) {
     return { tone: 'available', message: statusMessages.inlibrary };
   }

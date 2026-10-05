@@ -6,6 +6,27 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-05
+
+### Added
+
+- **Genre pages** at `/genre/<name>`: artists and albums/EPs MusicBrainz tags with that genre,
+  library status merged in, with paging (`GET /api/v1/genre/:name`). Genre chips on album and
+  artist pages now link to them.
+- **Deezer artist photos** as a third fallback (`server/api/deezerImages.ts`) after fanart.tv and
+  Lidarr, for artists neither has a photo of. Exact-name match only; off when Deezer is off.
+
+### Changed
+
+- **Album page redesigned** (owner request): blurred-artwork hero over a centred column, icon
+  actions for Report a problem / Manage / MusicBrainz, and the tracklist as a stack of bars with
+  a play button, file format, length, status and a per-track Request button for missing tracks.
+  The previous page is kept at `/album/<mbid>/classic`.
+- **Artist page redesigned** (owner request): sharp full-bleed artist photo, centred spaced-out
+  name, and a "Top albums" row directly under it (library albums first, then studio albums);
+  the facts, About, discography and links follow. The previous page is kept at
+  `/artist/<mbid>/classic`.
+
 ## [0.1.3] - 2026-10-05
 
 ### Changed
@@ -122,7 +143,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/sbJerome/shufflerr/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/sbJerome/shufflerr/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/sbJerome/shufflerr/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/sbJerome/shufflerr/compare/v0.1.0...v0.1.1

@@ -61,3 +61,13 @@ export type DiscoverRecentRequestsResponse = SourcedList<RequestResult> & {
   /** True when the list is only the viewer's own requests ("Your recent requests"). */
   ownOnly: boolean;
 };
+
+/** GET /genre/:name — music MusicBrainz tags with this genre, library status merged in. */
+export interface GenreResponse {
+  genre: string;
+  page: number;
+  pageSize: number;
+  albums: { total: number; results: AlbumResult[] };
+  /** First page only. */
+  artists: { total: number; results: ArtistResult[] };
+}

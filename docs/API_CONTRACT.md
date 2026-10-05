@@ -312,3 +312,9 @@ note it in `changes/<stream>.md`.
 | `registerImageSource(type, factory)` | `server/lib/imageSources.ts` | spine (done) |
 | `maskSecrets`, `mergeWithSecrets`, `resolveSecret`, `settings.integrations` | `server/lib/settings/index.ts` | spine (done) |
 | `runJobNow(jobId)`, `scheduledJobs` | `server/job/schedule.ts` | spine (done), SV5 owns |
+
+## Added after v0.1.0
+
+| Method | Path | Permission | In | Out |
+|---|---|---|---|---|
+| GET | `/genre/:name` | signed in | query `page` (1), `pageSize` (24, max 50) | `GenreResponse` (albums paged; artists on page 1) |

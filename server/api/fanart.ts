@@ -1,3 +1,4 @@
+import { getDeezerArtistImage } from '@server/api/deezerImages';
 import ExternalAPI from '@server/api/externalapi';
 import { getLidarrArtistImages } from '@server/api/lidarrImages';
 import cacheManager from '@server/lib/cache';
@@ -111,9 +112,13 @@ const MISS_TTL = 6 * 3600 * 1000;
 /**
  * Artist images: fanart.tv when it is switched on with a key, otherwise (or for
  * anything fanart.tv lacks) the default Lidarr server's metadata lookup, which
- * needs no key. All-null when neither has anything. Never throws.
+ * needs no key, then, for the photo only and when the artist's name is passed,
+ * an exact-name match on Deezer. All-null when none has anything. Never throws.
  */
-export const getArtistImages = async (mbid: string): Promise<ArtistImages> => {
+export const getArtistImages = async (
+  mbid: string,
+  name?: string | null
+): Promise<ArtistImages> => {
   if (!mbid) {
     return NONE;
   }
@@ -132,8 +137,10 @@ export const getArtistImages = async (mbid: string): Promise<ArtistImages> => {
     return images;
   }
   const fallback = await getLidarrArtistImages(mbid);
+  const thumb =
+    images.thumb ?? fallback.thumb ?? (await getDeezerArtistImage(name));
   return {
-    thumb: images.thumb ?? fallback.thumb,
+    thumb,
     background: images.background ?? fallback.background,
     logo: images.logo ?? fallback.logo,
   };

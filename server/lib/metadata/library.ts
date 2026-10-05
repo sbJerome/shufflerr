@@ -195,7 +195,9 @@ export const mergeArtistLibrary = async (
     await Promise.all(
       artists.map(async (artist) => {
         if (!artist.imageUrl) {
-          artist.imageUrl = (await getArtistImages(artist.mbid)).thumb;
+          artist.imageUrl = (
+            await getArtistImages(artist.mbid, artist.name)
+          ).thumb;
         }
       })
     );

@@ -3,6 +3,17 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.4 — 2026-10-05
+
+- **New album page.** The cover sits over a blurred version of itself, and the tracklist is a
+  stack of bars you can play or request from. The old page is at `/album/<id>/classic`.
+- **New artist page.** A full-width artist photo with the name across it and their top albums
+  right underneath. The old page is at `/artist/<id>/classic`.
+- **Genres are clickable.** Click a genre on an album or artist to browse other artists and
+  albums in that genre.
+- **More artist photos.** Artists that fanart.tv and Lidarr have no photo for now get one from
+  Deezer.
+
 ## v0.1.3 — 2026-10-05
 
 - **New Discover page.** A big featured-release hero, album carousels you can page through, and

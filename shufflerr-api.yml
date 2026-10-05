@@ -4,7 +4,7 @@
 openapi: 3.0.3
 info:
   title: Shufflerr API
-  version: 0.1.0
+  version: 0.1.4
   description: |-
     The Shufflerr REST API. Everything the web app does goes through these routes.
 
@@ -1923,6 +1923,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DiscoverAlbumsResponse'
+        '401':
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Signed in, but not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Error with a message that says what to fix
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /genre/{name}:
+    get:
+      tags:
+        - Other
+      summary: tagged artists on the first page
+      description: |-
+        GET /genre/:name · signed in
+          in:  query `page` (1), `pageSize` (24, max 50)
+          out: GenreResponse — albums and EPs tagged with the genre (paged), plus
+               tagged artists on the first page
+
+        Requires a signed-in user.
+      operationId: getGenreByName
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenreResponse'
         '401':
           description: Not signed in
           content:
@@ -11881,6 +11935,46 @@ components:
         - importEnabled
         - concertsEnabled
         - initialized
+    GenreResponse:
+      type: object
+      properties:
+        genre:
+          type: string
+        page:
+          type: number
+        pageSize:
+          type: number
+        albums:
+          type: object
+          properties:
+            total:
+              type: number
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/AlbumResult'
+          required:
+            - total
+            - results
+        artists:
+          type: object
+          properties:
+            total:
+              type: number
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtistResult'
+          required:
+            - total
+            - results
+          description: First page only.
+      required:
+        - genre
+        - page
+        - pageSize
+        - albums
+        - artists
     ImportableUser:
       type: object
       properties:
@@ -12701,7 +12795,7 @@ components:
         artistMbid:
           type: string
           nullable: true
-          description: "For release groups: the primary artist's MBID."
+          description: 'For release groups: the primary artist''s MBID.'
         title:
           type: string
         artistName:
@@ -12950,7 +13044,7 @@ components:
             - artist
             - release-group
             - recording
-          description: "'release-group' for tracks/album, 'artist' for discography."
+          description: '''release-group'' for tracks/album, ''artist'' for discography.'
         scope:
           type: string
           enum:
@@ -13015,7 +13109,7 @@ components:
               artistMbid:
                 type: string
                 nullable: true
-                description: "For release groups: the primary artist's MBID."
+                description: 'For release groups: the primary artist''s MBID.'
               title:
                 type: string
               artistName:

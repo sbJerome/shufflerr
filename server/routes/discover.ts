@@ -434,7 +434,7 @@ const popularLibraryArtists = async (take: number): Promise<ArtistResult[]> => {
     ranked.map(async (a) => ({
       mbid: a.mbid,
       name: a.name,
-      imageUrl: (await getArtistImages(a.mbid)).thumb,
+      imageUrl: (await getArtistImages(a.mbid, a.name)).thumb,
       status: MediaStatus.AVAILABLE,
       albumsInLibrary: a.albums,
     }))
