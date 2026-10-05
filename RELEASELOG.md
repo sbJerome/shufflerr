@@ -3,6 +3,10 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## Unreleased
+
+- The project now lives on GitHub, with the app icon as its logo.
+
 ## v0.1.1 — 2026-10-05
 
 - **Artist photos show up without a fanart.tv key.** Shufflerr now gets them through your

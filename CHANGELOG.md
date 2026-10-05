@@ -6,6 +6,11 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- README header uses the app favicon as the project logo; added `public/social-preview.png`
+  (1280×640) for the repository's social preview.
+
 ## [0.1.1] - 2026-10-05
 
 ### Fixed

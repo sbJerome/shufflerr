@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./public/logo_full.svg" alt="Shufflerr" width="360" style="margin: 20px 0;">
+<img src="./public/favicon.svg" alt="Shufflerr" width="128" height="128">
 </p>
 
 # Shufflerr
