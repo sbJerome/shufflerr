@@ -1,10 +1,14 @@
 # NOTICE
 
+Shufflerr is licensed under the GNU Affero General Public License v3.0 (see `LICENSE`).
+Copyright (c) 2026 Jerome S B.
+
 Shufflerr includes and is derived from software developed by the Seerr project.
 
 **Seerr** — https://github.com/seerr-team/seerr
 Copyright (c) 2020 sct
-Licensed under the MIT License. A full copy is in `LICENSES/seerr-MIT.txt` and must be
+The Seerr-derived portions are used under the MIT License, which permits redistribution under
+Shufflerr's AGPL-3.0 terms provided this notice is kept. A full copy is in `LICENSES/seerr-MIT.txt` and must be
 distributed with Shufflerr (source, Docker images and release archives).
 
 Seerr is the merged successor of **Overseerr** and **Jellyseerr**. Shufflerr's platform layer

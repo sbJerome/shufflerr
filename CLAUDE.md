@@ -72,8 +72,9 @@ limits and terms to respect. Rules that always apply:
 
 1. Keep `LICENSES/seerr-MIT.txt` (verbatim Seerr license) and `NOTICE.md` in the repo and in
    every distributed artifact (Docker image: copy to `/app/LICENSES` and `/app/NOTICE.md`).
-2. Root `LICENSE`: MIT, with both lines:
-   `Copyright (c) 2020 sct` and `Copyright (c) <year> <Shufflerr owner>`.
+2. Root `LICENSE`: GNU AGPL-3.0 (owner decision, 2026-10-05; it replaced the dual-copyright MIT
+   file). Seerr's MIT terms and `Copyright (c) 2020 sct` stay in `LICENSES/seerr-MIT.txt` and
+   `NOTICE.md`.
 3. Every file copied or adapted from Seerr starts with:
    ```ts
    // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.

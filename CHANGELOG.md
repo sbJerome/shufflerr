@@ -8,6 +8,9 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ### Changed
 
+- **License:** Shufflerr is now licensed under AGPL-3.0 (was MIT). Seerr-derived code keeps its
+  MIT notice in `NOTICE.md` and `LICENSES/seerr-MIT.txt`.
+- `k8s/shufflerr.yaml` is now a generic example manifest.
 - README header uses the app favicon as the project logo; added `public/social-preview.png`
   (1280×640) for the repository's social preview.
 

@@ -138,4 +138,7 @@ YouTube.
 
 ## License
 
-[MIT](LICENSE)
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). Copyright (c) 2026 Jerome S B.
+
+The parts derived from Seerr remain available under the MIT License, Copyright (c) 2020 sct;
+see [NOTICE.md](NOTICE.md) and [LICENSES/seerr-MIT.txt](LICENSES/seerr-MIT.txt).
