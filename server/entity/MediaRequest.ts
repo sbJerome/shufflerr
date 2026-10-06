@@ -12,6 +12,7 @@ import type {
 } from '@server/interfaces/api/requestInterfaces';
 import { ensureMedia, getDiscographyReleaseGroups } from '@server/lib/metadata';
 import { Permission } from '@server/lib/permissions';
+import { emitMediaUpdate } from '@server/lib/realtime';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
@@ -548,6 +549,12 @@ export class MediaRequest {
     if (media.status !== next) {
       media.status = next;
       await getRepository(Media).update(media.id, { status: next });
+      emitMediaUpdate({
+        mediaId: media.id,
+        mbid: media.mbid,
+        mediaType: media.mediaType,
+        status: next,
+      });
     }
   }
 

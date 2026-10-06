@@ -10,6 +10,7 @@ import Media from '@server/entity/Media';
 import { MediaRequest } from '@server/entity/MediaRequest';
 import Track from '@server/entity/Track';
 import { ensureMedia, getDiscographyReleaseGroups } from '@server/lib/metadata';
+import { emitMediaUpdate } from '@server/lib/realtime';
 import logger from '@server/logger';
 import { In } from 'typeorm';
 import type { LibrarySource } from './types';
@@ -243,6 +244,14 @@ export const recomputeArtist = async (
   }
   if (Object.keys(patch).length > 0) {
     await mediaRepository.update(artist.id, patch);
+    if (patch.status !== undefined) {
+      emitMediaUpdate({
+        mediaId: artist.id,
+        mbid: artist.mbid,
+        mediaType: artist.mediaType,
+        status: patch.status,
+      });
+    }
   }
 };
 
@@ -295,6 +304,14 @@ export const recomputeReleaseGroup = async (
   if (Object.keys(patch).length > 0) {
     await mediaRepository.update(mediaId, patch);
     Object.assign(media, patch);
+    if (patch.status !== undefined) {
+      emitMediaUpdate({
+        mediaId: media.id,
+        mbid: media.mbid,
+        mediaType: media.mediaType,
+        status: patch.status,
+      });
+    }
   }
 
   if (!options.skipArtist) {

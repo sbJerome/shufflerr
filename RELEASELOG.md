@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.20 — 2026-10-06
+
+- **Live updates.** Requests, download progress and "now available" update instantly in the
+  browser instead of waiting for a refresh.
+
 ## v0.1.19 — 2026-10-06
 
 - Dropped the "open in Lidarr" link from album and artist pages — it pointed at an internal
