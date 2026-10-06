@@ -20,6 +20,8 @@ import TrackRequest from '@server/entity/TrackRequest';
 import { User } from '@server/entity/User';
 import { UserPushSubscription } from '@server/entity/UserPushSubscription';
 import { UserSettings } from '@server/entity/UserSettings';
+import UserPlaylist from '@server/entity/UserPlaylist';
+import UserPlaylistItem from '@server/entity/UserPlaylistItem';
 import { Watchlist } from '@server/entity/Watchlist';
 import { IssueCommentSubscriber } from '@server/subscriber/IssueCommentSubscriber';
 import { IssueSubscriber } from '@server/subscriber/IssueSubscriber';
@@ -55,6 +57,8 @@ const entities = [
   User,
   UserPushSubscription,
   UserSettings,
+  UserPlaylist,
+  UserPlaylistItem,
   Watchlist,
 ];
 

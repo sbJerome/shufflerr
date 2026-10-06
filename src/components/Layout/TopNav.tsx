@@ -18,6 +18,7 @@ const messages = defineMessages('components.Layout.TopNav', {
   search: 'Search',
   artists: 'Artists',
   albums: 'Albums',
+  playlists: 'Playlists',
   requests: 'Requests',
   requestspending: 'Requests, {count} waiting',
   import: 'Import',
@@ -71,6 +72,13 @@ const ICONS = {
     </>
   ),
   requests: icon(<path d="M4 6h16M4 12h16M4 18h10" />),
+  playlists: icon(
+    <>
+      <path d="M4 7h10M4 12h10M4 17h6" />
+      <circle cx="17" cy="16" r="3" />
+      <path d="M20 16V7l-5 1.5" />
+    </>
+  ),
   import: icon(
     <>
       <path d="M12 3v12" />
@@ -188,6 +196,12 @@ const TopNav = ({ pendingCount }: TopNavProps) => {
       href: '/albums',
       label: intl.formatMessage(messages.albums),
       active: /^\/albums?(\/|$)/,
+    },
+    {
+      key: 'playlists',
+      href: '/playlists',
+      label: intl.formatMessage(messages.playlists),
+      active: /^\/playlists?(\/|$)/,
     },
     {
       key: 'requests',
