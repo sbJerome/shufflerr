@@ -116,10 +116,17 @@ blocklistRoutes.get(
       if (e instanceof EntityNotFoundError) {
         return next({
           status: 404,
-          message: e.message,
+          message: 'That blocklist entry no longer exists.',
         });
       }
-      return next({ status: 500, message: e.message });
+      logger.error('Blocklist route error', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Something went wrong. Please try again.',
+      });
     }
   }
 );
@@ -212,10 +219,17 @@ blocklistRoutes.delete(
       if (e instanceof EntityNotFoundError) {
         return next({
           status: 404,
-          message: e.message,
+          message: 'That blocklist entry no longer exists.',
         });
       }
-      return next({ status: 500, message: e.message });
+      logger.error('Blocklist route error', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Something went wrong. Please try again.',
+      });
     }
   }
 );

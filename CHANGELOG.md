@@ -6,6 +6,20 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-10-06
+
+### Security
+
+- **Hardening (low).** A batch of low-severity items from the security review:
+  - the `X-API-Key` header is compared in constant time (`safeEqual`), matching the webhook path;
+  - local sign-in returns the same message for an unknown email and a wrong password, so valid
+    accounts cannot be enumerated by password guessing;
+  - `GET /status/appdata` (config path and permissions) now requires a signed-in session;
+  - the Pushover sounds lookup requires MANAGE_SETTINGS (it uses the stored admin token);
+  - `GET /issue` clamps `take`/`skip`;
+  - the media and blocklist routes no longer return raw exception text to the client (the detail
+    is logged server-side).
+
 ## [0.1.16] - 2026-10-06
 
 ### Security
@@ -276,7 +290,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.16...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.17...HEAD
+[0.1.17]: https://github.com/sbJerome/shufflerr/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/sbJerome/shufflerr/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/sbJerome/shufflerr/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/sbJerome/shufflerr/compare/v0.1.13...v0.1.14

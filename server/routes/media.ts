@@ -88,7 +88,14 @@ router.get<never, MediaResultsResponse>('/', async (req, res, next) => {
       ),
     });
   } catch (e) {
-    return next({ status: 500, message: e.message });
+    logger.error('Media route error', {
+      label: 'API',
+      errorMessage: e.message,
+    });
+    return next({
+      status: 500,
+      message: 'Something went wrong. Please try again.',
+    });
   }
 });
 
@@ -119,7 +126,14 @@ router.get<{ id: string }>(
       }
       return res.status(200).json(media);
     } catch (e) {
-      return next({ status: 500, message: e.message });
+      logger.error('Media route error', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Something went wrong. Please try again.',
+      });
     }
   }
 );
@@ -174,7 +188,14 @@ router.post<{ id: string; status: string }, Media>(
       });
       return res.status(200).json(media);
     } catch (e) {
-      return next({ status: 500, message: e.message });
+      logger.error('Media route error', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Something went wrong. Please try again.',
+      });
     }
   }
 );
@@ -203,7 +224,14 @@ router.delete<{ id: string }>(
         label: 'Media',
         errorMessage: e.message,
       });
-      return next({ status: 500, message: e.message });
+      logger.error('Media route error', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Something went wrong. Please try again.',
+      });
     }
   }
 );

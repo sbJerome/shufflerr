@@ -60,7 +60,7 @@ router.get<unknown, StatusResponse>('/status', async (_req, res) => {
   });
 });
 
-router.get('/status/appdata', (_req, res) => {
+router.get('/status/appdata', isAuthenticated(), (_req, res) => {
   return res.status(200).json({
     appData: appDataStatus(),
     appDataPath: appDataPath(),
@@ -89,7 +89,7 @@ router.get('/settings/sliders', isAuthenticated(), async (_req, res) => {
 });
 router.get(
   '/settings/notifications/pushover/sounds',
-  isAuthenticated(),
+  isAuthenticated(Permission.MANAGE_SETTINGS),
   async (req, res, next) => {
     const pushoverApi = new PushoverAPI();
 

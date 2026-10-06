@@ -57,7 +57,7 @@ export const AUTH_MESSAGES = {
   localNoPassword:
     'This account doesn\'t have a password yet. Use "Forgot password?" to set one.',
   localWrongPassword:
-    'That password isn\'t right. Try again, or use "Forgot password?".',
+    'That email or password isn\'t right. Try again, or use "Forgot password?".',
   localDisabled:
     'Signing in with a Shufflerr account is turned off. Use Plex or Jellyfin.',
   plexDisabled: 'Signing in with Plex is turned off.',
@@ -1027,7 +1027,7 @@ authRoutes.post('/local', authRateLimit, async (req, res, next) => {
         ip: req.ip,
         email: body.email,
       });
-      return next({ status: 403, message: AUTH_MESSAGES.localUnknown });
+      return next({ status: 403, message: AUTH_MESSAGES.localWrongPassword });
     }
 
     if (!user.password) {
