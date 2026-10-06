@@ -1400,3 +1400,17 @@ Notes written after this merge (for example the UI integration pass) are in `cha
   because Deezer has no MusicBrainz ids).
 - **v0.1.5, top navigation:** the mockup's left icon rail is replaced by a top bar (owner
   request). Deviation from the mockup; the classic pages are unaffected.
+- **Discover, "New in your library" per-album discography fills:** `GET /discover/recently-added`
+  now orders by `COALESCE(mediaAddedAt, updatedAt, createdAt)`. Each release group is already
+  timed and statused on its own (see `recomputeReleaseGroup`), so a discography (artist-scope)
+  request that is only partly filled surfaces its completed albums here as they land; the
+  COALESCE keeps an album that reached a library status without an explicit `mediaAddedAt` from
+  sorting last (SQLite orders NULLs last in DESC) and dropping off the window. No schema change.
+- **Discover, "For you" (`GET /discover/for-you`):** album recommendations in the genres the
+  library already leans on. Genres are aggregated from the top library artists' MusicBrainz
+  genres (tags as a fallback), weighted by how many albums each artist holds; the top three
+  genres drive `searchReleaseGroupsRaw(tag:"…")`, reusing the genre-page MusicBrainz path (no
+  new integration or key). Results exclude anything already in the library. Matching is cached
+  for 6 h and built in the background with an 8 s wait, like the iTunes trending row. New
+  `DiscoverForYouResponse` (= albums list + `genres`). Front-end row added to the Discover page
+  (carousel of album cards, request button when requestable) with building/empty states.

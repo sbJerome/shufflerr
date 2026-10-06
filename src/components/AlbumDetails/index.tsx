@@ -1,5 +1,6 @@
 import TrackBars from '@app/components/AlbumDetails/TrackBars';
 import { linkLabel } from '@app/components/AlbumDetails/links';
+import AddToPlaylist from '@app/components/AddToPlaylist';
 import Button from '@app/components/Common/Button';
 import EmptyState from '@app/components/Common/EmptyState';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
@@ -313,6 +314,14 @@ const AlbumDetails = () => {
                       have > 0 ? messages.requestmissing : messages.requestalbum
                     )}
                   </RequestButton>
+                )}
+                {mbid && (
+                  <AddToPlaylist
+                    mbid={mbid}
+                    mediaType="release-group"
+                    title={album.title}
+                    artistName={album.artistName}
+                  />
                 )}
               </div>
               {!!album.genres?.length && (

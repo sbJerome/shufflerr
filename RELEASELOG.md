@@ -3,6 +3,16 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.25 — 2026-10-06
+
+- **Playlists.** Make your own playlists in the app — create them, add albums or tracks from
+  their pages, rename, reorder and remove. They live in Shufflerr only.
+- **"For you" on Discover.** A new row recommends music in the genres you already collect, so
+  you can find more of what you like.
+- **"New in your library" fix.** Albums that become available as part of a bigger (e.g. full
+  discography) request now show up in "new in your library" as each one lands, instead of
+  sometimes being missed.
+
 ## v0.1.24 — 2026-10-06
 
 - **Audio verification: stop the retry storm.** When an item's every available copy fails
