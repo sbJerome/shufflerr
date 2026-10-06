@@ -10,6 +10,14 @@ const router = Router();
 // Keep intermediaries (Cloudflare tunnel, proxies) from closing an idle stream.
 const HEARTBEAT_MS = 25000;
 
+// Bound the number of open streams so a client cannot exhaust sockets/memory by
+// opening connections without limit. A browser needs one; a few covers extra
+// tabs and a reconnect overlapping an old socket that has not closed yet.
+const MAX_STREAMS_PER_USER = 8;
+const MAX_STREAMS_TOTAL = 500;
+const streamsPerUser = new Map<number, number>();
+let totalStreams = 0;
+
 router.get('/', (req, res) => {
   const viewer = req.user;
   if (!viewer) {
@@ -19,6 +27,18 @@ router.get('/', (req, res) => {
     });
     return;
   }
+
+  const forUser = streamsPerUser.get(viewer.id) ?? 0;
+  if (totalStreams >= MAX_STREAMS_TOTAL || forUser >= MAX_STREAMS_PER_USER) {
+    res.status(503).json({
+      status: 503,
+      message: 'Too many live connections open. Close a tab and try again.',
+    });
+    return;
+  }
+
+  totalStreams += 1;
+  streamsPerUser.set(viewer.id, forUser + 1);
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -59,6 +79,13 @@ router.get('/', (req, res) => {
   req.on('close', () => {
     clearInterval(heartbeat);
     unsubscribe();
+    totalStreams = Math.max(0, totalStreams - 1);
+    const remaining = (streamsPerUser.get(viewer.id) ?? 1) - 1;
+    if (remaining > 0) {
+      streamsPerUser.set(viewer.id, remaining);
+    } else {
+      streamsPerUser.delete(viewer.id);
+    }
     if (!res.writableEnded) {
       res.end();
     }
