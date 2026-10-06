@@ -45,10 +45,25 @@ export const proxied = (src?: string | null): string | undefined => {
   return undefined;
 };
 
-/** User avatar through Seerr's avatar proxy (handles Plex, Jellyfin, Gravatar). */
+/** Hosts whose avatar URLs the browser loads directly, as Seerr does. */
+const AVATAR_HOSTS = [
+  /^https:\/\/plex\.tv\/users\/[a-z0-9]+\/avatar/i,
+  /^https:\/\/(www\.|secure\.)?gravatar\.com\/avatar\//i,
+];
+
+/**
+ * User avatar: Jellyfin avatars come through `/avatarproxy`, Plex and Gravatar
+ * ones are loaded from their own hosts (the same way Seerr shows them).
+ */
 export const avatarUrl = (avatar?: string | null): string | undefined => {
   if (!avatar) {
     return undefined;
   }
-  return avatar.startsWith('/') ? avatar : proxied(avatar);
+  if (avatar.startsWith('/')) {
+    return avatar;
+  }
+  if (AVATAR_HOSTS.some((pattern) => pattern.test(avatar))) {
+    return avatar;
+  }
+  return proxied(avatar);
 };

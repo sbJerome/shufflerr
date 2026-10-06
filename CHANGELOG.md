@@ -6,6 +6,14 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-10-06
+
+### Fixed
+
+- Plex (and Gravatar) avatars showed as initials: the client only allowed proxied image hosts,
+  so the stored plex.tv avatar URL was dropped. `avatarUrl` now loads plex.tv and gravatar.com
+  avatars directly, the way Seerr does; Jellyfin avatars still go through `/avatarproxy`.
+
 ## [0.1.11] - 2026-10-06
 
 ### Changed
@@ -224,7 +232,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/sbJerome/shufflerr/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/sbJerome/shufflerr/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/sbJerome/shufflerr/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/sbJerome/shufflerr/compare/v0.1.8...v0.1.9

@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.12 — 2026-10-06
+
+- **Plex avatars show up.** People who sign in with Plex now see their Plex profile picture
+  in the account menu, user list and profile, as in Seerr.
+
 ## v0.1.11 — 2026-10-06
 
 - **"Downloading" means downloading.** An approved request now shows as "Requested" until
