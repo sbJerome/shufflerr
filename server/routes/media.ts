@@ -93,30 +93,36 @@ router.get<never, MediaResultsResponse>('/', async (req, res, next) => {
 });
 
 // GET /media/:id · signed in → Media (with requests, tracks)
-router.get<{ id: string }>('/:id', async (req, res, next) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id)) {
-    return next({
-      status: 404,
-      message: 'That item is not in the library index.',
-    });
-  }
-  try {
-    const media = await getRepository(Media).findOne({
-      where: { id },
-      relations: { requests: true, tracks: true },
-    });
-    if (!media) {
+// The raw Media row carries library-location detail (local paths, media-server
+// item ids). It is only used by the manage tools, so it needs MANAGE_REQUESTS.
+router.get<{ id: string }>(
+  '/:id',
+  isAuthenticated(Permission.MANAGE_REQUESTS),
+  async (req, res, next) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
       return next({
         status: 404,
         message: 'That item is not in the library index.',
       });
     }
-    return res.status(200).json(media);
-  } catch (e) {
-    return next({ status: 500, message: e.message });
+    try {
+      const media = await getRepository(Media).findOne({
+        where: { id },
+        relations: { requests: true, tracks: true },
+      });
+      if (!media) {
+        return next({
+          status: 404,
+          message: 'That item is not in the library index.',
+        });
+      }
+      return res.status(200).json(media);
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
   }
-});
+);
 
 const STATUS_BY_NAME: Record<string, MediaStatus> = {
   available: MediaStatus.AVAILABLE,
