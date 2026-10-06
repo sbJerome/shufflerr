@@ -6,6 +6,20 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.23] - 2026-10-06
+
+### Fixed
+
+- **Verifier import path (sidecar 0.1.1).** When driving the downloader's manual import, the
+  sidecar now ignores the downloader's *advisory* manual-import rejections (e.g. a partial-album
+  "missing tracks" note) and imports a verified release as long as a valid artist/album/
+  release/track mapping is present. Previously any advisory rejection caused the import to be
+  skipped ("no importable files"), so verified downloads the downloader declined to auto-import
+  were never filed — defeating the point of the sidecar. A download with no usable mapping is
+  still skipped. Note: the sidecar depends on the downloader's queue to see completed downloads,
+  so the downloader's Completed Download Handling must remain enabled; the sidecar rescues the
+  items the downloader fails to import rather than replacing its handling.
+
 ## [0.1.22] - 2026-10-06
 
 ### Added

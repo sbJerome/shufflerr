@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.23 — 2026-10-06
+
+- **Audio verification fix.** The verifier now actually files the downloads it approves instead
+  of skipping them when the downloader attaches a cautionary note (like a partial-album
+  warning). Bad downloads are still rejected; genuine ones are imported with full tagging and
+  artwork.
+
 ## v0.1.22 — 2026-10-06
 
 - **Audio verification.** A new companion service double-checks every finished download — right
