@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-10-06
+
+### Security
+
+- **SSE connection cap (low).** The real-time stream (`/api/v1/realtime`) accepted unbounded
+  connections per account, a potential resource-exhaustion vector. It now caps concurrent
+  streams at 8 per user and 500 total (503 beyond), with the count freed when a connection
+  closes.
+
 ## [0.1.20] - 2026-10-06
 
 ### Added
@@ -319,7 +328,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.20...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.21...HEAD
+[0.1.21]: https://github.com/sbJerome/shufflerr/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/sbJerome/shufflerr/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/sbJerome/shufflerr/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/sbJerome/shufflerr/compare/v0.1.17...v0.1.18
