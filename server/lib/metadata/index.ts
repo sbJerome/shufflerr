@@ -123,10 +123,18 @@ const normalizeTitle = (title: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+/** Video mediums (bonus DVDs, Blu-rays) carry no music files; Lidarr skips them too. */
+const VIDEO_FORMAT = /dvd|blu-?ray|vhs|hd dvd|umd|laserdisc|betamax|video/i;
+
+export const isVideoMedium = (medium: { format?: string | null }): boolean =>
+  !!medium.format &&
+  VIDEO_FORMAT.test(medium.format) &&
+  !/dvd-?audio|dualdisc/i.test(medium.format);
+
 /** Flatten a MusicBrainz release into Shufflerr's tracklist ("01", or "1-07" for multi-disc). */
 export const flattenRelease = (release: MbRelease): CanonicalTrack[] => {
   const media = (release.media ?? []).filter(
-    (m) => (m.tracks ?? []).length > 0
+    (m) => (m.tracks ?? []).length > 0 && !isVideoMedium(m)
   );
   const multiDisc = media.length > 1;
   const out: CanonicalTrack[] = [];
