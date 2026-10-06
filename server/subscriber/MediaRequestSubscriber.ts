@@ -40,10 +40,12 @@ export class LidarrSendError extends Error {}
 
 /**
  * How long to wait for Lidarr to load a freshly added artist's albums before
- * falling back to adding the album directly. Tests set the delay to 0.
+ * falling back to adding the album directly. Lidarr creates the album rows
+ * first and pulls each album's tracks afterwards (~30s for a large
+ * discography), so the wait covers both. Tests set the delay to 0.
  */
 export const lidarrTiming = {
-  albumPollAttempts: 10,
+  albumPollAttempts: 20,
   albumPollDelayMs: 3000,
 };
 
@@ -223,9 +225,12 @@ const waitForAlbum = async (
     ? Math.max(1, lidarrTiming.albumPollAttempts)
     : 1;
 
+  let album: LidarrAlbum | undefined;
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const album = await api.getAlbumByMbid(releaseGroupMbid);
-    if (album) {
+    album = await api.getAlbumByMbid(releaseGroupMbid);
+    // Searching before Lidarr has the album's tracks is fatal: every result
+    // is rejected with "Album duration is 0" and Lidarr never retries.
+    if (album && (!artistJustAdded || hasTracks(album))) {
       return album;
     }
     if (attempt < attempts - 1) {
@@ -233,8 +238,19 @@ const waitForAlbum = async (
     }
   }
 
-  return undefined;
+  if (album) {
+    logger.warn('Lidarr has not loaded the album tracks yet; searching anyway', {
+      label: 'Lidarr',
+      albumId: album.id,
+      mbid: releaseGroupMbid,
+    });
+  }
+
+  return album;
 };
+
+const hasTracks = (album: LidarrAlbum): boolean =>
+  (album.statistics?.totalTrackCount ?? 0) > 0;
 
 const markFailed = async (requestId: number, reason: string): Promise<void> => {
   const requestRepository = getRepository(MediaRequest);

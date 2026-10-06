@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.7 — 2026-10-06
+
+- **Requests for new artists now actually search.** When you requested an album by an artist
+  Shufflerr had to add to Lidarr first, the search ran before Lidarr had finished loading the
+  artist and found nothing. Shufflerr now waits for Lidarr to finish before searching.
+
 ## v0.1.6 — 2026-10-05
 
 - **Centred pages.** On wide screens every page now sits in the middle of the window instead of
