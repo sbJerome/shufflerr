@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.15 — 2026-10-06
+
+- **Security fix (medium):** the session is now reissued each time you sign in, closing a
+  session-fixation weakness.
+
 ## v0.1.14 — 2026-10-06
 
 - **Fix:** artist photos that come from an internal source display again for signed-in users

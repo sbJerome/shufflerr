@@ -6,6 +6,16 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-10-06
+
+### Security
+
+- **Session fixation (medium).** The session id was not regenerated on sign-in, so an id fixed
+  before authentication (feasible over plain HTTP on a shared network) could be reused to ride
+  the victim's session afterwards. All sign-in paths (Plex, Jellyfin/Emby incl. Quick Connect,
+  local, first-run setup) now regenerate the session id before establishing the authenticated
+  session.
+
 ## [0.1.14] - 2026-10-06
 
 ### Fixed
@@ -253,7 +263,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.14...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.15...HEAD
+[0.1.15]: https://github.com/sbJerome/shufflerr/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/sbJerome/shufflerr/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/sbJerome/shufflerr/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/sbJerome/shufflerr/compare/v0.1.11...v0.1.12

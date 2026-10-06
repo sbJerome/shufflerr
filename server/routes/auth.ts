@@ -17,6 +17,7 @@ import { ApiError } from '@server/types/error';
 import { getAppVersion } from '@server/utils/appVersion';
 import { getHostname } from '@server/utils/getHostname';
 import axios from 'axios';
+import type { Request } from 'express';
 import { Router } from 'express';
 import gravatarUrl from 'gravatar-url';
 import net from 'net';
@@ -24,6 +25,25 @@ import validator from 'validator';
 import { z } from 'zod';
 
 const authRoutes = Router();
+
+/**
+ * Start a fresh authenticated session. The session id is regenerated on every
+ * sign-in, so an id that was fixed/planted before authentication cannot be
+ * reused to ride the victim's session afterwards (session fixation).
+ */
+const startSession = (req: Request, userId: number): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (!req.session) {
+      return resolve();
+    }
+    req.session.regenerate((regenErr) => {
+      if (regenErr) {
+        return reject(regenErr);
+      }
+      req.session.userId = userId;
+      req.session.save((saveErr) => (saveErr ? reject(saveErr) : resolve()));
+    });
+  });
 
 // Exact copy from docs/AUTH.md — the login page shows these as they are.
 export const AUTH_MESSAGES = {
@@ -278,10 +298,7 @@ authRoutes.post('/plex', authRateLimit, async (req, res, next) => {
       }
     }
 
-    // Set logged in session
-    if (req.session) {
-      req.session.userId = user.id;
-    }
+    await startSession(req, user.id);
 
     return res.status(200).json(user?.filter() ?? {});
   } catch (e) {
@@ -585,9 +602,8 @@ authRoutes.post('/jellyfin', authRateLimit, async (req, res, next) => {
       }
     }
 
-    // Set logged in session
-    if (req.session) {
-      req.session.userId = user?.id;
+    if (user?.id) {
+      await startSession(req, user.id);
     }
 
     return res.status(200).json(user?.filter() ?? {});
@@ -897,10 +913,7 @@ authRoutes.post(
         }
       }
 
-      // Set session
-      if (req.session) {
-        req.session.userId = user.id;
-      }
+      await startSession(req, user.id);
 
       return res.status(200).json(user?.filter() ?? {});
     } catch (e) {
@@ -970,9 +983,7 @@ authRoutes.post(
         userId: user.id,
       });
 
-      if (req.session) {
-        req.session.userId = user.id;
-      }
+      await startSession(req, user.id);
 
       return res.status(201).json(user.filter());
     } catch (e) {
@@ -1043,10 +1054,7 @@ authRoutes.post('/local', authRateLimit, async (req, res, next) => {
       return next({ status: 403, message: AUTH_MESSAGES.localWrongPassword });
     }
 
-    // Set logged in session
-    if (req.session) {
-      req.session.userId = user.id;
-    }
+    await startSession(req, user.id);
 
     // Reload so the response carries the full (filtered) user, not just the
     // columns needed to check the password.
