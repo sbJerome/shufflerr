@@ -6,6 +6,17 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-10-06
+
+### Fixed
+
+- Album requests for a newly added artist no longer fire the Lidarr search before Lidarr has
+  loaded the album's tracks. Lidarr creates the album rows first and pulls tracks afterwards;
+  a search in that window had every result rejected with "Album duration is 0" and was never
+  retried, so the request sat at "Approved, downloading" forever. `waitForAlbum` now waits for
+  the album's track count (up to 60s) before searching
+  (`server/subscriber/MediaRequestSubscriber.ts`).
+
 ## [0.1.6] - 2026-10-05
 
 ### Changed
