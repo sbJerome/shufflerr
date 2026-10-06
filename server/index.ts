@@ -198,24 +198,22 @@ app
 
     // Set up sessions
     const sessionRespository = getRepository(Session);
-    server.use(
-      '/api',
-      session({
-        secret: settings.sessionSecret,
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          maxAge: 1000 * 60 * 60 * 24 * 30,
-          httpOnly: true,
-          sameSite: settings.network.csrfProtection ? 'strict' : 'lax',
-          secure: 'auto',
-        },
-        store: new TypeormStore({
-          cleanupLimit: 2,
-          ttl: 60 * 60 * 24 * 30,
-        }).connect(sessionRespository) as Store,
-      })
-    );
+    const sessionMiddleware = session({
+      secret: settings.sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 30,
+        httpOnly: true,
+        sameSite: settings.network.csrfProtection ? 'strict' : 'lax',
+        secure: 'auto',
+      },
+      store: new TypeormStore({
+        cleanupLimit: 2,
+        ttl: 60 * 60 * 24 * 30,
+      }).connect(sessionRespository) as Store,
+    });
+    server.use('/api', sessionMiddleware);
     // Client APIs for music apps (OpenSubsonic, Jellyfin-compatible). Mounted
     // before the session/OpenAPI middleware: they authenticate with app
     // passwords and have their own response formats.
@@ -253,8 +251,11 @@ app
 
     server.use('/api/v1', routes);
 
-    // Do not set cookies so CDNs can cache them
-    server.use('/imageproxy', clearCookies, imageproxy);
+    // The session is read here so the proxy can tell a signed-in viewer from an
+    // anonymous one (internal/credentialed image sources are refused to the
+    // latter); clearCookies then stops any cookie being set on the cacheable
+    // image response.
+    server.use('/imageproxy', sessionMiddleware, clearCookies, imageproxy);
     server.use('/avatarproxy', clearCookies, avatarproxy);
 
     server.get('*path', (req, res) => handle(req, res));
