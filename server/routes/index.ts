@@ -159,7 +159,22 @@ router.use('/album', isAuthenticated(), albumRoutes);
 router.use('/recording', isAuthenticated(), recordingRoutes);
 router.use('/request', isAuthenticated(), requestRoutes);
 router.use('/media', isAuthenticated(), mediaRoutes);
-router.use('/service', isAuthenticated(), serviceRoutes);
+// The service route exposes a Lidarr server's root-folder paths, disk space and
+// profiles — infrastructure detail. Only people who can pick those in a request
+// (REQUEST_ADVANCED / MANAGE_REQUESTS) or configure servers (MANAGE_SETTINGS)
+// may read it; ADMIN passes too.
+router.use(
+  '/service',
+  isAuthenticated(
+    [
+      Permission.MANAGE_REQUESTS,
+      Permission.REQUEST_ADVANCED,
+      Permission.MANAGE_SETTINGS,
+    ],
+    { type: 'or' }
+  ),
+  serviceRoutes
+);
 router.use('/stream', isAuthenticated(), streamRoutes);
 router.use('/import', isAuthenticated(), importRoutes);
 router.use('/scrobble', isAuthenticated(), scrobbleRoutes);

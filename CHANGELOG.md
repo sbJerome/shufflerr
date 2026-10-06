@@ -6,6 +6,19 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-10-06
+
+### Security
+
+- **Infrastructure detail exposed to any signed-in user (medium).** `GET /service/lidarr[/:id]`
+  returned a Lidarr server's root-folder filesystem paths, free/total disk space, server names
+  and profiles to any authenticated account. It now requires the permission its only callers
+  already have — REQUEST_ADVANCED (advanced request modal), MANAGE_REQUESTS, or MANAGE_SETTINGS
+  (admins pass).
+- **`GET /media/:id`** returned the raw library row (local file path, media-server item ids) to
+  any authenticated user; it is used only by the manage tools and now requires MANAGE_REQUESTS,
+  matching the other media routes.
+
 ## [0.1.15] - 2026-10-06
 
 ### Security
@@ -263,7 +276,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.15...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.16...HEAD
+[0.1.16]: https://github.com/sbJerome/shufflerr/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/sbJerome/shufflerr/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/sbJerome/shufflerr/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/sbJerome/shufflerr/compare/v0.1.12...v0.1.13
