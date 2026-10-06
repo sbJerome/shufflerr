@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.24 — 2026-10-06
+
+- **Audio verification: stop the retry storm.** When an item's every available copy fails
+  verification, the verifier no longer keeps asking the downloader to fetch yet another copy —
+  it tries a few, then gives up gracefully instead of looping forever. Good copies are still
+  sought as before.
+
 ## v0.1.23 — 2026-10-06
 
 - **Audio verification fix.** The verifier now actually files the downloads it approves instead

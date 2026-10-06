@@ -34,6 +34,13 @@ const AUDIO_EXTENSIONS: &[&str] = &[
 const COMMAND_POLL_INTERVAL: Duration = Duration::from_secs(2);
 const COMMAND_POLL_MAX: u32 = 60; // ~2 minutes
 
+/// How many distinct releases we let Lidarr re-grab for one album before we
+/// stop asking for a replacement. Once an album has failed verification this
+/// many times, further rejects blocklist the bad release but do NOT trigger a
+/// re-search — otherwise an album whose every available release is bad churns
+/// through blocklist→re-search→re-grab→reject endlessly.
+const MAX_RESEARCH_ATTEMPTS: u32 = 3;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -112,7 +119,7 @@ async fn run_cycle(
             debug!(queue_id = item.id, "already handled this cycle; skipping");
             continue;
         }
-        match handle_item(cfg, lidarr, http, item).await {
+        match handle_item(cfg, lidarr, http, item, st).await {
             Ok(outcome) => st.mark(&item.download_id, &outcome),
             Err(e) => {
                 // A transient error (network, ffprobe hiccup) must not get
@@ -133,6 +140,7 @@ async fn handle_item(
     lidarr: &Lidarr,
     http: &Client,
     item: &QueueItem,
+    st: &mut state::State,
 ) -> Result<String> {
     let local_dir = cfg.rebase_path(&item.output_path);
     let files = enumerate_audio_files(Path::new(&local_dir));
@@ -145,7 +153,7 @@ async fn handle_item(
 
     if files.is_empty() {
         warn!(queue_id = item.id, "no audio files found at output path");
-        return act_on_verdict(cfg, lidarr, item, false, &["no audio files found".to_string()]).await;
+        return act_on_verdict(cfg, lidarr, st, item, false, &["no audio files found".to_string()]).await;
     }
 
     let tracks = lidarr
@@ -194,7 +202,7 @@ async fn handle_item(
         "release verdict"
     );
 
-    act_on_verdict(cfg, lidarr, item, release_pass, &all_reasons).await
+    act_on_verdict(cfg, lidarr, st, item, release_pass, &all_reasons).await
 }
 
 /// Measure one file and run it through the gate.
@@ -281,6 +289,7 @@ async fn verify_file(
 async fn act_on_verdict(
     cfg: &Config,
     lidarr: &Lidarr,
+    st: &mut state::State,
     item: &QueueItem,
     pass: bool,
     reasons: &[String],
@@ -298,9 +307,20 @@ async fn act_on_verdict(
         import_download(lidarr, item).await?;
         Ok("imported".to_string())
     } else {
-        info!(queue_id = item.id, ?reasons, "rejecting: removing and blocklisting");
+        // Cap re-search per album so a release-set that is entirely bad does not
+        // churn through blocklist→re-search→re-grab forever.
+        let attempts = st.record_album_reject(item.album_id);
+        let research = attempts <= MAX_RESEARCH_ATTEMPTS;
+        if research {
+            info!(queue_id = item.id, attempts, ?reasons, "rejecting: removing + blocklisting (will re-search)");
+        } else {
+            info!(
+                queue_id = item.id, attempts, ?reasons,
+                "rejecting: removing + blocklisting WITHOUT re-search (no acceptable release found for this album)"
+            );
+        }
         lidarr
-            .remove_and_blocklist(item.id)
+            .remove_and_blocklist(item.id, research)
             .await
             .context("removing rejected download")?;
         Ok("rejected".to_string())
