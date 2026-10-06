@@ -33,6 +33,7 @@ import issueCommentRoutes from './issueComment';
 import libraryRoutes from './library';
 import mediaRoutes from './media';
 import publicRoutes from './public';
+import realtimeRoutes from './realtime';
 import recordingRoutes from './recording';
 import albumRoutes from './release';
 import requestRoutes from './request';
@@ -175,6 +176,7 @@ router.use(
   ),
   serviceRoutes
 );
+router.use('/realtime', isAuthenticated(), realtimeRoutes);
 router.use('/stream', isAuthenticated(), streamRoutes);
 router.use('/import', isAuthenticated(), importRoutes);
 router.use('/scrobble', isAuthenticated(), scrobbleRoutes);

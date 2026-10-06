@@ -6,6 +6,18 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-10-06
+
+### Added
+
+- **Real-time updates (Server-Sent Events).** The browser opens one authenticated SSE stream
+  (`GET /api/v1/realtime`) and request status, download progress and availability now update
+  live instead of on a poll. Events are scoped per viewer — a request event reaches only the
+  requester or someone who can already see all requests (MANAGE_REQUESTS / REQUEST_VIEW);
+  media/availability events are shared. Emitted from the request subscriber, the download sync
+  and the availability recompute; the client revalidates the affected SWR caches on each event.
+  Polling is kept as a 60s fallback.
+
 ## [0.1.19] - 2026-10-06
 
 ### Changed
@@ -307,7 +319,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.19...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.20...HEAD
+[0.1.20]: https://github.com/sbJerome/shufflerr/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/sbJerome/shufflerr/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/sbJerome/shufflerr/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/sbJerome/shufflerr/compare/v0.1.16...v0.1.17

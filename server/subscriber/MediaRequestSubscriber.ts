@@ -24,6 +24,7 @@ import { ACTIVE_STATUSES, MediaRequest } from '@server/entity/MediaRequest';
 import type { MusicNotificationType } from '@server/lib/notifications/music';
 import { notifyRequest } from '@server/lib/notifications/music';
 import overrideRules from '@server/lib/overrideRules';
+import { emitRequestUpdate } from '@server/lib/realtime';
 import type { LidarrSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -239,11 +240,14 @@ const waitForAlbum = async (
   }
 
   if (album) {
-    logger.warn('Lidarr has not loaded the album tracks yet; searching anyway', {
-      label: 'Lidarr',
-      albumId: album.id,
-      mbid: releaseGroupMbid,
-    });
+    logger.warn(
+      'Lidarr has not loaded the album tracks yet; searching anyway',
+      {
+        label: 'Lidarr',
+        albumId: album.id,
+        mbid: releaseGroupMbid,
+      }
+    );
   }
 
   return album;
@@ -505,6 +509,17 @@ export const unmonitorInLidarr = async (
   }
 };
 
+/** Push the request's new state to connected browsers (best effort). */
+const pushRequest = (entity: MediaRequest, previous?: MediaRequest): void => {
+  emitRequestUpdate({
+    requestId: entity.id,
+    mediaId: entity.media?.id ?? previous?.media?.id,
+    status: entity.status,
+    downloadProgress: entity.downloadProgress,
+    requestedById: entity.requestedBy?.id ?? previous?.requestedBy?.id,
+  });
+};
+
 const notify = async (
   type: MusicNotificationType,
   requestId: number
@@ -544,6 +559,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     }
     const id = entity.id;
 
+    this.defer(event.queryRunner, async () => pushRequest(entity));
     if (entity.status === MediaRequestStatus.PENDING) {
       this.defer(event.queryRunner, () => notify('pending', id));
     } else if (entity.status === MediaRequestStatus.APPROVED) {
@@ -565,6 +581,8 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     }
     const id = entity.id;
     const mediaId = entity.media?.id ?? previous.media?.id;
+
+    this.defer(event.queryRunner, async () => pushRequest(entity, previous));
 
     switch (entity.status) {
       case MediaRequestStatus.APPROVED:

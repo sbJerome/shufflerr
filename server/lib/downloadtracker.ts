@@ -8,6 +8,7 @@ import { MediaRequestStatus, RequestScope } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import { MediaRequest } from '@server/entity/MediaRequest';
 import type { DownloadingItem } from '@server/interfaces/api/mediaInterfaces';
+import { emitRequestUpdate } from '@server/lib/realtime';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 
@@ -187,6 +188,13 @@ class DownloadTracker {
           // update() on purpose: progress ticks must not fire request transitions.
           await requestRepository.update(request.id, {
             downloadProgress: progress,
+          });
+          emitRequestUpdate({
+            requestId: request.id,
+            mediaId: media.id,
+            status: request.status,
+            downloadProgress: progress,
+            requestedById: request.requestedBy?.id,
           });
         }
 

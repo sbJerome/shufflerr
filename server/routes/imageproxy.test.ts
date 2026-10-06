@@ -1,3 +1,4 @@
+import type { getImageSource } from '@server/lib/imageSources';
 import { registerImageSource } from '@server/lib/imageSources';
 import imageproxyRoutes from '@server/routes/imageproxy';
 import type { Express, Request } from 'express';
@@ -23,9 +24,7 @@ const fakeImage = {
     };
   },
   // Unused by the route but part of the type surface.
-} as unknown as ReturnType<
-  typeof import('@server/lib/imageSources').getImageSource
->;
+} as unknown as ReturnType<typeof getImageSource>;
 
 let app: Express;
 let sessionUserId: number | undefined;

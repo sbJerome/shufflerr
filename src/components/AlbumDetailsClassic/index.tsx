@@ -79,10 +79,10 @@ const AlbumDetailsClassic = () => {
   const { data: album, error } = useSWR<AlbumDetailsType>(
     mbid ? `/api/v1/album/${mbid}` : null,
     {
-      // Follow a running download until the files land.
+      // Live updates come over SSE; this is a slow fallback while downloading.
       refreshInterval: (latest) =>
         latest?.requests?.some((r) => r.status === MediaRequestStatus.APPROVED)
-          ? 15000
+          ? 60000
           : 0,
     }
   );

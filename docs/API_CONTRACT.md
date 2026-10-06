@@ -124,6 +124,7 @@ The client imports these with the `@server/...` alias exactly as Seerr's client 
 | GET | `/api/v1/stream/track/:trackId` | signed in | Range header; query `format`=original|opus-160|mp3-320|mp3-128 | audio bytes (206/200) | Local file first, else proxied from Plex / Jellyfin / Navidrome. 404 when not playable |
 | GET | `/api/v1/stream/track/:trackId/peaks` | signed in | — | TrackPeaksResponse | `peaks: []` when none (UI draws a flat bar) |
 | GET | `/api/v1/stream/track/:trackId/info` | signed in | — | TrackPlaybackInfo | Everything the player bar shows for a track |
+| GET | `/api/v1/realtime` | signed in | — | `text/event-stream` (SSE) | Push stream. Named events `request` / `media` / `scan`; the client revalidates the matching SWR caches. `request` events are scoped to the requester or MANAGE_REQUESTS/REQUEST_VIEW; `media`/`scan` are library-wide. 25s heartbeat comments. |
 | GET | `/api/v1/settings/plex` | MANAGE_SETTINGS | — | PlexSettingsResponse | Secrets masked |
 | POST | `/api/v1/settings/plex` | MANAGE_SETTINGS | body partial section (connection fields, `enabled`) | PlexSettingsResponse | Validates the connection before saving |
 | POST | `/api/v1/settings/plex/test` | MANAGE_SETTINGS | body connection fields (optional; default = stored) | ConnectionTestResponse |  |
