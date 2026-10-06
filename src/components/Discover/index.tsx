@@ -22,6 +22,7 @@ import type {
   DiscoverAlbumsResponse,
   DiscoverArtistsResponse,
   DiscoverConcertsResponse,
+  DiscoverForYouResponse,
   DiscoverRecentRequestsResponse,
 } from '@server/interfaces/api/discoverInterfaces';
 import Link from 'next/link';
@@ -60,6 +61,9 @@ const messages = defineMessages('components.Discover', {
     'You haven’t requested anything yet. Search for an album to start.',
   norequestsall: 'Nobody has requested anything yet.',
   searchmusic: 'Search music',
+  foryou: 'For you',
+  foryousub: 'Albums in genres you already listen to',
+  foryougenres: 'More albums in {genres}',
 });
 
 const PROVIDER_NAME: Record<string, string> = {
@@ -96,6 +100,9 @@ const Discover = () => {
   );
   const { data: requests } = useSWR<DiscoverRecentRequestsResponse>(
     '/api/v1/discover/recent-requests?take=5'
+  );
+  const { data: forYou } = useSWR<DiscoverForYouResponse>(
+    '/api/v1/discover/for-you?take=20'
   );
 
   const ownOnly = requests
@@ -403,6 +410,54 @@ const Discover = () => {
           ))}
         </Carousel>
       )}
+
+      {forYou?.enabled && forYou.results.length > 0 && (
+        <Carousel
+          title={intl.formatMessage(messages.foryou)}
+          sub={
+            forYou.genres.length > 0
+              ? intl.formatMessage(messages.foryougenres, {
+                  genres: forYou.genres.join(', '),
+                })
+              : intl.formatMessage(messages.foryousub)
+          }
+        >
+          {forYou.results.map((album) => (
+            <AlbumCard
+              key={album.mbid}
+              mbid={album.mbid}
+              title={album.title}
+              artistName={album.artistName}
+              year={album.firstReleaseDate}
+              status={album.status}
+              imageSrc={album.coverUrl}
+              action={
+                canRequestAlbums && isRequestable(album) ? (
+                  <RequestButton album={toModalAlbum(album)} />
+                ) : undefined
+              }
+            />
+          ))}
+        </Carousel>
+      )}
+
+      {forYou?.enabled &&
+        forYou.results.length === 0 &&
+        forYou.genres.length > 0 && (
+          <section className="sh-dx-carousel" aria-labelledby="discover-foryou">
+            <div className="sh-dx-head">
+              <div>
+                <h2 id="discover-foryou">
+                  {intl.formatMessage(messages.foryou)}
+                </h2>
+                <p>{intl.formatMessage(messages.foryousub)}</p>
+              </div>
+            </div>
+            <p className="sh-dx-empty">
+              {forYou.reason ?? intl.formatMessage(messages.nonehere)}
+            </p>
+          </section>
+        )}
     </>
   );
 };

@@ -3,6 +3,7 @@
 import { getArtistImages } from '@server/api/fanart';
 import { getItunesChart } from '@server/api/itunes';
 import ListenBrainzAPI from '@server/api/listenbrainz';
+import { getMusicBrainz } from '@server/api/musicbrainz';
 import { MediaStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Event from '@server/entity/Event';
@@ -16,6 +17,7 @@ import type {
   DiscoverArtistsResponse,
   DiscoverConcertsResponse,
   DiscoverFeaturedResponse,
+  DiscoverForYouResponse,
   DiscoverRecentRequestsResponse,
   DiscoverStatsResponse,
 } from '@server/interfaces/api/discoverInterfaces';
@@ -32,7 +34,7 @@ import {
   mergeAlbumLibrary,
   mergeArtistLibrary,
 } from '@server/lib/metadata/library';
-import { yearOf } from '@server/lib/metadata/mappers';
+import { mapReleaseGroup, yearOf } from '@server/lib/metadata/mappers';
 import { Permission } from '@server/lib/permissions';
 import { toRequestResults } from '@server/lib/requestResults';
 import { getSettings } from '@server/lib/settings';
@@ -47,15 +49,28 @@ const router = Router();
 const takeParam = (value: unknown, fallback: number, max = 50): number =>
   Math.min(max, Math.max(1, Number(value) || fallback));
 
+// "New in your library": the newest release groups the library holds. Each
+// release group is timed on its own, so a discography (artist-scope) request
+// that is only partly filled still surfaces its completed albums here as they
+// land — the covering request sits on the artist row, which the RELEASE_GROUP
+// filter excludes, and every album reaches a library status independently (see
+// recomputeReleaseGroup). COALESCE keeps an album that reached a library status
+// without an explicit mediaAddedAt from sorting to the bottom (SQLite orders
+// NULLs last in DESC) and dropping off the window.
 const recentlyAddedMedia = (take: number): Promise<Media[]> =>
-  getRepository(Media).find({
-    where: {
-      mediaType: MediaType.RELEASE_GROUP,
-      status: In(IN_LIBRARY_STATUSES),
-    },
-    order: { mediaAddedAt: 'DESC', id: 'DESC' },
-    take,
-  });
+  getRepository(Media)
+    .createQueryBuilder('media')
+    .where('media.mediaType = :type', { type: MediaType.RELEASE_GROUP })
+    .andWhere('media.status IN (:...statuses)', {
+      statuses: IN_LIBRARY_STATUSES,
+    })
+    .orderBy(
+      'COALESCE(media.mediaAddedAt, media.updatedAt, media.createdAt)',
+      'DESC'
+    )
+    .addOrderBy('media.id', 'DESC')
+    .take(take)
+    .getMany();
 
 /**
  * "Trending new releases": the release groups ListenBrainz users played most
@@ -558,6 +573,202 @@ router.get<never, DiscoverConcertsResponse>(
           imageUrl: e.imageUrl ?? null,
         })),
         attribution: [...new Set(events.map((e) => e.provider))],
+      });
+    } catch (e) {
+      return next({ status: 500, message: e.message });
+    }
+  }
+);
+
+/**
+ * "For you": album recommendations in the genres the library already leans on.
+ * Genres come from the top library artists' MusicBrainz genres (tags as a
+ * fallback); the recommendations are release groups tagged with those genres
+ * that the library does not already hold. Reuses the MusicBrainz paths the
+ * genre pages use — no new integration or key. Replaceable in tests so nothing
+ * reaches the network.
+ */
+export const forYouHooks = {
+  /** The artist's top MusicBrainz genres (tags as a fallback), most used first. */
+  artistGenres: async (artistMbid: string): Promise<string[]> => {
+    const artist = await getMusicBrainz().getArtist(artistMbid);
+    const source = artist.genres?.length ? artist.genres : (artist.tags ?? []);
+    return [...source]
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+      .slice(0, 5)
+      .map((t) => t.name);
+  },
+  /** Release groups (albums/EPs) tagged with a genre on MusicBrainz. */
+  albumsByGenre: async (
+    genre: string,
+    limit: number
+  ): Promise<AlbumResult[]> => {
+    const safe = genre.replace(/["\\]/g, ' ').trim();
+    const search = await getMusicBrainz().searchReleaseGroupsRaw(
+      `tag:"${safe}" AND (primarytype:album OR primarytype:ep)`,
+      { limit }
+    );
+    return (search['release-groups'] ?? []).map(mapReleaseGroup);
+  },
+};
+
+const FOR_YOU_TTL = 6 * 60 * 60 * 1000;
+const FOR_YOU_TOP_ARTISTS = 12;
+const FOR_YOU_TOP_GENRES = 3;
+const FOR_YOU_CANDIDATES_PER_GENRE = 24;
+
+interface ForYouData {
+  /** Library genres the recommendations are drawn from (lower-case). */
+  genres: string[];
+  /** Candidate albums (library status is merged in per request, not cached). */
+  albums: AlbumResult[];
+}
+
+let forYouCache: (ForYouData & { at: number }) | undefined;
+let forYouBuild: Promise<ForYouData> | undefined;
+
+/** For tests: drop the memoised recommendations between cases. */
+export const resetDiscoverCaches = (): void => {
+  forYouCache = undefined;
+  forYouBuild = undefined;
+};
+
+/** The library's leading genres, weighted by how many albums each artist holds. */
+const topLibraryGenres = async (): Promise<string[]> => {
+  const artists = await libraryArtistsQuery()
+    .orderBy('COUNT(*)', 'DESC')
+    .limit(FOR_YOU_TOP_ARTISTS)
+    .getRawMany<{ mbid: string; albums: string | number }>();
+
+  const weighted = new Map<string, number>();
+  for (const artist of artists) {
+    if (!isMbid(artist.mbid)) {
+      continue;
+    }
+    try {
+      const genres = await forYouHooks.artistGenres(artist.mbid);
+      const weight = Number(artist.albums) || 1;
+      for (const genre of genres) {
+        const key = genre.trim().toLowerCase();
+        if (key) {
+          weighted.set(key, (weighted.get(key) ?? 0) + weight);
+        }
+      }
+    } catch (e) {
+      logger.debug('Could not read an artist’s genres for recommendations', {
+        label: 'Discover',
+        artistMbid: artist.mbid,
+        errorMessage: e.message,
+      });
+    }
+  }
+
+  return [...weighted.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, FOR_YOU_TOP_GENRES)
+    .map(([genre]) => genre);
+};
+
+const buildForYou = async (): Promise<ForYouData> => {
+  const genres = await topLibraryGenres();
+  const seen = new Set<string>();
+  const albums: AlbumResult[] = [];
+  for (const genre of genres) {
+    try {
+      for (const album of await forYouHooks.albumsByGenre(
+        genre,
+        FOR_YOU_CANDIDATES_PER_GENRE
+      )) {
+        if (!isMbid(album.mbid) || seen.has(album.mbid)) {
+          continue;
+        }
+        seen.add(album.mbid);
+        albums.push({
+          ...album,
+          coverUrl: album.coverUrl ?? coverUrlFor(album.mbid, 500),
+        });
+      }
+    } catch (e) {
+      logger.debug('Could not load recommendations for a genre', {
+        label: 'Discover',
+        genre,
+        errorMessage: e.message,
+      });
+    }
+  }
+  return { genres, albums };
+};
+
+/**
+ * The candidate set, remembered for six hours. Matching genres and albums costs
+ * MusicBrainz calls, so the build runs in the background and a request waits for
+ * it only briefly, exactly like the iTunes trending row.
+ */
+const freshForYou = async (): Promise<{
+  data?: ForYouData;
+  building: boolean;
+}> => {
+  if (forYouCache && Date.now() - forYouCache.at < FOR_YOU_TTL) {
+    return { data: forYouCache, building: false };
+  }
+  forYouBuild ??= buildForYou()
+    .then((built) => {
+      forYouCache = { ...built, at: Date.now() };
+      return built;
+    })
+    .finally(() => {
+      forYouBuild = undefined;
+    });
+  const pending = forYouBuild;
+  pending.catch(() => undefined);
+  const built = await Promise.race([
+    pending,
+    new Promise<undefined>((resolve) => {
+      setTimeout(() => resolve(undefined), 8000).unref();
+    }),
+  ]);
+  if (built) {
+    return { data: built, building: false };
+  }
+  // Still working: serve the last good set if there is one, else say so.
+  return { data: forYouCache, building: true };
+};
+
+// GET /discover/for-you · signed in → album recommendations in the viewer's
+//   top library genres (albums the library does not already hold).
+router.get<never, DiscoverForYouResponse>(
+  '/for-you',
+  async (req, res, next) => {
+    const take = takeParam(req.query.take, 20);
+    try {
+      const { data, building } = await freshForYou();
+      if (!data || data.albums.length === 0) {
+        return res.status(200).json({
+          enabled: true,
+          reason: building
+            ? 'Finding albums in the genres you already listen to. This fills in shortly.'
+            : 'Add more music to your library to get recommendations by genre.',
+          results: [],
+          genres: data?.genres ?? [],
+        });
+      }
+
+      // Merge fresh library status so anything acquired since the build drops
+      // out; recommend only what the library does not already hold.
+      const results = data.albums.map((album) => ({
+        ...album,
+        status: MediaStatus.UNKNOWN,
+      }));
+      await mergeAlbumLibrary(results);
+      const notOwned = results.filter(
+        (album) =>
+          !IN_LIBRARY_STATUSES.includes(album.status) && !album.request
+      );
+
+      return res.status(200).json({
+        enabled: true,
+        results: notOwned.slice(0, take),
+        genres: data.genres,
       });
     } catch (e) {
       return next({ status: 500, message: e.message });
