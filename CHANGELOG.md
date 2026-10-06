@@ -6,6 +6,30 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-10-06
+
+### Added
+
+- **Playlists.** Create and manage playlists inside the app: a Playlists page (list + create),
+  a playlist detail view (rename, reorder, remove items, delete), and an "add to playlist"
+  action from album and track contexts. Playlists are owner-scoped and stored only in the app's
+  own database (no sync to the media server). Backed by new `UserPlaylist` / `UserPlaylistItem`
+  entities and an owner-scoped CRUD API, with migrations for SQLite and PostgreSQL. (Named
+  `UserPlaylist` to avoid colliding with the existing client-API library playlists.)
+- **"For you" discovery.** The Discover page now has a genre-based recommendation row built from
+  the top MusicBrainz genres in your library, surfacing albums in those genres that you don't
+  already have (via the existing metadata path — no new integration). Cached and built in the
+  background; hidden when there's nothing to draw from.
+
+### Fixed
+
+- **"New in your library" dropped some newly-available albums.** The recently-added query
+  ordered strictly by added-date, and rows that reached a library status without an explicit
+  added-date (which happens for albums completing within a larger/discography request) sorted
+  last under SQLite's NULL ordering and fell off the list. It now orders by the first available
+  of added/updated/created date, so every newly-available album appears — including individual
+  albums of a partly-filled discography request.
+
 ## [0.1.24] - 2026-10-06
 
 ### Fixed
