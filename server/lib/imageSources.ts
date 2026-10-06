@@ -8,6 +8,12 @@ import ImageProxy from '@server/lib/imageproxy';
  */
 type SourceFactory = () => ImageProxy | null;
 
+// Sources that reach an internal/credentialed host (their upstream carries a
+// secret, e.g. the Lidarr API key). These are never served to anonymous
+// callers; only the public CDN sources below stay open (the login slideshow
+// loads cover art before sign-in).
+const internalSources = new Set<string>();
+
 const rate = { maxRequests: 20, maxRPS: 50 };
 const cache: Record<string, ImageProxy> = {};
 
@@ -36,10 +42,18 @@ const sources: Record<string, SourceFactory> = {
 
 export const registerImageSource = (
   type: string,
-  factory: SourceFactory
+  factory: SourceFactory,
+  options: { internal?: boolean } = {}
 ): void => {
   sources[type] = factory;
+  if (options.internal) {
+    internalSources.add(type);
+  }
 };
+
+/** True when the source reaches a credentialed/internal host (auth required). */
+export const isInternalSource = (type: string): boolean =>
+  internalSources.has(type);
 
 export const getImageSource = (type: string): ImageProxy | null =>
   sources[type]?.() ?? null;

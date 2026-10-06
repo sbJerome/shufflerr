@@ -6,6 +6,18 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-10-06
+
+### Security
+
+- **Image proxy path traversal / SSRF (high).** The `/imageproxy/<source>/<path>` endpoint did
+  not reject `..` path components, so a request could escape a source's base path and reach the
+  rest of an internal, credentialed host's API (the Lidarr image source attaches that server's
+  API key). The route now rejects any `..` component; credentialed/internal sources require a
+  signed-in session (public cover-art CDNs stay open for the pre-sign-in login slideshow); and
+  the HTTP client refuses any resolved URL that falls outside the source's base origin and path
+  prefix. Regression tests added.
+
 ## [0.1.12] - 2026-10-06
 
 ### Fixed
@@ -232,7 +244,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.13...HEAD
+[0.1.13]: https://github.com/sbJerome/shufflerr/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/sbJerome/shufflerr/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/sbJerome/shufflerr/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/sbJerome/shufflerr/compare/v0.1.9...v0.1.10

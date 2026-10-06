@@ -1,5 +1,5 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
-import { getImageSource } from '@server/lib/imageSources';
+import { getImageSource, isInternalSource } from '@server/lib/imageSources';
 import logger from '@server/logger';
 import { Router } from 'express';
 
@@ -11,14 +11,26 @@ router.get<{
 }>('/:type/*path', async (req, res, next) => {
   const imagePath = '/' + req.params.path.join('/');
 
-  if (imagePath.startsWith('//') || imagePath.includes('://')) {
-    logger.error('Invalid URL for image proxy', { imagePath });
-    return next({ status: 403, message: 'Invalid URL for image proxy.' });
+  // Reject absolute URLs, scheme smuggling, and any `..` path component. The
+  // last is the important one: without it a path could escape a source's base
+  // path and reach the rest of an internal host's API (e.g. Lidarr) with that
+  // host's credentials attached.
+  const hasTraversal = imagePath.split('/').some((part) => part === '..');
+  if (imagePath.startsWith('//') || imagePath.includes('://') || hasTraversal) {
+    logger.warn('Rejected image proxy path', { imagePath });
+    return next({ status: 400, message: 'Invalid URL for image proxy.' });
   }
 
   const source = getImageSource(req.params.type);
   if (!source) {
     return next({ status: 400, message: 'Unsupported image type.' });
+  }
+
+  // Credentialed/internal sources are never served to anonymous callers; the
+  // public cover-art CDNs stay open so the login slideshow can load art before
+  // sign-in.
+  if (isInternalSource(req.params.type) && !req.session?.userId) {
+    return next({ status: 401, message: 'Authentication required.' });
   }
 
   try {

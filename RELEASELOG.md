@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.13 — 2026-10-06
+
+- **Security fix (high):** closed a hole in the image proxy that could be used to reach internal
+  services. Cover art and artist photos are unaffected.
+
 ## v0.1.12 — 2026-10-06
 
 - **Plex avatars show up.** People who sign in with Plex now see their Plex profile picture

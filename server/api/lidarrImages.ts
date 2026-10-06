@@ -20,26 +20,30 @@ const defaultServer = (): LidarrSettings | undefined => {
 // `/imageproxy/lidarr/artist/<id>/poster.jpg` → the default Lidarr server's own
 // cover store, for artists whose art Lidarr holds locally.
 let proxy: { key: string; instance: ImageProxy } | undefined;
-registerImageSource('lidarr', () => {
-  const server = defaultServer();
-  if (!server) {
-    return null;
-  }
-  const baseUrl = `${server.useSsl ? 'https' : 'http'}://${server.hostname}:${
-    server.port
-  }${server.baseUrl ?? ''}/api/v1/mediacover`;
-  const key = `${baseUrl}|${server.apiKey}`;
-  if (proxy?.key !== key) {
-    proxy = {
-      key,
-      instance: new ImageProxy('lidarr', baseUrl, {
-        headers: { 'X-Api-Key': server.apiKey },
-        rateLimitOptions: { maxRequests: 20, maxRPS: 50 },
-      }),
-    };
-  }
-  return proxy.instance;
-});
+registerImageSource(
+  'lidarr',
+  () => {
+    const server = defaultServer();
+    if (!server) {
+      return null;
+    }
+    const baseUrl = `${server.useSsl ? 'https' : 'http'}://${server.hostname}:${
+      server.port
+    }${server.baseUrl ?? ''}/api/v1/mediacover`;
+    const key = `${baseUrl}|${server.apiKey}`;
+    if (proxy?.key !== key) {
+      proxy = {
+        key,
+        instance: new ImageProxy('lidarr', baseUrl, {
+          headers: { 'X-Api-Key': server.apiKey },
+          rateLimitOptions: { maxRequests: 20, maxRPS: 50 },
+        }),
+      };
+    }
+    return proxy.instance;
+  },
+  { internal: true }
+);
 
 const proxyPath = (image?: LidarrImage): string | null => {
   if (!image) {
