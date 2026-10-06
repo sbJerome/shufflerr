@@ -6,6 +6,22 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.26] - 2026-10-06
+
+### Added
+
+- **Direct-grab bypass (sidecar 0.1.3), toggleable.** A new mode in which Shufflerr owns release
+  selection and the downloader is used only to organize. When enabled, the verification sidecar
+  reads the indexers and download clients configured in the downloader, interactive-searches for
+  each monitored-missing album, picks the best release, and submits it **straight to the download
+  client** — bypassing the downloader's release matcher (which otherwise refuses releases it
+  can't map). It records the client's download id → album so the completed, otherwise-unmatchable
+  download is verified against the right album and filed via a scoped manual-import (tag/rename
+  only). Bounded by a per-cycle grab cap and a per-album cooldown. Controlled by a new
+  **"Direct grab"** switch in Settings → General (`main.musicDirectGrab`, default **off**); the
+  sidecar reads it from a new unauthenticated `GET /api/v1/verifier/config` endpoint that returns
+  only `{ enabled }`.
+
 ## [0.1.25] - 2026-10-06
 
 ### Added

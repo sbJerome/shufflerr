@@ -62,6 +62,13 @@ router.get<unknown, StatusResponse>('/status', async (_req, res) => {
   });
 });
 
+// Read by the audio-verification sidecar to learn whether direct-grab is on.
+// Returns only a boolean (no secrets), so it is intentionally unauthenticated —
+// the sidecar has no Shufflerr session or API key.
+router.get('/verifier/config', (_req, res) => {
+  return res.status(200).json({ enabled: getSettings().main.musicDirectGrab });
+});
+
 router.get('/status/appdata', isAuthenticated(), (_req, res) => {
   return res.status(200).json({
     appData: appDataStatus(),

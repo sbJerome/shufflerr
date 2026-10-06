@@ -8,6 +8,7 @@
 
 mod acoustid;
 mod config;
+mod downloadclient;
 mod ffprobe;
 mod fpcalc;
 mod lidarr;
@@ -111,6 +112,14 @@ async fn run_cycle(
             st.forget(&known);
         }
     }
+    // Drop grab mappings whose download has fully left the queue (imported or
+    // removed), and expire stale per-album grab cooldowns.
+    for gid in st.grab_ids() {
+        if !live_ids.contains(gid.as_str()) {
+            st.forget_grab(&gid);
+        }
+    }
+    st.prune_grab_cooldowns(cfg.grab_cooldown_secs);
 
     debug!(queue = queue.len(), pending = pending.len(), "polled Lidarr queue");
 
@@ -129,8 +138,113 @@ async fn run_cycle(
         }
     }
 
+    // Direct-submit bypass (toggleable): Shufflerr owns release selection.
+    if direct_grab_enabled(cfg, http).await {
+        if let Err(e) = direct_grab_cycle(cfg, lidarr, http, st, &queue).await {
+            warn!(error = %format!("{e:#}"), "direct-grab cycle error");
+        }
+    }
+
     st.save().context("persisting state")?;
     Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct ToggleResponse {
+    #[serde(default)]
+    enabled: bool,
+}
+
+/// Resolve the direct-grab toggle: prefer the Shufflerr-owned config endpoint
+/// (so it can be flipped at runtime), falling back to the static env default.
+async fn direct_grab_enabled(cfg: &Config, http: &Client) -> bool {
+    if let Some(url) = &cfg.direct_grab_config_url {
+        match http.get(url).timeout(Duration::from_secs(5)).send().await {
+            Ok(resp) => match resp.json::<ToggleResponse>().await {
+                Ok(t) => return t.enabled,
+                Err(_) => debug!("direct-grab toggle endpoint returned unparseable body; using env default"),
+            },
+            Err(_) => debug!("direct-grab toggle endpoint unreachable; using env default"),
+        }
+    }
+    cfg.direct_grab
+}
+
+/// Cap on how many albums the driver will submit per cycle, so turning the
+/// toggle on trickles downloads instead of flooding the client.
+const MAX_GRABS_PER_CYCLE: usize = 2;
+
+/// For each monitored-missing album not already downloading or recently grabbed,
+/// interactively search the configured indexers, pick the best release, and
+/// submit it STRAIGHT to the download client — never through Lidarr's matcher.
+async fn direct_grab_cycle(
+    cfg: &Config,
+    lidarr: &Lidarr,
+    http: &Client,
+    st: &mut state::State,
+    queue: &[QueueItem],
+) -> Result<()> {
+    let clients = lidarr.download_clients().await.context("reading Lidarr download clients")?;
+    let enabled_clients: Vec<_> = clients.into_iter().filter(|c| c.enable).collect();
+    if enabled_clients.is_empty() {
+        warn!("direct-grab on but Lidarr has no enabled download client");
+        return Ok(());
+    }
+
+    let missing = lidarr.missing_album_ids().await.context("reading missing albums")?;
+    let active_albums: std::collections::HashSet<i64> =
+        queue.iter().map(|q| q.album_id).filter(|&a| a > 0).collect();
+
+    let mut grabbed = 0usize;
+    for album_id in missing {
+        if grabbed >= MAX_GRABS_PER_CYCLE {
+            break;
+        }
+        if active_albums.contains(&album_id) || st.recently_grabbed(album_id, cfg.grab_cooldown_secs) {
+            continue;
+        }
+        let releases = match lidarr.releases(album_id).await {
+            Ok(r) => r,
+            Err(e) => {
+                warn!(album_id, error = %format!("{e:#}"), "release search failed");
+                continue;
+            }
+        };
+        let Some(best) = lidarr::pick_best_release(&releases) else {
+            continue;
+        };
+        let Some(client) = select_client(&enabled_clients, &best.protocol) else {
+            warn!(album_id, protocol = %best.protocol, "no enabled download client for release protocol");
+            continue;
+        };
+        match client.submit(http, &best.download_url).await {
+            Ok(ids) => {
+                for id in &ids {
+                    st.record_grab(id, album_id);
+                }
+                // Stamp the cooldown even if the client returned no id, so we do
+                // not resubmit next cycle.
+                st.record_grab("", album_id);
+                info!(album_id, quality = %best.quality_name, "direct-grab: submitted release to download client");
+                grabbed += 1;
+            }
+            Err(e) => warn!(album_id, error = %format!("{e:#}"), "direct-grab submit failed"),
+        }
+    }
+    Ok(())
+}
+
+/// Pick an enabled client matching the release protocol (usenet→SABnzbd,
+/// torrent→qBittorrent), falling back to any enabled client of that transport.
+fn select_client<'a>(
+    clients: &'a [downloadclient::DownloadClient],
+    protocol: &str,
+) -> Option<&'a downloadclient::DownloadClient> {
+    let usenet = protocol.eq_ignore_ascii_case("usenet");
+    clients
+        .iter()
+        .find(|c| if usenet { c.is_sabnzbd() } else { c.is_qbittorrent() })
+        .or_else(|| clients.iter().find(|c| if usenet { c.is_usenet() } else { !c.is_usenet() }))
 }
 
 /// Verify one queue item and act on the verdict. Returns the outcome label to
@@ -142,22 +256,29 @@ async fn handle_item(
     item: &QueueItem,
     st: &mut state::State,
 ) -> Result<String> {
+    // For a direct-submitted download Lidarr cannot parse, its queue album id is
+    // 0/unknown; fall back to the album we grabbed it for (recorded in state).
+    let mapped_album = st.mapped_album(&item.download_id);
+    let album_id = mapped_album.filter(|&a| a > 0).unwrap_or(item.album_id);
+    let mapped = mapped_album.is_some();
+
     let local_dir = cfg.rebase_path(&item.output_path);
     let files = enumerate_audio_files(Path::new(&local_dir));
     info!(
         queue_id = item.id,
         state = %item.tracked_download_state,
         audio_files = files.len(),
+        direct = mapped,
         "verifying download"
     );
 
     if files.is_empty() {
         warn!(queue_id = item.id, "no audio files found at output path");
-        return act_on_verdict(cfg, lidarr, st, item, false, &["no audio files found".to_string()]).await;
+        return act_on_verdict(cfg, lidarr, st, item, album_id, mapped, false, &["no audio files found".to_string()]).await;
     }
 
     let tracks = lidarr
-        .album_tracks(item.album_id)
+        .album_tracks(album_id)
         .await
         .unwrap_or_else(|e| {
             warn!(queue_id = item.id, error = %format!("{e:#}"), "could not fetch release tracks");
@@ -202,7 +323,7 @@ async fn handle_item(
         "release verdict"
     );
 
-    act_on_verdict(cfg, lidarr, st, item, release_pass, &all_reasons).await
+    act_on_verdict(cfg, lidarr, st, item, album_id, mapped, release_pass, &all_reasons).await
 }
 
 /// Measure one file and run it through the gate.
@@ -286,11 +407,14 @@ async fn verify_file(
 }
 
 /// Import (pass) or remove+blocklist (fail), honouring DRY_RUN.
+#[allow(clippy::too_many_arguments)]
 async fn act_on_verdict(
     cfg: &Config,
     lidarr: &Lidarr,
     st: &mut state::State,
     item: &QueueItem,
+    album_id: i64,
+    mapped: bool,
     pass: bool,
     reasons: &[String],
 ) -> Result<String> {
@@ -304,12 +428,15 @@ async fn act_on_verdict(
     }
 
     if pass {
-        import_download(lidarr, item).await?;
+        // A direct-submitted download is scoped to the album we grabbed it for,
+        // so Lidarr maps its (otherwise unparseable) files to that album.
+        let scoped = if mapped { Some(album_id) } else { None };
+        import_download(lidarr, item, scoped).await?;
         Ok("imported".to_string())
     } else {
         // Cap re-search per album so a release-set that is entirely bad does not
         // churn through blocklist→re-search→re-grab forever.
-        let attempts = st.record_album_reject(item.album_id);
+        let attempts = st.record_album_reject(album_id);
         let research = attempts <= MAX_RESEARCH_ATTEMPTS;
         if research {
             info!(queue_id = item.id, attempts, ?reasons, "rejecting: removing + blocklisting (will re-search)");
@@ -327,11 +454,25 @@ async fn act_on_verdict(
     }
 }
 
-async fn import_download(lidarr: &Lidarr, item: &QueueItem) -> Result<()> {
-    let candidates = lidarr
-        .manual_import_candidates(&item.download_id)
-        .await
-        .context("fetching manual-import candidates")?;
+async fn import_download(lidarr: &Lidarr, item: &QueueItem, scoped_album: Option<i64>) -> Result<()> {
+    // For a direct-submitted download, scope the manual-import to the known
+    // artist+album so Lidarr maps the files it could not parse on its own.
+    let candidates = match scoped_album {
+        Some(aid) => {
+            let artist_id = lidarr
+                .album_artist_id(aid)
+                .await
+                .context("looking up artist for direct-submit import")?;
+            lidarr
+                .manual_import_candidates_scoped(&item.download_id, Some(artist_id), Some(aid))
+                .await
+                .context("fetching scoped manual-import candidates")?
+        }
+        None => lidarr
+            .manual_import_candidates(&item.download_id)
+            .await
+            .context("fetching manual-import candidates")?,
+    };
 
     let files: Vec<serde_json::Value> = candidates
         .iter()

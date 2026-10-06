@@ -2,10 +2,75 @@
 //! recording MBIDs, drive a manual import, poll a command, and remove/blocklist
 //! a rejected download.
 
+use crate::downloadclient::DownloadClient;
 use anyhow::{anyhow, Context, Result};
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::{json, Value};
+
+/// A candidate release from Lidarr's interactive search (`/release`). This
+/// includes releases Lidarr's own grab path would REJECT (unparseable/unknown
+/// artist), which is exactly what the direct-submit bypass needs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Release {
+    pub guid: String,
+    pub download_url: String,
+    pub protocol: String,
+    pub indexer_id: i64,
+    pub quality_name: String,
+    pub quality_weight: i64,
+    pub age_days: f64,
+}
+
+fn release_is_lossless(name: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    ["flac", "alac", "ape", "wav", "wavpack"].iter().any(|k| n.contains(k))
+}
+
+/// Parse `/release` results, keeping only releases with a usable download URL.
+fn parse_releases(json: &str) -> Result<Vec<Release>> {
+    let arr: Vec<Value> =
+        serde_json::from_str(json).context("Lidarr /release response was not parseable")?;
+    Ok(arr
+        .iter()
+        .filter_map(|r| {
+            let download_url = r.get("downloadUrl").and_then(|v| v.as_str())?.to_string();
+            if download_url.is_empty() {
+                return None;
+            }
+            Some(Release {
+                guid: r.get("guid").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                download_url,
+                protocol: r.get("protocol").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                indexer_id: r.get("indexerId").and_then(|v| v.as_i64()).unwrap_or(0),
+                quality_name: r
+                    .get("quality")
+                    .and_then(|q| q.get("quality"))
+                    .and_then(|q| q.get("name"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                quality_weight: r.get("qualityWeight").and_then(|v| v.as_i64()).unwrap_or(0),
+                age_days: r.get("age").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            })
+        })
+        .collect())
+}
+
+/// Pick the best release: prefer lossless, then highest quality weight, then
+/// the newest (smallest age) as a tie-break. Ignores Lidarr's own rejections.
+pub fn pick_best_release(releases: &[Release]) -> Option<&Release> {
+    releases.iter().max_by(|a, b| {
+        release_is_lossless(&a.quality_name)
+            .cmp(&release_is_lossless(&b.quality_name))
+            .then(a.quality_weight.cmp(&b.quality_weight))
+            .then(
+                b.age_days
+                    .partial_cmp(&a.age_days)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
+    })
+}
 
 pub struct Lidarr {
     client: Client,
@@ -200,14 +265,35 @@ impl Lidarr {
     }
 
     pub async fn manual_import_candidates(&self, download_id: &str) -> Result<Vec<Value>> {
+        self.manual_import_candidates_scoped(download_id, None, None)
+            .await
+    }
+
+    /// Like `manual_import_candidates`, but optionally scoped to a known
+    /// artist/album. For a direct-submitted download Lidarr cannot parse, its
+    /// queue item has no album; passing the album we grabbed it for makes Lidarr
+    /// map the files to that album's tracks and return usable candidates.
+    pub async fn manual_import_candidates_scoped(
+        &self,
+        download_id: &str,
+        artist_id: Option<i64>,
+        album_id: Option<i64>,
+    ) -> Result<Vec<Value>> {
+        let mut query: Vec<(&str, String)> = vec![
+            ("downloadId", download_id.to_string()),
+            ("filterExistingFiles", "true".to_string()),
+        ];
+        if let Some(a) = artist_id {
+            query.push(("artistId", a.to_string()));
+        }
+        if let Some(a) = album_id {
+            query.push(("albumId", a.to_string()));
+        }
         let body = self
             .client
             .get(self.url("manualimport"))
             .header("X-Api-Key", &self.api_key)
-            .query(&[
-                ("downloadId", download_id),
-                ("filterExistingFiles", "true"),
-            ])
+            .query(&query)
             .send()
             .await
             .context("Lidarr manualimport request failed")?
@@ -217,6 +303,91 @@ impl Lidarr {
             .await
             .context("parsing Lidarr manualimport response")?;
         Ok(body)
+    }
+
+    /// Lidarr's configured download clients (Shufflerr submits directly to the
+    /// enabled one, bypassing Lidarr's grab).
+    pub async fn download_clients(&self) -> Result<Vec<DownloadClient>> {
+        let body = self
+            .client
+            .get(self.url("downloadclient"))
+            .header("X-Api-Key", &self.api_key)
+            .send()
+            .await
+            .context("Lidarr downloadclient request failed")?
+            .error_for_status()
+            .context("Lidarr downloadclient returned an error status")?
+            .text()
+            .await?;
+        serde_json::from_str(&body).context("parsing Lidarr downloadclient response")
+    }
+
+    /// Interactive release search for an album (queries the configured
+    /// indexers). Returns ALL releases, including ones Lidarr would reject.
+    pub async fn releases(&self, album_id: i64) -> Result<Vec<Release>> {
+        let body = self
+            .client
+            .get(self.url("release"))
+            .header("X-Api-Key", &self.api_key)
+            .query(&[("albumId", album_id.to_string())])
+            .send()
+            .await
+            .context("Lidarr release search failed")?
+            .error_for_status()
+            .context("Lidarr release search returned an error status")?
+            .text()
+            .await?;
+        parse_releases(&body)
+    }
+
+    /// Monitored albums that are missing tracks (candidates for direct grab).
+    pub async fn missing_album_ids(&self) -> Result<Vec<i64>> {
+        let body = self
+            .client
+            .get(self.url("wanted/missing"))
+            .header("X-Api-Key", &self.api_key)
+            .query(&[
+                ("pageSize", "200"),
+                ("includeArtist", "false"),
+                ("monitored", "true"),
+            ])
+            .send()
+            .await
+            .context("Lidarr wanted/missing request failed")?
+            .error_for_status()
+            .context("Lidarr wanted/missing returned an error status")?
+            .text()
+            .await?;
+        let v: Value = serde_json::from_str(&body).context("parsing wanted/missing")?;
+        Ok(v.get("records")
+            .and_then(|r| r.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter(|a| a.get("monitored").and_then(|m| m.as_bool()).unwrap_or(false))
+                    .filter_map(|a| a.get("id").and_then(|i| i.as_i64()))
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
+    /// The artist id that owns an album (needed to scope a manual import).
+    pub async fn album_artist_id(&self, album_id: i64) -> Result<i64> {
+        let body = self
+            .client
+            .get(self.url(&format!("album/{album_id}")))
+            .header("X-Api-Key", &self.api_key)
+            .send()
+            .await
+            .context("Lidarr album request failed")?
+            .error_for_status()
+            .context("Lidarr album returned an error status")?
+            .text()
+            .await?;
+        let v: Value = serde_json::from_str(&body).context("parsing album")?;
+        v.get("artistId")
+            .and_then(|x| x.as_i64())
+            .or_else(|| v.get("artist").and_then(|a| a.get("id")).and_then(|x| x.as_i64()))
+            .ok_or_else(|| anyhow!("album response had no artist id"))
     }
 
     /// Submit a `ManualImport` command (move mode) for the given file objects
@@ -409,5 +580,43 @@ mod tests {
             "rejections": []
         });
         assert!(build_import_file(&candidate).is_none());
+    }
+
+    #[test]
+    fn parses_releases_and_skips_urlless() {
+        let json = r#"[
+            {"guid":"g1","downloadUrl":"http://x/1.nzb","protocol":"usenet","indexerId":2,
+             "quality":{"quality":{"name":"FLAC"}},"qualityWeight":1005,"age":12.0},
+            {"guid":"g2","downloadUrl":"","protocol":"usenet","quality":{"quality":{"name":"MP3-320"}}},
+            {"guid":"g3","downloadUrl":"http://x/3.torrent","protocol":"torrent","indexerId":4,
+             "quality":{"quality":{"name":"MP3-320"}},"qualityWeight":800,"age":3.0}
+        ]"#;
+        let rs = parse_releases(json).unwrap();
+        assert_eq!(rs.len(), 2); // the url-less one is dropped
+        assert_eq!(rs[0].quality_name, "FLAC");
+        assert_eq!(rs[0].indexer_id, 2);
+    }
+
+    #[test]
+    fn picks_lossless_over_higher_weight_lossy() {
+        let rs = vec![
+            Release { guid: "a".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "MP3-320".into(), quality_weight: 900, age_days: 1.0 },
+            Release { guid: "b".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "FLAC".into(), quality_weight: 500, age_days: 50.0 },
+        ];
+        assert_eq!(pick_best_release(&rs).unwrap().quality_name, "FLAC");
+    }
+
+    #[test]
+    fn picks_higher_weight_then_newer_among_lossless() {
+        let rs = vec![
+            Release { guid: "a".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "FLAC".into(), quality_weight: 1005, age_days: 40.0 },
+            Release { guid: "b".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "FLAC 24bit".into(), quality_weight: 1010, age_days: 5.0 },
+        ];
+        assert_eq!(pick_best_release(&rs).unwrap().guid, "b"); // higher weight wins
+    }
+
+    #[test]
+    fn pick_best_on_empty_is_none() {
+        assert!(pick_best_release(&[]).is_none());
     }
 }

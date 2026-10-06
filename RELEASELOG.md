@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.26 — 2026-10-06
+
+- **Direct grab (optional).** A new switch in Settings lets Shufflerr pick releases and hand them
+  straight to your downloader, using the downloader only to tag and organize — so albums the
+  downloader otherwise refuses to match can still be fetched and filed correctly. Off by default;
+  needs your indexers and download clients set up in the downloader.
+
 ## v0.1.25 — 2026-10-06
 
 - **Playlists.** Make your own playlists in the app — create them, add albums or tracks from
