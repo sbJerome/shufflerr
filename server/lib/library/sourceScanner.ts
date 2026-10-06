@@ -212,6 +212,7 @@ export abstract class SourceScanner implements RunnableScanner<
             knownMedia.has(previous.mediaId);
           const waitingForMusicBrainz =
             previous.mbid === null &&
+            !options.force &&
             Date.now() - previous.lastTried < UNRESOLVED_RETRY_MS;
 
           if (stillIndexed || waitingForMusicBrainz) {
