@@ -4,13 +4,19 @@ import type {
   Permission,
   PermissionCheckOptions,
 } from '@server/lib/permissions';
+import { safeEqual } from '@server/lib/secrets';
 import { getSettings } from '@server/lib/settings';
 
 export const checkUser: Middleware = async (req, _res, next) => {
   const settings = getSettings();
   let user: User | undefined | null;
 
-  if (req.header('X-API-Key') === settings.main.apiKey) {
+  const providedApiKey = req.header('X-API-Key');
+  if (
+    providedApiKey &&
+    settings.main.apiKey &&
+    safeEqual(providedApiKey, settings.main.apiKey)
+  ) {
     const userRepository = getRepository(User);
 
     let userId = 1; // Work on original administrator account

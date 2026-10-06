@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.17 — 2026-10-06
+
+- **Security hardening:** several small fixes — constant-time API-key check, no account
+  enumeration on the sign-in form, a couple of internal endpoints gated behind sign-in/admin,
+  and tidier error messages.
+
 ## v0.1.16 — 2026-10-06
 
 - **Security fix (medium):** server paths, disk space and other infrastructure detail are no

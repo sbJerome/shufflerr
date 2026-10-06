@@ -27,8 +27,8 @@ issueRoutes.get<Record<string, string>, IssueResultsResponse>(
     { type: 'or' }
   ),
   async (req, res, next) => {
-    const pageSize = req.query.take ? Number(req.query.take) : 10;
-    const skip = req.query.skip ? Number(req.query.skip) : 0;
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.take) || 10));
+    const skip = Math.max(0, Number(req.query.skip) || 0);
     const createdBy = req.query.createdBy ? Number(req.query.createdBy) : null;
 
     let sortFilter: string;
