@@ -46,7 +46,7 @@ spec:
       # The runtime image runs as uid 10001; make the state hostPath writable.
       initContainers:
         - name: init-state-perms
-          image: localhost/shufflerr-verifier:0.1.0
+          image: localhost/shufflerr-verifier:0.1.1
           imagePullPolicy: Never
           command: ["/bin/sh", "-c", "mkdir -p /state && chown -R 10001:10001 /state"]
           securityContext:
@@ -56,7 +56,7 @@ spec:
               name: verifier-state
       containers:
         - name: verifier
-          image: localhost/shufflerr-verifier:0.1.0
+          image: localhost/shufflerr-verifier:0.1.1
           imagePullPolicy: Never
           env:
             - name: TZ

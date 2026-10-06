@@ -98,18 +98,18 @@ fn parse_tracks(json: &str) -> Result<Vec<LidarrTrack>> {
 }
 
 /// Turn a `/manualimport` candidate into the file object the `ManualImport`
-/// command expects. Returns `None` if the candidate has rejections or is
-/// missing the identifiers Lidarr needs to file it.
+/// command expects. Returns `None` only when the candidate lacks the
+/// identifiers Lidarr needs to file it (artist/album/release/tracks).
+///
+/// Lidarr's manual-import `rejections` are deliberately IGNORED here: they are
+/// advisory warnings for the interactive UI (e.g. "Has missing tracks" on a
+/// partial album, quality/cutoff notes), not hard errors. This sidecar is the
+/// authority — the file has already passed identity + specs + transcode
+/// verification — so a verifier-approved release is imported regardless of
+/// Lidarr's own conservative judgement, which is the entire point of bypassing
+/// its auto-import. A candidate that genuinely cannot be mapped (no artist,
+/// album, release or track ids) is still skipped below.
 pub fn build_import_file(candidate: &Value) -> Option<Value> {
-    let rejections = candidate
-        .get("rejections")
-        .and_then(|r| r.as_array())
-        .map(|a| a.len())
-        .unwrap_or(0);
-    if rejections > 0 {
-        return None;
-    }
-
     let path = candidate.get("path").and_then(|v| v.as_str())?;
     let artist_id = candidate
         .get("artist")
@@ -365,14 +365,28 @@ mod tests {
     }
 
     #[test]
-    fn rejects_candidate_with_rejections() {
+    fn imports_despite_advisory_rejections_when_mapping_present() {
+        // Lidarr's manual-import rejections (e.g. "Has missing tracks") are
+        // advisory; a verifier-approved, fully-mapped candidate is imported.
         let candidate = json!({
             "path": "/x/01.flac",
             "artist": { "id": 5 },
             "album": { "id": 10 },
             "albumReleaseId": 99,
             "tracks": [ { "id": 100 } ],
-            "rejections": [ { "reason": "Unknown artist" } ]
+            "quality": { "quality": { "id": 6, "name": "FLAC" } },
+            "rejections": [ { "reason": "Has missing tracks" } ]
+        });
+        let file = build_import_file(&candidate).expect("should still build");
+        assert_eq!(file["trackIds"], json!([100]));
+    }
+
+    #[test]
+    fn skips_candidate_with_no_mapping() {
+        // Truly unmappable (e.g. unknown artist): no ids to file it under.
+        let candidate = json!({
+            "path": "/x/01.flac",
+            "rejections": [ { "reason": "Unknown Artist" } ]
         });
         assert!(build_import_file(&candidate).is_none());
     }
