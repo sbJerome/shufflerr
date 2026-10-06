@@ -1,0 +1,27 @@
+[package]
+name = "shufflerr-verifier"
+version = "0.1.0"
+edition = "2021"
+description = "Shufflerr audio-verification sidecar: verifies Lidarr downloads (ffprobe + Chromaprint/AcoustID + spectral transcode detection) and drives Lidarr's manual import on a pass."
+license = "AGPL-3.0-only"
+
+[[bin]]
+name = "shufflerr-verifier"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "process", "fs", "signal", "time", "sync"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+symphonia = { version = "0.5.4", default-features = false, features = ["flac", "mp3", "aac", "isomp4", "ogg", "vorbis", "wav", "alac", "pcm"] }
+rustfft = "6.2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

@@ -108,6 +108,25 @@ The database schema is created and upgraded by migrations at start-up.
 
 `config/settings.json` holds API keys and the server secret; it is written with mode `0600`.
 
+## Audio-verification sidecar (optional)
+
+`verifier/` is a separate Rust service that verifies completed downloads before they enter the
+library. For each finished download it inspects the technical specs (`ffprobe`), confirms the
+recording's acoustic fingerprint against the expected release (Chromaprint + AcoustID) and
+runs a spectral check for transcoded / fake-lossless files. Any failed check hard-rejects the
+release; a clean release is filed via the downloader's manual-import API (so the downloader
+still handles tagging, renaming and artwork), while a failed one is removed and blocklisted so a
+better copy is sought. This sidesteps the downloader's unreliable auto-import threshold, and the
+downloader's own quality-upgrade behaviour (e.g. replacing an MP3 with a later FLAC) is
+preserved — the sidecar never overrides tier selection, it only authenticates what was grabbed.
+
+It has its own container image and runs independently of the web app. Key settings (all via the
+environment): `LIDARR_URL`, `LIDARR_API_KEY`, `ACOUSTID_API_KEY`, `COMPLETED_ROOT` (the
+read-only mount of the completed-downloads folder) and `DRY_RUN` (defaults to `true` — verify
+and log verdicts without importing or deleting). See `verifier/README.md` for the full gate and
+tunables, and `k8s/shufflerr-verifier.yaml` for an example deployment. Turn off the downloader's
+Completed Download Handling when running it so the sidecar owns the import step.
+
 ## Development
 
 ```bash
