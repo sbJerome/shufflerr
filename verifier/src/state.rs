@@ -22,6 +22,12 @@ pub struct ProcessedRecord {
 pub struct State {
     #[serde(default)]
     processed: HashMap<String, ProcessedRecord>,
+    /// How many distinct downloads we have rejected for a given Lidarr album id.
+    /// Used to bound blocklist→re-search churn: once every available release for
+    /// an album keeps failing verification, we stop asking Lidarr to grab yet
+    /// another copy. Keyed by album id as a string.
+    #[serde(default)]
+    album_rejects: HashMap<String, u32>,
     #[serde(skip)]
     path: PathBuf,
 }
@@ -47,6 +53,7 @@ impl State {
         } else {
             Ok(State {
                 processed: HashMap::new(),
+                album_rejects: HashMap::new(),
                 path,
             })
         }
@@ -73,6 +80,19 @@ impl State {
     /// re-used by a future download without growing the file unbounded.
     pub fn forget(&mut self, download_id: &str) {
         self.processed.remove(download_id);
+    }
+
+    /// Record a rejection for an album and return the running count. Album ids
+    /// <= 0 (unknown/unmapped) are not tracked and return `u32::MAX`, so the
+    /// caller treats them as already past the re-search cap (no point asking
+    /// Lidarr to re-grab something it cannot even map).
+    pub fn record_album_reject(&mut self, album_id: i64) -> u32 {
+        if album_id <= 0 {
+            return u32::MAX;
+        }
+        let entry = self.album_rejects.entry(album_id.to_string()).or_insert(0);
+        *entry = entry.saturating_add(1);
+        *entry
     }
 
     pub fn known_ids(&self) -> Vec<String> {
@@ -132,5 +152,29 @@ mod tests {
         assert!(s.is_processed("ABC"));
         s.forget("ABC");
         assert!(!s.is_processed("ABC"));
+    }
+
+    #[test]
+    fn album_reject_count_increments_and_persists() {
+        let dir = std::env::temp_dir().join(format!("shufflerr-verifier-ar-{}", now_secs()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let dir_str = dir.to_str().unwrap();
+        {
+            let mut s = State::load(dir_str).unwrap();
+            assert_eq!(s.record_album_reject(42), 1);
+            assert_eq!(s.record_album_reject(42), 2);
+            assert_eq!(s.record_album_reject(7), 1);
+            s.save().unwrap();
+        }
+        let mut s2 = State::load(dir_str).unwrap();
+        assert_eq!(s2.record_album_reject(42), 3); // persisted across reload
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn unmapped_album_is_past_cap() {
+        let mut s = State::default();
+        assert_eq!(s.record_album_reject(0), u32::MAX);
+        assert_eq!(s.record_album_reject(-1), u32::MAX);
     }
 }

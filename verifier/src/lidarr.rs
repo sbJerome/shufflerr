@@ -264,14 +264,21 @@ impl Lidarr {
 
     /// Remove a download from the queue, from the client, and blocklist it so
     /// the same bad release is not grabbed again.
-    pub async fn remove_and_blocklist(&self, queue_id: i64) -> Result<()> {
+    ///
+    /// `research` controls whether Lidarr immediately searches for a replacement
+    /// (`skipRedownload=false`) or just blocklists without re-grabbing
+    /// (`skipRedownload=true`). The caller caps re-search per album so that an
+    /// album whose every release keeps failing verification does not churn
+    /// through blocklist→re-search→re-grab forever.
+    pub async fn remove_and_blocklist(&self, queue_id: i64, research: bool) -> Result<()> {
+        let skip_redownload = if research { "false" } else { "true" };
         self.client
             .delete(self.url(&format!("queue/{queue_id}")))
             .header("X-Api-Key", &self.api_key)
             .query(&[
                 ("removeFromClient", "true"),
                 ("blocklist", "true"),
-                ("skipRedownload", "false"),
+                ("skipRedownload", skip_redownload),
             ])
             .send()
             .await

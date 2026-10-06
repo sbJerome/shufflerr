@@ -6,6 +6,18 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.24] - 2026-10-06
+
+### Fixed
+
+- **Verifier re-search churn (sidecar 0.1.2).** When a rejected release was blocklisted, the
+  sidecar always asked the downloader to search for a replacement. For an item whose every
+  available release fails verification, that produced an endless blocklist → re-search →
+  re-grab → reject loop (burning bandwidth and inflating the blocklist). The sidecar now caps
+  re-search per album: after a small number of rejected releases for the same album, further
+  rejects still blocklist the bad release but no longer trigger a re-grab, so the process
+  converges. The per-album count is tracked in the sidecar's durable state.
+
 ## [0.1.23] - 2026-10-06
 
 ### Fixed
