@@ -88,7 +88,6 @@ export interface ManageSlideOverProps {
 }
 
 const linkTypes: ExternalLink['type'][] = [
-  'lidarr',
   'plex',
   'jellyfin',
   'navidrome',

@@ -3,7 +3,6 @@ import type { ExternalLink } from '@server/models/music';
 /** Product names for external links. Names only — no third-party logos. */
 export const LINK_NAMES: Partial<Record<ExternalLink['type'], string>> = {
   musicbrainz: 'MusicBrainz',
-  lidarr: 'Lidarr',
   plex: 'Plex',
   jellyfin: 'Jellyfin',
   navidrome: 'Navidrome',
@@ -19,7 +18,6 @@ export const SERVER_LINKS: ExternalLink['type'][] = [
   'plex',
   'jellyfin',
   'navidrome',
-  'lidarr',
 ];
 
 export const hostOf = (url: string): string => {

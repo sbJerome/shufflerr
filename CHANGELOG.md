@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-10-06
+
+### Changed
+
+- Removed the "open in Lidarr" link from the album, artist and manage views. Lidarr runs on an
+  internal address that does not resolve from outside the network, so the link was dead for
+  anyone reaching the site over the public hostname. The "Remove from Lidarr" actions and the
+  Lidarr details (quality, metadata profile, folder) are unchanged.
+
 ## [0.1.18] - 2026-10-06
 
 ### Fixed
@@ -298,7 +307,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.18...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/sbJerome/shufflerr/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/sbJerome/shufflerr/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/sbJerome/shufflerr/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/sbJerome/shufflerr/compare/v0.1.15...v0.1.16

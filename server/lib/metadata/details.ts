@@ -73,18 +73,6 @@ const lidarrServer = (id?: number | null): LidarrSettings | undefined => {
   return servers.find((s) => s.isDefault && !s.isHiRes) ?? servers[0];
 };
 
-const lidarrBaseUrl = (server: LidarrSettings): string => {
-  const defaultPort = server.useSsl ? 443 : 80;
-  const port = Number(server.port) === defaultPort ? '' : `:${server.port}`;
-  return `${server.useSsl ? 'https' : 'http'}://${server.hostname}${port}${
-    server.baseUrl ?? ''
-  }`;
-};
-
-/** Address a person can open (the configured external URL when set). */
-const lidarrWebUrl = (server: LidarrSettings): string =>
-  (server.externalUrl || lidarrBaseUrl(server)).replace(/\/+$/, '');
-
 const requestsVisibleTo = (
   requests: MediaRequest[],
   user?: User
@@ -220,18 +208,6 @@ export const getAlbumDetails = async (
       url: `${musicBrainzSite()}/release-group/${media.mbid}`,
     },
   ];
-  const server =
-    media.lidarrAlbumId !== null && media.lidarrAlbumId !== undefined
-      ? lidarrServer(media.lidarrServerId)
-      : undefined;
-  if (server && canSeeAllRequests(user)) {
-    links.push({
-      type: 'lidarr',
-      url: `${lidarrWebUrl(server)}/album/${media.mbid}`,
-      label: server.name,
-    });
-  }
-
   const discs = new Set(
     tracks.filter((t) => t.discNumber > 0).map((t) => t.discNumber)
   );
@@ -262,7 +238,7 @@ export const getAlbumDetails = async (
     lidarr:
       media.lidarrAlbumId !== null && media.lidarrAlbumId !== undefined
         ? {
-            serverId: media.lidarrServerId ?? server?.id ?? 0,
+            serverId: media.lidarrServerId ?? 0,
             albumId: media.lidarrAlbumId,
             artistId: media.lidarrArtistId ?? null,
             monitored: await lidarrAlbumMonitored(media),
@@ -483,17 +459,6 @@ export const getArtistDetails = async (
     { type: 'musicbrainz', url: `${musicBrainzSite()}/artist/${mbid}` },
     ...mapUrlRelations(artist.relations),
   ];
-  if (lidarr && canSeeAllRequests(user)) {
-    const server = lidarrServer(lidarr.serverId);
-    if (server) {
-      links.push({
-        type: 'lidarr',
-        url: `${lidarrWebUrl(server)}/artist/${mbid}`,
-        label: server.name,
-      });
-    }
-  }
-
   const span = artist['life-span'];
 
   return {
