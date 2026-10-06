@@ -62,6 +62,20 @@ pub struct Config {
     /// AcoustID client string sent as the `client` parameter (the API key).
     /// Kept separate so it can be logged safely if it ever diverges.
     pub acoustid_endpoint: String,
+
+    /// Direct-submit bypass: when enabled, the sidecar selects releases itself
+    /// and submits them STRAIGHT to the download client (bypassing Lidarr's
+    /// release matcher, which refuses releases it cannot map). Lidarr is left to
+    /// do only tag/rename on manual-import. Default off (safe).
+    pub direct_grab: bool,
+    /// Optional HTTP endpoint returning `{"enabled": bool}` that toggles
+    /// `direct_grab` at runtime (polled each cycle). Lets Shufflerr own the
+    /// on/off switch. When unset, `direct_grab` is used as-is.
+    pub direct_grab_config_url: Option<String>,
+    /// How long (seconds) to treat an album as "already grabbed" after a direct
+    /// submit, so the same album is not submitted again every cycle while its
+    /// download is still in flight.
+    pub grab_cooldown_secs: u64,
 }
 
 fn env_opt(key: &str) -> Option<String> {
@@ -131,6 +145,9 @@ impl Config {
             fpcalc_bin: env_opt("FPCALC_BIN").unwrap_or_else(|| "fpcalc".to_string()),
             acoustid_endpoint: env_opt("ACOUSTID_ENDPOINT")
                 .unwrap_or_else(|| "https://api.acoustid.org/v2/lookup".to_string()),
+            direct_grab: env_bool("DIRECT_GRAB", false),
+            direct_grab_config_url: env_opt("DIRECT_GRAB_CONFIG_URL"),
+            grab_cooldown_secs: env_parse::<u64>("GRAB_COOLDOWN_SECS", 3600)?.max(60),
         };
 
         Ok(cfg)
@@ -178,6 +195,9 @@ mod tests {
             ffprobe_bin: "ffprobe".into(),
             fpcalc_bin: "fpcalc".into(),
             acoustid_endpoint: "https://api.acoustid.org/v2/lookup".into(),
+            direct_grab: false,
+            direct_grab_config_url: None,
+            grab_cooldown_secs: 3600,
         }
     }
 

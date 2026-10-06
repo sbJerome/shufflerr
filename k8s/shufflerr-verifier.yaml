@@ -46,7 +46,7 @@ spec:
       # The runtime image runs as uid 10001; make the state hostPath writable.
       initContainers:
         - name: init-state-perms
-          image: localhost/shufflerr-verifier:0.1.2
+          image: localhost/shufflerr-verifier:0.1.3
           imagePullPolicy: Never
           command: ["/bin/sh", "-c", "mkdir -p /state && chown -R 10001:10001 /state"]
           securityContext:
@@ -56,7 +56,7 @@ spec:
               name: verifier-state
       containers:
         - name: verifier
-          image: localhost/shufflerr-verifier:0.1.2
+          image: localhost/shufflerr-verifier:0.1.3
           imagePullPolicy: Never
           env:
             - name: TZ
@@ -76,6 +76,18 @@ spec:
             # Observe-only by default; flip to "false" to let it import/blocklist.
             - name: DRY_RUN
               value: "true"
+            # Direct-grab bypass: Shufflerr selects releases and submits them
+            # straight to the download client (Lidarr only tags/organizes).
+            # The on/off switch lives in Shufflerr settings; the sidecar polls
+            # this endpoint for it. DIRECT_GRAB is the fallback default when the
+            # endpoint is unreachable. Indexers + download clients are read from
+            # Lidarr's own config.
+            - name: DIRECT_GRAB_CONFIG_URL
+              value: http://shufflerr-service.the-arrs/api/v1/verifier/config
+            - name: DIRECT_GRAB
+              value: "false"
+            - name: GRAB_COOLDOWN_SECS
+              value: "3600"
           envFrom:
             - secretRef:
                 name: shufflerr-verifier-secrets

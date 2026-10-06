@@ -184,6 +184,13 @@ export interface MainSettings {
   discographyAlwaysReview: boolean;
   allowTrackRequests: boolean;
   hideAvailable: boolean;
+  /**
+   * When true, the audio-verification sidecar selects releases and submits them
+   * straight to the download client, using Lidarr only to tag/organize on
+   * import (bypassing Lidarr's release matcher). Indexers and download clients
+   * are still configured in Lidarr; Shufflerr reads them from there.
+   */
+  musicDirectGrab: boolean;
   /** Shufflerr accounts (email + password). */
   localLogin: boolean;
   /** Seerr's master switch for media-server sign-in; per-server switches are plex.loginEnabled / jellyfin.loginEnabled. */
@@ -478,6 +485,7 @@ class Settings {
         discographyAlwaysReview: true,
         allowTrackRequests: true,
         hideAvailable: false,
+        musicDirectGrab: false,
         localLogin: true,
         mediaServerLogin: true,
         newPlexLogin: true,

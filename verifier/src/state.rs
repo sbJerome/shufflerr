@@ -28,6 +28,16 @@ pub struct State {
     /// another copy. Keyed by album id as a string.
     #[serde(default)]
     album_rejects: HashMap<String, u32>,
+    /// Direct-submit bypass: download-client id (SAB nzo_id / qBittorrent hash,
+    /// which equals Lidarr's queue `downloadId`) → the Lidarr album id we
+    /// submitted it for. Lets the verifier import a download Lidarr itself
+    /// cannot parse, against the album we know it belongs to.
+    #[serde(default)]
+    grab_map: HashMap<String, i64>,
+    /// Album id → unix seconds of the last direct submit, so the same album is
+    /// not re-submitted every cycle while its download is in flight.
+    #[serde(default)]
+    grabbed_albums: HashMap<String, u64>,
     #[serde(skip)]
     path: PathBuf,
 }
@@ -54,6 +64,8 @@ impl State {
             Ok(State {
                 processed: HashMap::new(),
                 album_rejects: HashMap::new(),
+                grab_map: HashMap::new(),
+                grabbed_albums: HashMap::new(),
                 path,
             })
         }
@@ -97,6 +109,56 @@ impl State {
 
     pub fn known_ids(&self) -> Vec<String> {
         self.processed.keys().cloned().collect()
+    }
+
+    /// Record a direct-submit: map the download-client id to the album it was
+    /// grabbed for, and stamp the album's grab time for the cooldown.
+    pub fn record_grab(&mut self, download_id: &str, album_id: i64) {
+        if !download_id.is_empty() {
+            self.grab_map.insert(download_id.to_string(), album_id);
+        }
+        if album_id > 0 {
+            self.grabbed_albums.insert(album_id.to_string(), now_secs());
+        }
+    }
+
+    /// The album a direct-submitted download was grabbed for, if known. Lidarr's
+    /// own `albumId` is 0/unknown for these (it could not parse them), so this
+    /// mapping is how we still import them against the right album.
+    pub fn mapped_album(&self, download_id: &str) -> Option<i64> {
+        if download_id.is_empty() {
+            return None;
+        }
+        self.grab_map.get(download_id).copied()
+    }
+
+    /// True if this album was direct-submitted within the cooldown window, so we
+    /// should not submit it again yet.
+    pub fn recently_grabbed(&self, album_id: i64, cooldown_secs: u64) -> bool {
+        if album_id <= 0 {
+            return false;
+        }
+        match self.grabbed_albums.get(&album_id.to_string()) {
+            Some(&at) => now_secs().saturating_sub(at) < cooldown_secs,
+            None => false,
+        }
+    }
+
+    /// Drop a grab mapping once its download has left the queue (imported or
+    /// removed), keeping the file bounded.
+    pub fn forget_grab(&mut self, download_id: &str) {
+        self.grab_map.remove(download_id);
+    }
+
+    pub fn grab_ids(&self) -> Vec<String> {
+        self.grab_map.keys().cloned().collect()
+    }
+
+    /// Expire album grab-cooldown stamps older than `cooldown_secs`.
+    pub fn prune_grab_cooldowns(&mut self, cooldown_secs: u64) {
+        let now = now_secs();
+        self.grabbed_albums
+            .retain(|_, &mut at| now.saturating_sub(at) < cooldown_secs);
     }
 
     pub fn save(&self) -> Result<()> {
@@ -176,5 +238,43 @@ mod tests {
         let mut s = State::default();
         assert_eq!(s.record_album_reject(0), u32::MAX);
         assert_eq!(s.record_album_reject(-1), u32::MAX);
+    }
+
+    #[test]
+    fn grab_mapping_roundtrips_and_persists() {
+        let dir = std::env::temp_dir().join(format!("shufflerr-verifier-grab-{}", now_secs()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let dir_str = dir.to_str().unwrap();
+        {
+            let mut s = State::load(dir_str).unwrap();
+            assert!(s.mapped_album("nzo_123").is_none());
+            s.record_grab("nzo_123", 520);
+            assert_eq!(s.mapped_album("nzo_123"), Some(520));
+            assert!(s.recently_grabbed(520, 3600));
+            assert!(!s.recently_grabbed(999, 3600));
+            s.save().unwrap();
+        }
+        let mut s2 = State::load(dir_str).unwrap();
+        assert_eq!(s2.mapped_album("nzo_123"), Some(520)); // persisted
+        assert!(s2.recently_grabbed(520, 3600));
+        s2.forget_grab("nzo_123");
+        assert!(s2.mapped_album("nzo_123").is_none());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn empty_download_id_never_maps() {
+        let mut s = State::default();
+        s.record_grab("", 10);
+        assert!(s.mapped_album("").is_none());
+    }
+
+    #[test]
+    fn cooldown_window_respected() {
+        let mut s = State::default();
+        s.record_grab("x", 5);
+        assert!(s.recently_grabbed(5, 3600));
+        // A zero-length window means nothing is ever "recent".
+        assert!(!s.recently_grabbed(5, 0));
     }
 }

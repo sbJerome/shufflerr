@@ -46,6 +46,9 @@ const messages = defineMessages('components.Settings.SettingsMain', {
   cacheImages: 'Cache album art',
   cacheImagesTip:
     'Stores cover art and artist photos on this server so pages load faster.',
+  musicDirectGrab: 'Direct grab (bypass Lidarr release matching)',
+  musicDirectGrabTip:
+    'When on, Shufflerr selects releases and submits them straight to your download client, and Lidarr is used only to tag and organize the files. Requires your indexers and download clients to be configured in Lidarr.',
   versionCheck: 'Check for updates',
   versionCheckTip: 'Looks for new Shufflerr versions on GitHub.',
   titleRequired: 'Enter an application title.',
@@ -217,6 +220,12 @@ const SettingsMain = () => {
                 description={intl.formatMessage(messages.cacheImagesTip)}
                 checked={!!draft.cacheImages}
                 onChange={(v) => set('cacheImages', v)}
+              />
+              <SwitchRow
+                label={intl.formatMessage(messages.musicDirectGrab)}
+                description={intl.formatMessage(messages.musicDirectGrabTip)}
+                checked={!!draft.musicDirectGrab}
+                onChange={(v) => set('musicDirectGrab', v)}
               />
               <SwitchRow
                 label={intl.formatMessage(messages.versionCheck)}

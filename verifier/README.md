@@ -50,6 +50,9 @@ own *Completed Download Handling* off so the two do not race.
 | `FFPROBE_BIN` | `ffprobe` | ffprobe binary path |
 | `FPCALC_BIN` | `fpcalc` | Chromaprint fpcalc binary path |
 | `ACOUSTID_ENDPOINT` | `https://api.acoustid.org/v2/lookup` | AcoustID lookup endpoint |
+| `DIRECT_GRAB_CONFIG_URL` | — | Shufflerr endpoint polled for the on/off toggle, e.g. `http://shufflerr-service.the-arrs/api/v1/verifier/config` (returns `{"enabled":bool}`) |
+| `DIRECT_GRAB` | `false` | Fallback toggle when the config URL is unset/unreachable |
+| `GRAB_COOLDOWN_SECS` | `3600` | Minimum gap before re-submitting a grab for the same album |
 
 No secret is compiled in; `LIDARR_API_KEY` and `ACOUSTID_API_KEY` are read from
 the environment (a Kubernetes Secret at deploy time) and nowhere else.
@@ -63,6 +66,20 @@ podman build -t shufflerr-verifier:dev .
 ```
 
 The build runs `cargo test --release`, so a failing test fails the image build.
+
+## Direct grab (bypass Lidarr's release matcher)
+
+When enabled, the sidecar stops relying on Lidarr to grab releases (Lidarr
+refuses releases its parser can't match). Instead it reads Lidarr's configured
+**indexers and download clients**, interactive-searches for each monitored
+missing album, picks the best release, and submits it **straight to the download
+client** (SABnzbd/qBittorrent). It records the client's download id → album id,
+so when the completed download shows up (which Lidarr can't parse) the sidecar
+verifies it against the right album and drives a scoped manual-import — Lidarr is
+used only to tag/rename/organize. The on/off switch lives in **Shufflerr
+settings** ("Direct grab"); the sidecar polls `DIRECT_GRAB_CONFIG_URL` for it.
+Per-cycle grab count and `GRAB_COOLDOWN_SECS` bound the activity. Your indexers
+and download clients must be configured in Lidarr — that is where they come from.
 
 ## Mounts
 
