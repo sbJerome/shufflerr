@@ -6,6 +6,14 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-10-06
+
+### Fixed
+
+- Test suite: updated two tests to match the 0.1.17 security behaviour — the sign-in test now
+  expects the generic credential message, and the request-route tests set a real API key (an
+  empty key no longer authenticates). No runtime change.
+
 ## [0.1.17] - 2026-10-06
 
 ### Security
@@ -290,7 +298,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.17...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.18...HEAD
+[0.1.18]: https://github.com/sbJerome/shufflerr/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/sbJerome/shufflerr/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/sbJerome/shufflerr/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/sbJerome/shufflerr/compare/v0.1.14...v0.1.15

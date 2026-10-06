@@ -38,6 +38,9 @@ import serviceRoutes from './service';
 let app: Express;
 
 before(() => {
+  // X-API-Key auth is used to act as a user in these tests; give the harness a
+  // real key (an empty key never authenticates, as in production).
+  getSettings().main.apiKey = 'test-api-key';
   app = express();
   app.use(express.json());
   app.use(checkUser);

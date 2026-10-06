@@ -3,6 +3,10 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.18 — 2026-10-06
+
+- Internal: test fixes following the security hardening. No change to the app itself.
+
 ## v0.1.17 — 2026-10-06
 
 - **Security hardening:** several small fixes — constant-time API-key check, no account

@@ -678,7 +678,9 @@ describe('POST /auth/local', () => {
       .send({ email: 'nobody@shufflerr.test', password: 'test1234' });
 
     assert.strictEqual(res.status, 403);
-    assert.strictEqual(res.body.message, AUTH_MESSAGES.localUnknown);
+    // An unknown email returns the same generic message as a wrong password,
+    // so accounts cannot be enumerated by guessing.
+    assert.strictEqual(res.body.message, AUTH_MESSAGES.localWrongPassword);
   });
 
   it('returns 403 when local login is disabled', async () => {
