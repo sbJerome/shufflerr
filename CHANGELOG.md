@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-10-06
+
+### Fixed
+
+- Follow-up to 0.1.13: the session is now read on the image-proxy mount, so the internal-source
+  access check can tell a signed-in viewer from an anonymous one. Without this, artist photos
+  served from an internal source returned 401 for everyone. Signed-in viewers get those images
+  again; anonymous requests and path traversal stay blocked.
+
 ## [0.1.13] - 2026-10-06
 
 ### Security
@@ -244,7 +253,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.13...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.14...HEAD
+[0.1.14]: https://github.com/sbJerome/shufflerr/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/sbJerome/shufflerr/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/sbJerome/shufflerr/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/sbJerome/shufflerr/compare/v0.1.10...v0.1.11

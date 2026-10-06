@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.14 — 2026-10-06
+
+- **Fix:** artist photos that come from an internal source display again for signed-in users
+  (a regression from the 0.1.13 security fix). The security protections from 0.1.13 are unchanged.
+
 ## v0.1.13 — 2026-10-06
 
 - **Security fix (high):** closed a hole in the image proxy that could be used to reach internal
