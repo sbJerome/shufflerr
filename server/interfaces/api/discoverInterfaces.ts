@@ -51,6 +51,14 @@ export interface DiscoverFeaturedResponse {
 }
 
 export type DiscoverAlbumsResponse = SourcedList<AlbumResult>;
+/**
+ * GET /discover/for-you — album recommendations in the genres the library
+ * already leans on. `results` are albums the library does not hold yet.
+ */
+export type DiscoverForYouResponse = DiscoverAlbumsResponse & {
+  /** The library genres the recommendations are based on (lower-case). */
+  genres: string[];
+};
 export type DiscoverArtistsResponse = SourcedList<ArtistResult>;
 export type DiscoverConcertsResponse = SourcedList<ConcertResult> & {
   /** Provider names to credit under the row. */
