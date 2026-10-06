@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.10 — 2026-10-06
+
+- **Albums placed straight in an artist folder** are now matched through Lidarr too, instead
+  of being guessed by name.
+
 ## v0.1.9 — 2026-10-06
 
 - **Bonus video discs no longer count as missing tracks.** An album that ships with a DVD or

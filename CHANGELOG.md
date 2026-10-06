@@ -6,6 +6,14 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-10-06
+
+### Fixed
+
+- Albums whose files sit directly in the artist folder (no album subfolder) were not identified
+  through Lidarr, so the scan fell back to a name search and could attach them to the wrong
+  MusicBrainz release. The Lidarr lookup now accepts both folder shapes.
+
 ## [0.1.9] - 2026-10-06
 
 ### Fixed
@@ -202,7 +210,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/sbJerome/shufflerr/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/sbJerome/shufflerr/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/sbJerome/shufflerr/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/sbJerome/shufflerr/compare/v0.1.6...v0.1.7

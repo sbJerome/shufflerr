@@ -47,8 +47,8 @@ const listArtists = async (
 /**
  * Lidarr knows which MusicBrainz album the files it imported belong to even
  * when their tags do not say. For a local album folder, find the Lidarr album
- * whose files live in a folder of the same name under an artist folder of the
- * same name, and return its ids. Null when Lidarr is off, does not have the
+ * whose files live in a folder of the same name (under an artist folder of the
+ * same name, or directly in the artist folder), and return its ids. Null when Lidarr is off, does not have the
  * folder, or cannot be reached. Never throws.
  */
 export const lidarrHintForFolder = async (
@@ -65,9 +65,11 @@ export const lidarrHintForFolder = async (
     try {
       const api = LidarrAPI.fromSettings(server);
       const artists = await listArtists(server, api);
-      const artist = artists.find(
-        (a) => !!a.path && folderName(a.path) === artistFolder
-      );
+      // Files usually sit in <artist>/<album>/, but a hand-placed album can sit
+      // straight in the artist folder; accept either shape.
+      const artist =
+        artists.find((a) => !!a.path && folderName(a.path) === artistFolder) ??
+        artists.find((a) => !!a.path && folderName(a.path) === albumFolder);
       if (!artist?.id) {
         continue;
       }
