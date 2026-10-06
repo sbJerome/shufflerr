@@ -5,6 +5,8 @@ import Track from '@server/entity/Track';
 import { ensureMedia } from '@server/lib/metadata';
 import logger from '@server/logger';
 import { recomputeReleaseGroup } from './availability';
+import type { LidarrFolderHint } from './lidarrHints';
+import { lidarrHintForFolder, withLidarrHint } from './lidarrHints';
 import { matchTracks } from './matching';
 import type { MusicBrainzGateway } from './resolver';
 import {
@@ -20,6 +22,8 @@ const LABEL = 'Library';
 export interface IngestDeps {
   gateway?: MusicBrainzGateway;
   ensure?: typeof ensureMedia;
+  /** Lidarr folder lookup for tag-less local albums; `false` turns it off (tests). */
+  lidarrHint?: ((folder: string) => Promise<LidarrFolderHint | null>) | false;
 }
 
 /** Serialises library writes: SQLite has one writer and MusicBrainz one request per second. */
@@ -199,9 +203,28 @@ const fitEdition = async (
  * Media row and canonical tracklist exist, and attach the tracks.
  */
 export const ingestAlbum = async (
-  album: ScannedAlbum,
+  scanned: ScannedAlbum,
   deps: IngestDeps = {}
 ): Promise<IngestOutcome & { apply?: ApplyResult }> => {
+  let album = scanned;
+  // Files Lidarr imported often carry no MusicBrainz ids in their tags, but
+  // Lidarr knows exactly which album they are: ask it before guessing by name.
+  if (
+    album.source === 'local' &&
+    album.localPath &&
+    !album.releaseGroupMbid &&
+    !album.releaseMbid &&
+    !album.ambiguousMbid &&
+    deps.lidarrHint !== false
+  ) {
+    const hint = await (deps.lidarrHint ?? lidarrHintForFolder)(
+      album.localPath
+    );
+    if (hint) {
+      album = withLidarrHint(album, hint);
+    }
+  }
+
   let resolution;
   try {
     resolution = await resolveReleaseGroup(album, deps.gateway);

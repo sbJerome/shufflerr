@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.8 — 2026-10-06
+
+- **Finished downloads now show as available.** When Lidarr finishes an album whose files have
+  no MusicBrainz tags, Shufflerr asks Lidarr which album it is instead of guessing from the
+  title, so the album and its request update as soon as the files are scanned.
+- **"Run now" on the local-files scan** retries folders that could not be identified before.
+
 ## v0.1.7 — 2026-10-06
 
 - **Requests for new artists now actually search.** When you requested an album by an artist

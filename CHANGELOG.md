@@ -6,6 +6,19 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-10-06
+
+### Fixed
+
+- Albums downloaded by Lidarr could stay "Downloading" after the files arrived. Files Lidarr
+  imports often carry no MusicBrainz ids in their tags, and when the tagged title also differs
+  from the MusicBrainz title the local scan could not identify the folder and left it unresolved.
+  The scanner now asks Lidarr which album a folder belongs to (matching the artist and album
+  folder names against Lidarr's track files) and uses its release-group, edition and per-file
+  recording ids before falling back to a name search (`server/lib/library/lidarrHints.ts`).
+- "Run now" on the local-files scan retries folders that were left unresolved instead of
+  waiting for the weekly retry.
+
 ## [0.1.7] - 2026-10-06
 
 ### Fixed
@@ -180,7 +193,9 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/sbJerome/shufflerr/compare/v0.1.7...v0.1.8
+[0.1.7]: https://github.com/sbJerome/shufflerr/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/sbJerome/shufflerr/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/sbJerome/shufflerr/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/sbJerome/shufflerr/compare/v0.1.3...v0.1.4
