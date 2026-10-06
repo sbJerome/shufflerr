@@ -1,6 +1,7 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import useRequestText from '@app/components/RequestList/requestText';
 import StatusBadge from '@app/components/StatusBadge';
+import { isDownloading } from '@app/utils/status';
 import type { RequestResult } from '@server/interfaces/api/requestInterfaces';
 
 interface RequestBlockProps {
@@ -40,7 +41,10 @@ const RequestBlock = ({ request }: RequestBlockProps) => {
           <span className="sh-feat">{request.lastChange}</span>
         )}
       </span>
-      <StatusBadge requestStatus={request.status} />
+      <StatusBadge
+        requestStatus={request.status}
+        downloading={isDownloading(request)}
+      />
     </div>
   );
 };

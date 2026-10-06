@@ -17,6 +17,7 @@ export const statusMessages = defineMessages('components.StatusBadge', {
   notinlibrary: 'Not in library',
   waiting: 'Waiting for approval',
   downloading: 'Downloading',
+  requested: 'Requested',
   approveddownloading: 'Approved, downloading',
   partlyavailable: 'Partly available',
   available: 'Available',
@@ -34,14 +35,25 @@ type Msg = (typeof statusMessages)[keyof typeof statusMessages];
 
 export const toneColor = (tone: StatusTone): string => `var(--st-${tone})`;
 
+/**
+ * `downloading` says whether Lidarr's queue really holds the item right now
+ * (request `downloadProgress` is a number). An approved request that Lidarr
+ * has not started is "Requested", never "Downloading".
+ */
 export const mediaStatusInfo = (
-  status?: MediaStatus | null
+  status?: MediaStatus | null,
+  downloading = false
 ): { tone: StatusTone; message: Msg } => {
   switch (status) {
     case MediaStatus.PENDING:
       return { tone: 'pending', message: statusMessages.waiting };
     case MediaStatus.PROCESSING:
-      return { tone: 'processing', message: statusMessages.downloading };
+      return {
+        tone: 'processing',
+        message: downloading
+          ? statusMessages.downloading
+          : statusMessages.requested,
+      };
     case MediaStatus.PARTIALLY_AVAILABLE:
       return { tone: 'partial', message: statusMessages.partlyavailable };
     case MediaStatus.AVAILABLE:
@@ -57,13 +69,16 @@ export const mediaStatusInfo = (
 };
 
 export const requestStatusInfo = (
-  status?: MediaRequestStatus | null
+  status?: MediaRequestStatus | null,
+  downloading = false
 ): { tone: StatusTone; message: Msg } => {
   switch (status) {
     case MediaRequestStatus.APPROVED:
       return {
         tone: 'processing',
-        message: statusMessages.approveddownloading,
+        message: downloading
+          ? statusMessages.downloading
+          : statusMessages.requested,
       };
     case MediaRequestStatus.DECLINED:
       return { tone: 'declined', message: statusMessages.declined };
@@ -76,3 +91,14 @@ export const requestStatusInfo = (
       return { tone: 'pending', message: statusMessages.waiting };
   }
 };
+
+/** Lidarr's queue holds the request right now (download sync wrote a progress figure). */
+export const isDownloading = (
+  request?: {
+    status?: MediaRequestStatus | null;
+    downloadProgress?: number | null;
+  } | null
+): boolean =>
+  !!request &&
+  request.status === MediaRequestStatus.APPROVED &&
+  request.downloadProgress != null;

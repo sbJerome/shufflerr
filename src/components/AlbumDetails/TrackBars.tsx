@@ -29,7 +29,8 @@ const messages = defineMessages('components.AlbumDetails.TrackBars', {
 });
 
 const trackState = (
-  track: AlbumTrack
+  track: AlbumTrack,
+  downloading: boolean
 ): {
   tone: StatusTone;
   message: (typeof statusMessages)[keyof typeof statusMessages];
@@ -41,7 +42,12 @@ const trackState = (
     return { tone: 'pending', message: statusMessages.waiting };
   }
   if (track.requestStatus === MediaRequestStatus.APPROVED) {
-    return { tone: 'processing', message: statusMessages.downloading };
+    return {
+      tone: 'processing',
+      message: downloading
+        ? statusMessages.downloading
+        : statusMessages.requested,
+    };
   }
   return { tone: 'declined', message: statusMessages.missing };
 };
@@ -50,10 +56,16 @@ interface TrackBarsProps {
   album: AlbumDetails;
   /** Whether a request already covers the missing tracks. */
   hasActiveRequest: boolean;
+  /** Lidarr's queue holds that request right now. */
+  downloading?: boolean;
 }
 
 /** The tracklist as a stack of bars: play, title, file, length, status, action. */
-const TrackBars = ({ album, hasActiveRequest }: TrackBarsProps) => {
+const TrackBars = ({
+  album,
+  hasActiveRequest,
+  downloading = false,
+}: TrackBarsProps) => {
   const intl = useIntl();
   const { hasPermission } = useUser();
   const { currentSettings } = useSettings();
@@ -72,7 +84,7 @@ const TrackBars = ({ album, hasActiveRequest }: TrackBarsProps) => {
   return (
     <ol className="sh-ax-tracks">
       {album.tracks.map((track, index) => {
-        const state = trackState(track);
+        const state = trackState(track, downloading);
         const canPlay = track.playable && !!track.id;
         const missing = track.status !== MediaStatus.AVAILABLE;
         const newDisc =

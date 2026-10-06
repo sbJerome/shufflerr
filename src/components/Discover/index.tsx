@@ -15,6 +15,7 @@ import StatusBadge from '@app/components/StatusBadge';
 import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { isDownloading } from '@app/utils/status';
 import { PlayIcon } from '@heroicons/react/24/outline';
 import { MediaStatus } from '@server/constants/media';
 import type {
@@ -233,7 +234,10 @@ const Discover = () => {
                           {canRequestAlbums && isRequestable(album) ? (
                             <RequestButton album={toModalAlbum(album)} />
                           ) : (
-                            <StatusBadge status={album.status} />
+                            <StatusBadge
+                              status={album.status}
+                              downloading={isDownloading(album.request)}
+                            />
                           )}
                         </span>
                       </li>
@@ -342,7 +346,10 @@ const Discover = () => {
                                     })
                                   : text.ago(request.createdAt)}
                               </span>
-                              <StatusBadge requestStatus={request.status} />
+                              <StatusBadge
+                                requestStatus={request.status}
+                                downloading={isDownloading(request)}
+                              />
                             </div>
                           </div>
                         </article>

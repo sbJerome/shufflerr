@@ -25,7 +25,7 @@ const messages = defineMessages('components.Library.Albums', {
   all: 'All',
   available: 'Available',
   partial: 'Partly available',
-  processing: 'Downloading',
+  processing: 'Requested',
   loaderror:
     'The albums couldn’t be loaded. Check your connection and refresh the page.',
 });

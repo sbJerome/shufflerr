@@ -13,6 +13,7 @@ import StatusBadge from '@app/components/StatusBadge';
 import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { isDownloading } from '@app/utils/status';
 import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
 import type { IssueResultsResponse } from '@server/interfaces/api/issueInterfaces';
 import type {
@@ -239,7 +240,10 @@ const ManageSlideOver = ({
                           src={request.requestedBy.avatar}
                         />
                         <div className="grow">
-                          <StatusBadge requestStatus={request.status} />
+                          <StatusBadge
+                            requestStatus={request.status}
+                            downloading={isDownloading(request)}
+                          />
                           <div className="text-muted">
                             {intl.formatMessage(messages.requestedBy, {
                               scope: scopeLabel(request.scope),

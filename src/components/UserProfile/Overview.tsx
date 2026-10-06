@@ -7,6 +7,7 @@ import {
 } from '@app/components/UserProfile/shared';
 import usePlayer from '@app/hooks/usePlayer';
 import defineMessages from '@app/utils/defineMessages';
+import { isDownloading } from '@app/utils/status';
 import type {
   QuotaResponse,
   QuotaStatus,
@@ -214,7 +215,10 @@ const Overview = () => {
                   <b className="t block">
                     <RequestTitle request={r} />
                   </b>
-                  <StatusBadge requestStatus={r.status} />
+                  <StatusBadge
+                    requestStatus={r.status}
+                    downloading={isDownloading(r)}
+                  />
                 </div>
               </div>
             ))}

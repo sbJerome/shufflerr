@@ -3,11 +3,7 @@
 import { getArtistImages } from '@server/api/fanart';
 import { getItunesChart } from '@server/api/itunes';
 import ListenBrainzAPI from '@server/api/listenbrainz';
-import {
-  MediaRequestStatus,
-  MediaStatus,
-  MediaType,
-} from '@server/constants/media';
+import { MediaStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Event from '@server/entity/Event';
 import Media from '@server/entity/Media';
@@ -122,7 +118,7 @@ const trendingAlbums = async (take: number): Promise<AlbumResult[]> => {
 router.get<never, DiscoverStatsResponse>('/stats', async (_req, res, next) => {
   try {
     const mediaRepository = getRepository(Media);
-    const [albums, artistRow, tracks, approved] = await Promise.all([
+    const [albums, artistRow, tracks] = await Promise.all([
       mediaRepository.count({
         where: {
           mediaType: MediaType.RELEASE_GROUP,
@@ -138,18 +134,14 @@ router.get<never, DiscoverStatsResponse>('/stats', async (_req, res, next) => {
         })
         .getRawOne<{ count: string | number }>(),
       getRepository(Track).count({ where: { status: MediaStatus.AVAILABLE } }),
-      getRepository(MediaRequest).count({
-        where: { status: MediaRequestStatus.APPROVED },
-      }),
     ]);
-    // Prefer what Lidarr is really pulling right now; before the first queue
-    // sync, approved-and-not-finished requests are the honest number.
-    const queued = downloadTracker.getDownloadingCount();
+    // Only what Lidarr's queue really holds right now; an approved request
+    // that Lidarr has not started is not "downloading".
     return res.status(200).json({
       albums,
       artists: Number(artistRow?.count ?? 0),
       tracks,
-      downloading: queued > 0 ? queued : approved,
+      downloading: downloadTracker.getDownloadingCount(),
     });
   } catch (e) {
     return next({ status: 500, message: e.message });

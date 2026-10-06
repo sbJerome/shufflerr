@@ -35,7 +35,7 @@ const messages = defineMessages('components.RequestList', {
   filterlabel: 'Filter by status',
   all: 'All',
   waiting: 'Waiting',
-  downloading: 'Downloading',
+  downloading: 'Approved',
   available: 'Available',
   declined: 'Declined',
   failed: 'Failed',
@@ -50,8 +50,7 @@ const messages = defineMessages('components.RequestList', {
   sortadded: 'Newest first',
   sortmodified: 'Recently changed',
   emptyfilter: 'No requests with this status. Try another filter.',
-  emptyall:
-    'You haven’t requested anything yet. Search for an album to start.',
+  emptyall: 'You haven’t requested anything yet. Search for an album to start.',
   emptyallmanage: 'Nobody has requested anything yet.',
   searchmusic: 'Search music',
   loaderror:
@@ -174,29 +173,34 @@ const RequestList = () => {
         }
         actions={
           quota ? (
-          <div className="sh-box min-w-[240px] px-4 py-3 text-[13px] text-muted">
-            {limitDays === 7
-              ? intl.formatMessage(messages.limit)
-              : intl.formatMessage(messages.limitdays, { days: limitDays })}{' '}
-            {quota.album.limit
-              ? intl.formatMessage(messages.limitalbums, {
-                  remaining: (
-                    <b key="album" className="text-ink">{quota.album.remaining ?? 0}</b>
-                  ),
-                  limit: quota.album.limit,
-                })
-              : intl.formatMessage(messages.unlimitedalbums)}
-            {', '}
-            {quota.track.limit
-              ? intl.formatMessage(messages.limittracks, {
-                  remaining: (
-                    <b key="track" className="text-ink">{quota.track.remaining ?? 0}</b>
-                  ),
-                  limit: quota.track.limit,
-                })
-              : intl.formatMessage(messages.unlimitedtracks)}
-          </div>
-        
+            <div className="sh-box min-w-[240px] px-4 py-3 text-[13px] text-muted">
+              {limitDays === 7
+                ? intl.formatMessage(messages.limit)
+                : intl.formatMessage(messages.limitdays, {
+                    days: limitDays,
+                  })}{' '}
+              {quota.album.limit
+                ? intl.formatMessage(messages.limitalbums, {
+                    remaining: (
+                      <b key="album" className="text-ink">
+                        {quota.album.remaining ?? 0}
+                      </b>
+                    ),
+                    limit: quota.album.limit,
+                  })
+                : intl.formatMessage(messages.unlimitedalbums)}
+              {', '}
+              {quota.track.limit
+                ? intl.formatMessage(messages.limittracks, {
+                    remaining: (
+                      <b key="track" className="text-ink">
+                        {quota.track.remaining ?? 0}
+                      </b>
+                    ),
+                    limit: quota.track.limit,
+                  })
+                : intl.formatMessage(messages.unlimitedtracks)}
+            </div>
           ) : undefined
         }
       />

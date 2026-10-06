@@ -11,6 +11,7 @@ import {
 import StatusBadge from '@app/components/StatusBadge';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { isDownloading } from '@app/utils/status';
 import type { MediaRequestStatus } from '@server/constants/media';
 import { MediaStatus } from '@server/constants/media';
 import type { AlbumResult } from '@server/models/music';
@@ -246,9 +247,13 @@ const Discography = ({ releases }: DiscographyProps) => {
                         requestStatus={
                           release.request.status as MediaRequestStatus
                         }
+                        downloading={isDownloading(release.request)}
                       />
                     ) : (
-                      <StatusBadge status={release.status} />
+                      <StatusBadge
+                        status={release.status}
+                        downloading={isDownloading(release.request)}
+                      />
                     )}
                   </span>
                   <span role="cell" className="actions">

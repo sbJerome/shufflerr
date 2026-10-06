@@ -5,12 +5,13 @@ import Modal from '@app/components/Common/Modal';
 import ProgressBar from '@app/components/Common/ProgressBar';
 import CoverArt from '@app/components/CoverArt';
 import usePlayback from '@app/components/Playback';
-import { revalidateMusic } from '@app/components/RequestModal';
 import useRequestText from '@app/components/RequestList/requestText';
+import { revalidateMusic } from '@app/components/RequestModal';
 import StatusBadge from '@app/components/StatusBadge';
 import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { isDownloading } from '@app/utils/status';
 import { MediaRequestStatus, MediaType } from '@server/constants/media';
 import type { RequestResult } from '@server/interfaces/api/requestInterfaces';
 import axios from 'axios';
@@ -178,7 +179,10 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
         />
       </span>
     );
-  } else if (request.status === MediaRequestStatus.FAILED && request.canManage) {
+  } else if (
+    request.status === MediaRequestStatus.FAILED &&
+    request.canManage
+  ) {
     actions = (
       <Button
         buttonSize="sm"
@@ -260,7 +264,10 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
         {request.lastChange}
       </span>
       <span role="cell">
-        <StatusBadge requestStatus={request.status} />
+        <StatusBadge
+          requestStatus={request.status}
+          downloading={isDownloading(request)}
+        />
       </span>
       <span role="cell" className="actions">
         {actions}

@@ -2,6 +2,7 @@
 import CoverArt from '@app/components/CoverArt';
 import useRequestText from '@app/components/RequestList/requestText';
 import StatusBadge from '@app/components/StatusBadge';
+import { isDownloading } from '@app/utils/status';
 import { MediaType } from '@server/constants/media';
 import type { RequestResult } from '@server/interfaces/api/requestInterfaces';
 import Link from 'next/link';
@@ -47,7 +48,10 @@ const RequestCard = ({ request, showRequester = false }: RequestCardProps) => {
             .join(', ')}
         </div>
       </div>
-      <StatusBadge requestStatus={request.status} />
+      <StatusBadge
+        requestStatus={request.status}
+        downloading={isDownloading(request)}
+      />
     </div>
   );
 };
