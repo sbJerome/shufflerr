@@ -132,6 +132,7 @@ class ImageProxy {
   private axios: AxiosInstance;
   private cacheVersion;
   private key;
+  private baseUrl: string;
 
   constructor(
     key: string,
@@ -144,6 +145,7 @@ class ImageProxy {
   ) {
     this.cacheVersion = options.cacheVersion ?? 1;
     this.key = key;
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.axios = axios.create({
       baseURL: baseUrl,
       headers: options.headers,
@@ -259,11 +261,29 @@ class ImageProxy {
     return null;
   }
 
+  /**
+   * Defense in depth: the resolved upstream URL must stay within this source's
+   * base URL (same origin, same path prefix). Anything that would escape — a
+   * traversal that slipped past the route, or an odd path from a future caller
+   * — is refused before any request is made.
+   */
+  private assertWithinBase(path: string): void {
+    const base = new URL(`${this.baseUrl}/`);
+    const resolved = new URL(path.replace(/^\/+/, ''), base);
+    if (
+      resolved.origin !== base.origin ||
+      !resolved.pathname.startsWith(base.pathname.replace(/\/$/, ''))
+    ) {
+      throw new Error('Image path escaped the source base URL');
+    }
+  }
+
   private async set(
     path: string,
     cacheKey: string
   ): Promise<ImageResponse | null> {
     try {
+      this.assertWithinBase(path);
       const directory = join(this.getCacheDirectory(), cacheKey);
       const response = await this.axios.get(path, {
         responseType: 'arraybuffer',
