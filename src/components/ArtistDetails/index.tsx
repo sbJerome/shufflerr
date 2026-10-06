@@ -159,12 +159,8 @@ const ArtistDetails = () => {
     }
   };
 
-  const serverLinks = artist.links.filter(
-    (l) => SERVER_LINKS.includes(l.type) && l.type !== 'lidarr'
-  );
-  const otherLinks = artist.links.filter(
-    (l) => !SERVER_LINKS.includes(l.type) || l.type === 'lidarr'
-  );
+  const serverLinks = artist.links.filter((l) => SERVER_LINKS.includes(l.type));
+  const otherLinks = artist.links.filter((l) => !SERVER_LINKS.includes(l.type));
   const openIn = (name: string) =>
     intl.formatMessage(messages.openin, { name });
 

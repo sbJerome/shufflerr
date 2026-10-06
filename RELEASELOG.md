@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.19 — 2026-10-06
+
+- Dropped the "open in Lidarr" link from album and artist pages — it pointed at an internal
+  address that does not work from outside the network.
+
 ## v0.1.18 — 2026-10-06
 
 - Internal: test fixes following the security hardening. No change to the app itself.
