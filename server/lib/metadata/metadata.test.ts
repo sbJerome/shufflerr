@@ -10,7 +10,11 @@ import {
   pickCanonicalRelease,
   releaseTrackCount,
 } from '@server/lib/metadata/canonical';
-import { flattenRelease, isMbid } from '@server/lib/metadata/index';
+import {
+  flattenRelease,
+  isMbid,
+  isVideoMedium,
+} from '@server/lib/metadata/index';
 import {
   bestReleaseGroupOf,
   creditString,
@@ -136,6 +140,40 @@ describe('pickCanonicalRelease', () => {
 });
 
 describe('flattenRelease', () => {
+  it('skips video mediums such as a bonus Blu-ray or DVD', () => {
+    const release = {
+      id: 'rel',
+      title: 'Album',
+      media: [
+        {
+          position: 1,
+          format: 'CD',
+          tracks: [
+            { id: 't1', position: 1, number: '1', title: 'One' },
+            { id: 't2', position: 2, number: '2', title: 'Two' },
+          ],
+        },
+        {
+          position: 2,
+          format: 'Blu-ray',
+          tracks: [{ id: 'v1', position: 1, number: '1', title: 'Film' }],
+        },
+      ],
+    } as unknown as MbRelease;
+    const tracks = flattenRelease(release);
+    assert.equal(tracks.length, 2);
+    // a single audio disc left: plain numbering, not "1-01"
+    assert.deepEqual(
+      tracks.map((t) => t.position),
+      ['01', '02']
+    );
+    assert.equal(isVideoMedium({ format: 'DVD-Video' }), true);
+    assert.equal(isVideoMedium({ format: 'DVD-Audio' }), false);
+    assert.equal(isVideoMedium({ format: 'DualDisc' }), false);
+    assert.equal(isVideoMedium({ format: 'Digital Media' }), false);
+    assert.equal(isVideoMedium({ format: null }), false);
+  });
+
   it('turns the recorded CTRL ESCAPE release into 13 numbered tracks', () => {
     const tracks = flattenRelease(
       fixture<MbRelease>('musicbrainz/release-ctrl-escape.json')

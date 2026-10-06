@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-10-06
+
+### Fixed
+
+- Editions with a bonus video disc (DVD, Blu-ray) counted the video items as tracks, so an
+  album whose audio was complete showed "Partly available" and its request never completed.
+  Video mediums are now left out of the canonical tracklist, as Lidarr does
+  (`isVideoMedium` in `server/lib/metadata/index.ts`). DVD-Audio and DualDisc still count.
+
 ## [0.1.8] - 2026-10-06
 
 ### Fixed
@@ -193,7 +202,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/sbJerome/shufflerr/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/sbJerome/shufflerr/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/sbJerome/shufflerr/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/sbJerome/shufflerr/compare/v0.1.5...v0.1.6

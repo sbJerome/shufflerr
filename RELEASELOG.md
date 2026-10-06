@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.9 — 2026-10-06
+
+- **Bonus video discs no longer count as missing tracks.** An album that ships with a DVD or
+  Blu-ray is complete once its audio tracks are in the library.
+
 ## v0.1.8 — 2026-10-06
 
 - **Finished downloads now show as available.** When Lidarr finishes an album whose files have

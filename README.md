@@ -25,7 +25,7 @@ folders — marks it available.
   Gotify and ntfy.
 - **Issues, a manage panel and a blocklist** for albums and artists.
 
-> Version 0.1.8. [RELEASELOG.md](RELEASELOG.md) says what is in it in plain words;
+> Version 0.1.9. [RELEASELOG.md](RELEASELOG.md) says what is in it in plain words;
 > [CHANGES.md](CHANGES.md) records how it was built, what was verified against real services
 > and what was tested with recorded responses only.
 
@@ -34,7 +34,7 @@ folders — marks it available.
 ### Docker
 
 The image is published at `ghcr.io/sbjerome/shufflerr` (tags `latest` and the version, for
-example `0.1.8`):
+example `0.1.9`):
 
 ```bash
 docker run -d --name shufflerr \
