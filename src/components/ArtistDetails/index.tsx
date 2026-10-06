@@ -43,7 +43,7 @@ const messages = defineMessages('components.ArtistDetails', {
   openin: 'Open in {name}',
   factreleases: 'Releases',
   factinlibrary: 'In library',
-  factdownloading: 'Downloading',
+  factdownloading: 'Requested',
   factalbums: 'Albums',
   about: 'About',
   nobio: 'No biography is available for this artist.',

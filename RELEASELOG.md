@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.11 — 2026-10-06
+
+- **"Downloading" means downloading.** An approved request now shows as "Requested" until
+  Lidarr is actually pulling it, everywhere in the app.
+
 ## v0.1.10 — 2026-10-06
 
 - **Albums placed straight in an artist folder** are now matched through Lidarr too, instead

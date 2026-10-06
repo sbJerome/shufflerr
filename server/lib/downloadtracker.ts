@@ -173,7 +173,10 @@ class DownloadTracker {
           continue;
         }
 
-        let progress: number | null = request.downloadProgress ?? null;
+        // A progress figure means "Lidarr's queue holds it right now"; when
+        // the queue no longer does, clear it so the UI says "Requested" again
+        // (a finished grab becomes COMPLETED once the files are scanned).
+        let progress: number | null = null;
         if (live.length > 0) {
           const size = live.reduce((sum, item) => sum + item.size, 0);
           const sizeLeft = live.reduce((sum, item) => sum + item.sizeLeft, 0);

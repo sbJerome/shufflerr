@@ -6,6 +6,20 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-10-06
+
+### Changed
+
+- Approved requests and the albums they cover read **"Requested"** until Lidarr's queue actually
+  holds the download; only then do they read **"Downloading"**. Status badges take a
+  `downloading` flag derived from the request's download progress (`isDownloading` in
+  `src/utils/status.ts`); the album banner, track rows, request lists, Discover, the manage
+  panel and profile pages all follow it.
+- The download sync clears a request's progress figure when Lidarr's queue no longer holds it,
+  so "Downloading" cannot linger after a grab is gone.
+- Discover's "Downloading now" counts only what Lidarr's queue holds; the Requests filter chip
+  for approved requests reads "Approved"; the artist facts and album filters read "Requested".
+
 ## [0.1.10] - 2026-10-06
 
 ### Fixed
@@ -210,7 +224,8 @@ replaced by music.
   Overseerr merge, Plex watchlist sync.
 - Seerr branding assets, documentation site and release/publish workflows.
 
-[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.10...HEAD
+[Unreleased]: https://github.com/sbJerome/shufflerr/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/sbJerome/shufflerr/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/sbJerome/shufflerr/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/sbJerome/shufflerr/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/sbJerome/shufflerr/compare/v0.1.7...v0.1.8

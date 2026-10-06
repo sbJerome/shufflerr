@@ -15,6 +15,7 @@ import StatusBadge from '@app/components/StatusBadge';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import { formatDuration } from '@app/utils/format';
+import { isDownloading } from '@app/utils/status';
 import {
   AdjustmentsHorizontalIcon,
   ArrowTopRightOnSquareIcon,
@@ -56,6 +57,10 @@ const messages = defineMessages('components.AlbumDetails', {
   approvedauto:
     '{what} approved automatically. Lidarr is downloading ({percent}%).',
   approved: '{what} approved. Lidarr is downloading ({percent}%).',
+  approvedwaitingauto:
+    '{what} approved automatically. Lidarr is looking for it; nothing is downloading yet.',
+  approvedwaiting:
+    '{what} approved. Lidarr is looking for it; nothing is downloading yet.',
   whatmissing:
     '{count, plural, one {the missing track} other {the # missing tracks}}',
   whatalbum: 'this album',
@@ -199,7 +204,13 @@ const AlbumDetails = () => {
       banner = (
         <div className="sh-outcome auto" role="status">
           {intl.formatMessage(
-            active.isAutoApproved ? messages.approvedauto : messages.approved,
+            isDownloading(active)
+              ? active.isAutoApproved
+                ? messages.approvedauto
+                : messages.approved
+              : active.isAutoApproved
+                ? messages.approvedwaitingauto
+                : messages.approvedwaiting,
             { what, percent: Math.round(active.downloadProgress ?? 0) }
           )}
         </div>
@@ -259,7 +270,10 @@ const AlbumDetails = () => {
                 {!!album.totalLengthMs && (
                   <span>{formatDuration(album.totalLengthMs)}</span>
                 )}
-                <StatusBadge status={libraryStatus} />
+                <StatusBadge
+                  status={libraryStatus}
+                  downloading={isDownloading(active)}
+                />
                 {total > 0 && (
                   <span>
                     {intl.formatMessage(messages.inlibrary, { have, total })}
@@ -367,7 +381,11 @@ const AlbumDetails = () => {
           {intl.formatMessage(messages.tracklist)}
         </h2>
         {album.tracks.length ? (
-          <TrackBars album={album} hasActiveRequest={!!active} />
+          <TrackBars
+            album={album}
+            hasActiveRequest={!!active}
+            downloading={isDownloading(active)}
+          />
         ) : (
           <div className="sh-ax-none">
             {intl.formatMessage(messages.notracklist)}

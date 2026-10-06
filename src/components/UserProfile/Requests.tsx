@@ -12,6 +12,7 @@ import {
   useProfileUser,
 } from '@app/components/UserProfile/shared';
 import defineMessages from '@app/utils/defineMessages';
+import { isDownloading } from '@app/utils/status';
 import type { UserRequestsResponse } from '@server/interfaces/api/userInterfaces';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -109,7 +110,10 @@ const Requests = () => {
                 </span>
               </div>
               <span className="who">{timeAgo(r.createdAt, intl.locale)}</span>
-              <StatusBadge requestStatus={r.status} />
+              <StatusBadge
+                requestStatus={r.status}
+                downloading={isDownloading(r)}
+              />
             </li>
           ))}
         </ul>
