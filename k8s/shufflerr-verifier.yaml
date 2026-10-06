@@ -1,0 +1,107 @@
+# Shufflerr audio-verification sidecar — example deployment for the-arrs.
+#
+# Polls the downloader's queue for completed-but-unimported downloads, hard-verifies the audio
+# (ffprobe specs + Chromaprint/AcoustID identity + spectral transcode detection) and drives the
+# downloader's manual import on a pass / removes + blocklists on a fail.
+#
+# DRY_RUN defaults to "true": it verifies and logs verdicts but imports/deletes nothing. Flip to
+# "false" only after reviewing the dry-run verdicts, and turn off the downloader's Completed
+# Download Handling at the same time so the sidecar owns the import step.
+#
+# Create the Secret below with your own values before applying (never commit real keys):
+#   kubectl create secret generic shufflerr-verifier-secrets -n the-arrs \
+#     --from-literal=LIDARR_API_KEY=... --from-literal=ACOUSTID_API_KEY=...
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shufflerr-verifier-secrets
+  namespace: the-arrs
+type: Opaque
+stringData:
+  LIDARR_API_KEY: REPLACE_ME
+  ACOUSTID_API_KEY: REPLACE_ME
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shufflerr-verifier
+  namespace: the-arrs
+  labels:
+    app: shufflerr-verifier
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: shufflerr-verifier
+  # Single worker against one state dir + one queue; never run two.
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: shufflerr-verifier
+    spec:
+      # The runtime image runs as uid 10001; make the state hostPath writable.
+      initContainers:
+        - name: init-state-perms
+          image: localhost/shufflerr-verifier:0.1.0
+          imagePullPolicy: Never
+          command: ["/bin/sh", "-c", "mkdir -p /state && chown -R 10001:10001 /state"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /state
+              name: verifier-state
+      containers:
+        - name: verifier
+          image: localhost/shufflerr-verifier:0.1.0
+          imagePullPolicy: Never
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: RUST_LOG
+              value: info,symphonia=warn
+            - name: LIDARR_URL
+              value: http://lidarr-service.the-arrs
+            - name: COMPLETED_ROOT
+              value: /completed
+            - name: STATE_DIR
+              value: /state
+            - name: POLL_INTERVAL_SECS
+              value: "60"
+            - name: ACOUSTID_REQUIRED
+              value: "true"
+            # Observe-only by default; flip to "false" to let it import/blocklist.
+            - name: DRY_RUN
+              value: "true"
+          envFrom:
+            - secretRef:
+                name: shufflerr-verifier-secrets
+          resources:
+            limits:
+              cpu: "2"
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /completed
+              name: completed
+              readOnly: true
+            - mountPath: /state
+              name: verifier-state
+      nodeSelector:
+        kubernetes.io/hostname: kubehost
+      restartPolicy: Always
+      volumes:
+        # The same completed-downloads folder the downloader writes to, mounted read-only.
+        - name: completed
+          hostPath:
+            path: /mnt/bigData/notpiracy/torrents/completed
+            type: Directory
+        - name: verifier-state
+          hostPath:
+            path: /mnt/bigData/notpiracy/thearrs/shufflerr-verifier/state
+            type: DirectoryOrCreate

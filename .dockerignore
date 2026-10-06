@@ -26,6 +26,8 @@ compose*.yaml
 node_modules
 tsconfig.tsbuildinfo
 stylelint.config.js
+# Audio-verification sidecar (separate Rust service with its own image build)
+verifier
 # Handoff material that is not needed at runtime
 design/screens
 design/legacy-canvas

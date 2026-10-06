@@ -3,6 +3,14 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.22 — 2026-10-06
+
+- **Audio verification.** A new companion service double-checks every finished download — right
+  track, genuine quality, no fake "lossless" — and only then files it into the library,
+  stepping in for the downloader's flaky import. Bad grabs are rejected and re-sought; good ones
+  are imported with full tagging and artwork. Quality upgrades (e.g. replacing an MP3 with FLAC)
+  keep working as before. Starts in a safe watch-only mode.
+
 ## v0.1.21 — 2026-10-06
 
 - **Security hardening:** capped how many live-update connections one account can open.

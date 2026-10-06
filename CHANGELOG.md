@@ -6,6 +6,22 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-10-06
+
+### Added
+
+- **Audio-verification sidecar.** A separate companion service that verifies each completed
+  download before it enters the library. For every audio file it checks the technical specs,
+  confirms the recording's acoustic fingerprint matches the expected release, and detects
+  transcoded / fake-lossless files; any failed check hard-rejects the release. On a pass it
+  drives the downloader's manual-import (so the downloader still handles tagging, renaming and
+  artwork); on a fail it removes and blocklists the release so a better copy is sought. This
+  bypasses the downloader's unreliable automatic-import threshold. The downloader's existing
+  quality-upgrade behaviour is preserved — tier selection stays with the downloader; the sidecar
+  only authenticates and files what was grabbed. It runs in observe-only mode by default and
+  mounts the completed-downloads folder read-only. Built and tested as its own container image;
+  excluded from the main app image.
+
 ## [0.1.21] - 2026-10-06
 
 ### Security
