@@ -174,6 +174,7 @@ const TrackBars = ({
                     <RequestButton
                       album={toModalAlbum(album)}
                       defaultScope={RequestScope.TRACKS}
+                      defaultTrackMbid={track.recordingMbid ?? undefined}
                     >
                       {intl.formatMessage(messages.request)}
                     </RequestButton>

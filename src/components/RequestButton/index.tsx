@@ -21,6 +21,8 @@ interface RequestButtonProps {
   album?: RequestModalAlbum;
   artist?: RequestModalArtist;
   defaultScope?: RequestScope;
+  /** Recording MBID to pre-select when opening the modal in the tracks scope. */
+  defaultTrackMbid?: string;
   /** Button text; defaults to "Request". */
   children?: React.ReactNode;
   buttonType?: 'accent' | 'primary' | 'default';
@@ -36,6 +38,7 @@ const RequestButton = ({
   album,
   artist,
   defaultScope,
+  defaultTrackMbid,
   children,
   buttonType = 'accent',
   buttonSize = 'sm',
@@ -81,6 +84,7 @@ const RequestButton = ({
           album={album}
           artist={artist}
           defaultScope={defaultScope}
+          defaultTrackMbid={defaultTrackMbid}
           onCancel={() => setOpen(false)}
           onComplete={onComplete}
         />

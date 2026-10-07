@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.31 — 2026-10-07
+
+- **Fixed losing your track pick.** Choosing a single track and then clicking elsewhere in the
+  request dialog no longer clears it, and requesting a track from its row now selects just that
+  track.
+
 ## v0.1.30 — 2026-10-07
 
 - **Cancel requests.** You can now cancel or remove a request from within the app — from the

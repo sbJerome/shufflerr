@@ -107,6 +107,12 @@ interface RequestModalProps {
   /** Request an artist's discography. Derived from `album` when omitted. */
   artist?: RequestModalArtist;
   defaultScope?: RequestScope;
+  /**
+   * Recording MBID to pre-select in the `tracks` scope. Set when the modal is
+   * opened from a single track's "Request" button so that one track starts
+   * picked instead of every missing track.
+   */
+  defaultTrackMbid?: string;
   onCancel: () => void;
   onComplete?: (request: RequestResult) => void;
 }
@@ -141,6 +147,7 @@ const RequestModal = ({
   album,
   artist: artistProp,
   defaultScope,
+  defaultTrackMbid,
   onCancel,
   onComplete,
 }: RequestModalProps) => {
@@ -158,11 +165,17 @@ const RequestModal = ({
     [album?.artistMbid, album?.artistName, artistProp]
   );
 
+  // Freeze the in-modal data while the dialog is open: a background refetch (on
+  // window focus, or an SSE-driven `mutate` from useRealtime) would hand back a
+  // new `details` object, churning `missing`/`selectableTracks` identities and
+  // disturbing the track selection under the user. Keep the first snapshot.
   const { data: details } = useSWR<AlbumDetails>(
-    album ? `/api/v1/album/${album.mbid}` : null
+    album ? `/api/v1/album/${album.mbid}` : null,
+    { revalidateOnFocus: false, revalidateIfStale: false, keepPreviousData: true }
   );
   const { data: quota } = useSWR<QuotaResponse>(
-    user ? `/api/v1/user/${user.id}/quota` : null
+    user ? `/api/v1/user/${user.id}/quota` : null,
+    { revalidateOnFocus: false }
   );
 
   const isManager = hasPermission(Permission.MANAGE_REQUESTS);
@@ -171,7 +184,8 @@ const RequestModal = ({
     { type: 'or' }
   );
   const { data: servers } = useSWR<ServiceCommonServer[]>(
-    showAdvanced ? '/api/v1/service/lidarr' : null
+    showAdvanced ? '/api/v1/service/lidarr' : null,
+    { revalidateOnFocus: false }
   );
 
   const missing = useMemo(
@@ -199,7 +213,11 @@ const RequestModal = ({
     defaultScope ?? (album ? RequestScope.ALBUM : RequestScope.DISCOGRAPHY)
   );
   const [scopeTouched, setScopeTouched] = useState(!!defaultScope);
-  const [pickedTracks, setPickedTracks] = useState<string[] | null>(null);
+  // `null` means "every missing track"; a concrete array is the user's pick.
+  // When opened from one track's Request button, start with just that track.
+  const [pickedTracks, setPickedTracks] = useState<string[] | null>(() =>
+    defaultTrackMbid ? [defaultTrackMbid] : null
+  );
   const [serverId, setServerId] = useState<number | null>(null);
   const [qualityProfileId, setQualityProfileId] = useState<number | null>(null);
   const [metadataProfileId, setMetadataProfileId] = useState<number | null>(
@@ -249,7 +267,8 @@ const RequestModal = ({
   const { data: serverDetails } = useSWR<ServiceCommonServerWithDetails>(
     showAdvanced && serverId !== null
       ? `/api/v1/service/lidarr/${serverId}`
-      : null
+      : null,
+    { revalidateOnFocus: false }
   );
 
   useEffect(() => {
@@ -543,13 +562,21 @@ const RequestModal = ({
                   <input
                     type="checkbox"
                     checked={selectedTrackMbids.includes(mbid)}
-                    onChange={(e) =>
-                      setPickedTracks(
-                        e.target.checked
-                          ? [...selectedTrackMbids, mbid]
-                          : selectedTrackMbids.filter((m) => m !== mbid)
-                      )
-                    }
+                    onChange={(e) => {
+                      const { checked } = e.target;
+                      // Fold into the authoritative pick (functional update) so a
+                      // re-render between events can never drop an earlier choice.
+                      setPickedTracks((prev) => {
+                        const base =
+                          prev ??
+                          selectableTracks.map((t) => t.recordingMbid as string);
+                        return checked
+                          ? base.includes(mbid)
+                            ? base
+                            : [...base, mbid]
+                          : base.filter((m) => m !== mbid);
+                      });
+                    }}
                   />
                   <span className="min-w-0 flex-1 truncate">
                     <span className="font-mono text-faint">
