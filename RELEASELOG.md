@@ -3,6 +3,14 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.36 — 2026-10-07
+
+- **Verifier stops churning on oversized packs.** When a download's size isn't reported, the
+  verifier no longer treats it as a free pass — it prefers a correctly-sized release when one
+  exists, so it stops repeatedly grabbing and rejecting giant packs.
+- **Cleaner verifier logs.** Rejections of downloads it can't map to an album now say exactly that
+  instead of printing a confusing giant number.
+
 ## v0.1.35 — 2026-10-07
 
 - **"New in your library" actually updates now.** Albums that just finished downloading show up

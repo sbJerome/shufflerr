@@ -6,6 +6,22 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.36] - 2026-10-07
+
+### Fixed
+
+- **Verifier size guard no longer leaks unknown-size packs (sidecar 0.1.8).** The release-size
+  budget kept any release the indexer reported with an unknown size (size 0), so an oversized
+  discography pack with no reported size slipped straight past the cap even when a properly-sized
+  album release was available — the leak behind the repeated oversized-pack grab→reject churn.
+  The picker now prefers a release whose known size fits the budget and only falls back to an
+  unknown-size release when no known-in-budget release exists (so indexers that never report size
+  still work).
+- **Verifier rejection log no longer prints a sentinel as an attempt count (sidecar 0.1.8).** A
+  download that couldn't be mapped to an album logged `attempts=4294967295` (the internal
+  "unmapped" sentinel). Unmapped downloads can't be re-searched by album anyway; the log now says
+  so plainly and only prints a real attempt count for mapped albums.
+
 ## [0.1.35] - 2026-10-07
 
 ### Fixed

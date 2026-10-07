@@ -64,24 +64,51 @@ fn parse_releases(json: &str) -> Result<Vec<Release>> {
 
 /// Pick the best release: prefer lossless, then highest quality weight, then
 /// the newest (smallest age) as a tie-break. Ignores Lidarr's own rejections.
+/// Rank two releases: lossless beats lossy, then higher quality weight, then
+/// newer. Shared by the budget-aware pick below.
+fn cmp_release(a: &Release, b: &Release) -> std::cmp::Ordering {
+    release_is_lossless(&a.quality_name)
+        .cmp(&release_is_lossless(&b.quality_name))
+        .then(a.quality_weight.cmp(&b.quality_weight))
+        .then(
+            b.age_days
+                .partial_cmp(&a.age_days)
+                .unwrap_or(std::cmp::Ordering::Equal),
+        )
+}
+
 pub fn pick_best_release(releases: &[Release], max_size: Option<i64>) -> Option<&Release> {
+    let budget = match max_size {
+        Some(max) if max > 0 => Some(max),
+        _ => None,
+    };
+
+    // With a size budget, prefer a release whose KNOWN size fits the budget.
+    // Only fall back to an unknown-size (size 0) release when no known-in-budget
+    // release exists. Previously size-0 releases were always kept, so a giant
+    // discography pack the indexer reported with no size slipped straight past
+    // the cap even when a properly-sized album release was available — the
+    // leak behind the repeated oversized-pack grab→reject churn.
+    if let Some(max) = budget {
+        if let Some(best) = releases
+            .iter()
+            .filter(|r| r.size > 0 && r.size <= max)
+            .max_by(|a, b| cmp_release(a, b))
+        {
+            return Some(best);
+        }
+    }
+
+    // Fallback pool: with a budget only unknown-size releases remain eligible
+    // (known-oversized are excluded); with no budget everything is eligible.
+    // Indexers that never report size still work via this path.
     releases
         .iter()
-        .filter(|r| match max_size {
-            // Keep releases within the size budget; size 0 = unknown, keep it.
-            Some(max) if max > 0 => r.size <= max || r.size == 0,
-            _ => true,
+        .filter(|r| match budget {
+            Some(_) => r.size == 0,
+            None => true,
         })
-        .max_by(|a, b| {
-        release_is_lossless(&a.quality_name)
-            .cmp(&release_is_lossless(&b.quality_name))
-            .then(a.quality_weight.cmp(&b.quality_weight))
-            .then(
-                b.age_days
-                    .partial_cmp(&a.age_days)
-                    .unwrap_or(std::cmp::Ordering::Equal),
-            )
-    })
+        .max_by(|a, b| cmp_release(a, b))
 }
 
 pub struct Lidarr {
@@ -717,5 +744,21 @@ mod tests {
         // No budget → size ignored, highest weight wins.
         let rs2 = vec![rel("p", "FLAC", 1010, 1.0, 25_000_000_000), rel("a", "FLAC", 900, 1.0, 500_000_000)];
         assert_eq!(pick_best_release(&rs2, None).unwrap().guid, "p");
+    }
+
+    #[test]
+    fn size_guard_prefers_known_in_budget_over_unknown() {
+        // A known-in-budget album release vs a higher-weight unknown-size (0)
+        // release. The unknown one could be an oversized pack the indexer failed
+        // to size, so the known-in-budget release must win despite lower weight.
+        let known = rel("known", "FLAC", 500, 10.0, 400_000_000);
+        let unknown = rel("unknown", "FLAC", 1010, 1.0, 0);
+        let budget = Some(12 * 200_000_000i64);
+        let rs = vec![unknown, known];
+        assert_eq!(pick_best_release(&rs, budget).unwrap().guid, "known");
+        // But when every in-budget option is unknown-size, we still fall back to
+        // it (indexers that never report size keep working).
+        let only_unknown = vec![rel("u1", "FLAC", 10, 1.0, 0), rel("u2", "FLAC", 20, 1.0, 0)];
+        assert_eq!(pick_best_release(&only_unknown, budget).unwrap().guid, "u2");
     }
 }

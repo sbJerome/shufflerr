@@ -506,17 +506,29 @@ async fn act_on_verdict(
         Ok("imported".to_string())
     } else {
         // Cap re-search per album so a release-set that is entirely bad does not
-        // churn through blocklist→re-search→re-grab forever.
-        let attempts = st.record_album_reject(album_id);
-        let research = attempts <= MAX_RESEARCH_ATTEMPTS;
-        if research {
-            info!(queue_id = item.id, attempts, ?reasons, "rejecting: removing + blocklisting (will re-search)");
+        // churn through blocklist→re-search→re-grab forever. An unmapped
+        // download can't be re-searched by album at all, so never re-search it
+        // (and don't log the u32::MAX sentinel as an attempt count — it read as
+        // "attempts=4294967295").
+        let research = if mapped {
+            let attempts = st.record_album_reject(album_id);
+            if attempts <= MAX_RESEARCH_ATTEMPTS {
+                info!(queue_id = item.id, attempts, ?reasons, "rejecting: removing + blocklisting (will re-search)");
+                true
+            } else {
+                info!(
+                    queue_id = item.id, attempts, ?reasons,
+                    "rejecting: removing + blocklisting WITHOUT re-search (re-search cap reached)"
+                );
+                false
+            }
         } else {
             info!(
-                queue_id = item.id, attempts, ?reasons,
-                "rejecting: removing + blocklisting WITHOUT re-search (no acceptable release found for this album)"
+                queue_id = item.id, ?reasons,
+                "rejecting: removing + blocklisting WITHOUT re-search (download not mapped to an album)"
             );
-        }
+            false
+        };
         lidarr
             .remove_and_blocklist(item.id, research)
             .await
