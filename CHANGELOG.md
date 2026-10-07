@@ -6,6 +6,17 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.38] - 2026-10-07
+
+### Changed
+
+- **Hero backdrop is now a glowing aura, not a flat panel.** Reworked the Discover and album-page
+  hero artwork so the blurred cover reads as a glow: it now sits *above* the hero's background
+  layers (dark base + veil) with a `screen` blend so it radiates light, shaped by a radial mask
+  into a soft aura, with only the text/content layered on top. The aura also expands well past the
+  content column — the horizontal clip moved from `.sh-view` up to `.sh-main`, so the glow can fill
+  the main column width (still no horizontal page scrollbar; vertical bleed preserved).
+
 ## [0.1.37] - 2026-10-07
 
 ### Changed
