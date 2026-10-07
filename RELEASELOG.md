@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.35 — 2026-10-07
+
+- **"New in your library" actually updates now.** Albums that just finished downloading show up
+  at the top, even older releases — previously they were sorted by release date and buried.
+- **Recent requests clears finished items.** Once an album is in your library it drops off the
+  "Recent requests" row instead of lingering there.
+
 ## v0.1.34 — 2026-10-07
 
 - **Lists stay up to date.** The Requests list and Discover rows now refresh on their own, so
