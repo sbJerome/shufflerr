@@ -6,6 +6,20 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.35] - 2026-10-07
+
+### Fixed
+
+- **"New in your library" now shows freshly-available albums.** The row sorted by
+  `mediaAddedAt`, which for a requested album often holds the album's original *release date*
+  (e.g. 2016) rather than when it entered the library. A recently-downloaded old release was
+  therefore sorted to the very bottom and never appeared. The row now orders by when the media
+  row last changed (`updatedAt`), which is bumped exactly when availability flips, so newly
+  imported albums surface at the top regardless of their release date.
+- **Completed requests leave "Recent requests".** The recent-requests row had no status filter,
+  so an album that finished downloading stayed listed. Completed requests are now excluded — once
+  an album is in the library it belongs under "New in your library", not the active list.
+
 ## [0.1.34] - 2026-10-07
 
 ### Fixed

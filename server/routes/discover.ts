@@ -4,7 +4,11 @@ import { getArtistImages } from '@server/api/fanart';
 import { getItunesChart } from '@server/api/itunes';
 import ListenBrainzAPI from '@server/api/listenbrainz';
 import { getMusicBrainz } from '@server/api/musicbrainz';
-import { MediaStatus, MediaType } from '@server/constants/media';
+import {
+  MediaRequestStatus,
+  MediaStatus,
+  MediaType,
+} from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Event from '@server/entity/Event';
 import Media from '@server/entity/Media';
@@ -42,7 +46,7 @@ import logger from '@server/logger';
 import type { AlbumResult, ArtistResult } from '@server/models/music';
 import { libraryArtistsQuery } from '@server/routes/library';
 import { Router } from 'express';
-import { In, MoreThanOrEqual } from 'typeorm';
+import { In, MoreThanOrEqual, Not } from 'typeorm';
 
 const router = Router();
 
@@ -64,8 +68,12 @@ const recentlyAddedMedia = (take: number): Promise<Media[]> =>
     .andWhere('media.status IN (:...statuses)', {
       statuses: IN_LIBRARY_STATUSES,
     })
+    // Order by when the row last changed — availability flips bump updatedAt,
+    // so this reflects when an album actually entered the library. (We can't
+    // trust mediaAddedAt: for requested albums it often holds the release date,
+    // which would bury a freshly-available old release at the bottom.)
     .orderBy(
-      'COALESCE(media.mediaAddedAt, media.updatedAt, media.createdAt)',
+      'COALESCE(media.updatedAt, media.mediaAddedAt, media.createdAt)',
       'DESC'
     )
     .addOrderBy('media.id', 'DESC')
@@ -502,8 +510,13 @@ router.get<never, DiscoverRecentRequestsResponse>(
     const user = req.user as User;
     const ownOnly = !canSeeAllRequests(user);
     try {
+      // Drop completed requests — once an album is in the library it belongs in
+      // "New in your library", not the active "Recent requests" row.
+      const statusFilter = { status: Not(MediaRequestStatus.COMPLETED) };
       const requests = await getRepository(MediaRequest).find({
-        where: ownOnly ? { requestedBy: { id: user.id } } : {},
+        where: ownOnly
+          ? { requestedBy: { id: user.id }, ...statusFilter }
+          : statusFilter,
         order: { id: 'DESC' },
         take: takeParam(req.query.take, 10),
       });
