@@ -34,3 +34,6 @@ design/legacy-canvas
 starter
 handoff-docs
 # NOTE: LICENSE, NOTICE.md and LICENSES/ must stay in the image (MIT attribution).
+
+# Claude Code worktrees/scratch
+.claude
