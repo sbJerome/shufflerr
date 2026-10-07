@@ -6,6 +6,17 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.37] - 2026-10-07
+
+### Changed
+
+- **Blurred-art heroes now bleed past their edges.** The Discover and album-page heroes (a
+  cover image under a tinted overlay) clipped the blurred artwork hard at the hero box. They now
+  let the image and its blur overflow the container and fade out softly via a radial mask, so the
+  backdrop melts into the surrounding page instead of ending at a sharp rectangle. Horizontal
+  bleed is contained at the content column (`.sh-view { overflow-x: clip }`) so no horizontal
+  page scrollbar appears.
+
 ## [0.1.36] - 2026-10-07
 
 ### Fixed
