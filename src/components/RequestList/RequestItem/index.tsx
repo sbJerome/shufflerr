@@ -1,5 +1,6 @@
 // Adapted from Seerr (https://github.com/seerr-team/seerr), MIT License.
 import Button from '@app/components/Common/Button';
+import ConfirmButton from '@app/components/Common/ConfirmButton';
 import Field from '@app/components/Common/Field';
 import Modal from '@app/components/Common/Modal';
 import ProgressBar from '@app/components/Common/ProgressBar';
@@ -23,6 +24,9 @@ const messages = defineMessages('components.RequestList.RequestItem', {
   approve: 'Approve',
   decline: 'Decline',
   cancelrequest: 'Cancel request',
+  removerequest: 'Remove request',
+  confirmcancel: 'Cancel it?',
+  confirmremove: 'Remove it?',
   retry: 'Retry',
   play: 'Play',
   downloaded: '{percent}% downloaded',
@@ -41,6 +45,7 @@ const messages = defineMessages('components.RequestList.RequestItem', {
   approvenamed: 'Approve {title}',
   declinenamed: 'Decline {title}',
   cancelnamed: 'Cancel your request for {title}',
+  removenamed: 'Remove the request for {title}',
   retrynamed: 'Retry {title}',
   playnamed: 'Play {title}',
 });
@@ -124,6 +129,29 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
       })
     );
 
+  // The requester may cancel only while pending; a manager may remove any
+  // request at any time (server/routes/request.ts). `canRemove` already
+  // carries that rule, so the same control covers cancelling an auto-approved
+  // discography that is still downloading.
+  const removeControl = request.canRemove ? (
+    <ConfirmButton
+      buttonSize="sm"
+      disabled={busy}
+      onClick={remove}
+      confirmText={intl.formatMessage(
+        isOwn ? messages.confirmcancel : messages.confirmremove
+      )}
+      aria-label={intl.formatMessage(
+        isOwn ? messages.cancelnamed : messages.removenamed,
+        { title }
+      )}
+    >
+      {intl.formatMessage(
+        isOwn ? messages.cancelrequest : messages.removerequest
+      )}
+    </ConfirmButton>
+  ) : null;
+
   let actions: React.ReactNode = null;
   if (request.status === MediaRequestStatus.PENDING && request.canManage) {
     actions = (
@@ -152,16 +180,7 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
     request.status === MediaRequestStatus.PENDING &&
     request.canRemove
   ) {
-    actions = (
-      <Button
-        buttonSize="sm"
-        disabled={busy}
-        onClick={remove}
-        aria-label={intl.formatMessage(messages.cancelnamed, { title })}
-      >
-        {intl.formatMessage(messages.cancelrequest)}
-      </Button>
-    );
+    actions = removeControl;
   } else if (request.status === MediaRequestStatus.APPROVED) {
     actions = (
       <span className="flex w-[180px] flex-col gap-1.5">
@@ -177,6 +196,7 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
             percent,
           })}
         />
+        {removeControl}
       </span>
     );
   } else if (
@@ -184,14 +204,17 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
     request.canManage
   ) {
     actions = (
-      <Button
-        buttonSize="sm"
-        disabled={busy}
-        onClick={retry}
-        aria-label={intl.formatMessage(messages.retrynamed, { title })}
-      >
-        {intl.formatMessage(messages.retry)}
-      </Button>
+      <span className="flex flex-wrap items-center gap-2">
+        <Button
+          buttonSize="sm"
+          disabled={busy}
+          onClick={retry}
+          aria-label={intl.formatMessage(messages.retrynamed, { title })}
+        >
+          {intl.formatMessage(messages.retry)}
+        </Button>
+        {removeControl}
+      </span>
     );
   } else if (
     request.status === MediaRequestStatus.COMPLETED &&
@@ -199,14 +222,19 @@ const RequestItem = ({ request, onChange }: RequestItemProps) => {
     request.media?.mediaType === MediaType.RELEASE_GROUP
   ) {
     actions = (
-      <Button
-        buttonSize="sm"
-        onClick={() => playAlbum(request.media.mbid)}
-        aria-label={intl.formatMessage(messages.playnamed, { title })}
-      >
-        {intl.formatMessage(messages.play)}
-      </Button>
+      <span className="flex flex-wrap items-center gap-2">
+        <Button
+          buttonSize="sm"
+          onClick={() => playAlbum(request.media.mbid)}
+          aria-label={intl.formatMessage(messages.playnamed, { title })}
+        >
+          {intl.formatMessage(messages.play)}
+        </Button>
+        {removeControl}
+      </span>
     );
+  } else {
+    actions = removeControl;
   }
 
   const requester = request.requestedBy;

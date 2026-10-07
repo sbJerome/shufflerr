@@ -278,6 +278,15 @@ export class FakeLidarr {
       return { id: this.nextId++, name: body.name, status: 'queued' };
     }
 
+    const queueDelete = route.match(/^\/queue\/(\d+)$/);
+    if (method === 'DELETE' && queueDelete) {
+      const id = Number(queueDelete[1]);
+      const before = this.queue.length;
+      this.queue = this.queue.filter((item) => (item as { id?: number }).id !== id);
+      if (this.queue.length === before) throw notFound();
+      return {};
+    }
+
     throw notFound();
   }
 }

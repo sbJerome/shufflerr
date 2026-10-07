@@ -2,15 +2,18 @@ import AlbumCard from '@app/components/AlbumCard';
 import { SERVER_LINKS, linkLabel } from '@app/components/AlbumDetails/links';
 import Discography from '@app/components/ArtistDetails/Discography';
 import Button from '@app/components/Common/Button';
+import ConfirmButton from '@app/components/Common/ConfirmButton';
 import EmptyState from '@app/components/Common/EmptyState';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
 import Carousel from '@app/components/Discover/Carousel';
 import ManageSlideOver from '@app/components/ManageSlideOver';
 import RequestButton from '@app/components/RequestButton';
+import { revalidateMusic } from '@app/components/RequestModal';
 import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { canCancelRequest } from '@app/utils/requests';
 import {
   MediaRequestStatus,
   MediaStatus,
@@ -33,6 +36,13 @@ const messages = defineMessages('components.ArtistDetails', {
   requestdiscography: 'Request discography',
   discographywaiting: 'Discography waiting for approval',
   discographyapproved: 'Discography approved',
+  cancelrequest: 'Cancel request',
+  removerequest: 'Remove request',
+  confirmcancel: 'Cancel it?',
+  confirmremove: 'Remove it?',
+  discocancelled: 'Cancelled the discography request for {name}.',
+  discoremoved: 'Removed the discography request for {name}.',
+  discocancelfailed: 'That didn’t go through. Refresh the page and try again.',
   watch: 'Watch for new releases',
   watching: 'Watching for new releases',
   watchon: 'Watching {name} for new releases.',
@@ -69,9 +79,10 @@ const ArtistDetails = () => {
   const intl = useIntl();
   const router = useRouter();
   const { addToast } = useToasts();
-  const { hasPermission } = useUser();
+  const { user, hasPermission } = useUser();
   const [showManage, setShowManage] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
 
   const mbid = router.query.mbid as string | undefined;
   const {
@@ -159,6 +170,41 @@ const ArtistDetails = () => {
     }
   };
 
+  // The requester may cancel the discography while it waits for approval; a
+  // manager may remove it at any time, including once it has auto-approved and
+  // is downloading — removing it stops the Lidarr download server-side.
+  const discoIsOwn = discoRequest?.requestedBy.id === user?.id;
+  const canCancelDisco =
+    !!discoRequest && canCancelRequest(discoRequest, user?.id, canManage);
+
+  const cancelDiscography = async () => {
+    if (!discoRequest) {
+      return;
+    }
+    setCancelBusy(true);
+    try {
+      await axios.delete(`/api/v1/request/${discoRequest.id}`);
+      addToast(
+        intl.formatMessage(
+          discoIsOwn ? messages.discocancelled : messages.discoremoved,
+          { name: artist.name }
+        ),
+        { appearance: 'success' }
+      );
+      revalidateMusic();
+      mutate();
+    } catch (e) {
+      const message = axios.isAxiosError(e)
+        ? e.response?.data?.message
+        : undefined;
+      addToast(message ?? intl.formatMessage(messages.discocancelfailed), {
+        appearance: 'error',
+      });
+    } finally {
+      setCancelBusy(false);
+    }
+  };
+
   const serverLinks = artist.links.filter((l) => SERVER_LINKS.includes(l.type));
   const otherLinks = artist.links.filter((l) => !SERVER_LINKS.includes(l.type));
   const openIn = (name: string) =>
@@ -195,13 +241,32 @@ const ArtistDetails = () => {
           {metaLine && <p className="sub">{metaLine}</p>}
           <div className="cta">
             {discoRequest ? (
-              <Button type="button" disabled>
-                {intl.formatMessage(
-                  discoRequest.status === MediaRequestStatus.PENDING
-                    ? messages.discographywaiting
-                    : messages.discographyapproved
+              <>
+                <Button type="button" disabled>
+                  {intl.formatMessage(
+                    discoRequest.status === MediaRequestStatus.PENDING
+                      ? messages.discographywaiting
+                      : messages.discographyapproved
+                  )}
+                </Button>
+                {canCancelDisco && (
+                  <ConfirmButton
+                    disabled={cancelBusy}
+                    confirmText={intl.formatMessage(
+                      discoIsOwn
+                        ? messages.confirmcancel
+                        : messages.confirmremove
+                    )}
+                    onClick={cancelDiscography}
+                  >
+                    {intl.formatMessage(
+                      discoIsOwn
+                        ? messages.cancelrequest
+                        : messages.removerequest
+                    )}
+                  </ConfirmButton>
                 )}
-              </Button>
+              </>
             ) : (
               canRequestDiscography && (
                 <RequestButton

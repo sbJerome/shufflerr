@@ -6,6 +6,28 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.30] - 2026-10-07
+
+### Added
+
+- **Cancel a request from the UI.** A cancel/remove control now appears wherever a request's
+  status is shown (request list, album & artist/discography pages, discography table, and the
+  manage slide-over). The requester can cancel while a request is still pending; managers can
+  remove at any status (so an auto-approved discography can be stopped). Cancelling now also
+  **stops the download**: it unmonitors the affected album(s) in the downloader and removes their
+  active queue items, scoped strictly to that request's own media (failures are non-fatal).
+
+## [0.1.29] - 2026-10-07
+
+### Added
+
+- **Single-track requests import only the requested track(s).** A `tracks`-scope request already
+  records the specific tracks; the verifier config endpoint now also exposes, per album wanted
+  purely by track scope, those tracks' recording identifiers. When such a release is downloaded,
+  the sidecar (0.1.6) files **only** the requested track file(s) via manual-import — not the whole
+  album — matching them by recording id. Album and discography requests are unchanged (import in
+  full). A downloaded release that contains none of the requested tracks is left unimported.
+
 ## [0.1.28] - 2026-10-06
 
 ### Changed

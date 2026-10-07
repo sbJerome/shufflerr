@@ -89,6 +89,14 @@ clients must be configured in Lidarr — that is where they come from.
 - `COMPLETED_ROOT` — the completed-downloads folder, **read-only**.
 - `STATE_DIR` — a small writable volume for the processed-downloads record.
 
+## Track-scoped imports
+
+When `/api/v1/verifier/config` returns a `trackScopes` map (album id → requested recording
+MBIDs), the sidecar imports **only** those tracks from the grabbed release via manual-import
+(matching each candidate track's `foreignRecordingId`), not the whole album. It is populated only
+for albums wanted purely by a `tracks`-scope request; album/discography requests omit the album
+from `trackScopes` and import in full.
+
 ## License
 
 AGPL-3.0-only, matching the Shufflerr project.

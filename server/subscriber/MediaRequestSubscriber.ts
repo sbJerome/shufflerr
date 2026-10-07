@@ -435,9 +435,52 @@ export const sendToLidarr = async (requestId: number): Promise<void> => {
 };
 
 /**
+ * Remove any active Lidarr download-queue item(s) that belong to this media,
+ * so cancelling a request actually stops the download. Scoped to the media's
+ * own album(s): the artist's queue items for a discography (artist media), or
+ * the single album's queue items otherwise. Best effort — a failure here is
+ * logged and swallowed so it can't block the surrounding unmonitor.
+ */
+const clearLidarrQueue = async (
+  api: LidarrAPI,
+  media: Media,
+  requestId: number
+): Promise<void> => {
+  try {
+    const belongsToMedia = (item: { artistId?: number; albumId?: number }) =>
+      media.mediaType === MediaType.ARTIST
+        ? media.lidarrArtistId != null && item.artistId === media.lidarrArtistId
+        : media.lidarrAlbumId != null && item.albumId === media.lidarrAlbumId;
+
+    const queue = await api.getQueue();
+    const mine = queue.filter(belongsToMedia);
+
+    for (const item of mine) {
+      await api.removeFromQueue(item.id);
+    }
+
+    if (mine.length > 0) {
+      logger.info('Cleared active Lidarr downloads after a request ended', {
+        label: 'Media Request',
+        requestId,
+        mbid: media.mbid,
+        removed: mine.length,
+      });
+    }
+  } catch (e) {
+    logger.warn('Could not clear the Lidarr download queue', {
+      label: 'Media Request',
+      requestId,
+      errorMessage: e.message,
+    });
+  }
+};
+
+/**
  * Undo Shufflerr's monitoring when a request is declined or cancelled: only
  * for items Shufflerr itself added or switched on, and only when no other
- * active request still wants them. Never throws.
+ * active request still wants them. Also clears any in-progress download from
+ * Lidarr's queue for the same item. Never throws.
  */
 export const unmonitorInLidarr = async (
   request: Pick<MediaRequest, 'id' | 'scope'> & { media: Pick<Media, 'id'> }
@@ -492,6 +535,13 @@ export const unmonitorInLidarr = async (
       }
       await api.monitorAlbums([media.lidarrAlbumId], false);
     }
+
+    // Unmonitoring does not stop a download already in flight, so drop any
+    // active queue item(s) for this request's own album(s) too. For a
+    // discography that is every album of the artist; for an album/tracks
+    // request it is that one album. Best effort: a queue failure must not
+    // undo the unmonitor above.
+    await clearLidarrQueue(api, media, request.id);
 
     await mediaRepository.update(media.id, { lidarrAddedByShufflerr: false });
 

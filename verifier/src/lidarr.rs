@@ -175,6 +175,18 @@ fn parse_tracks(json: &str) -> Result<Vec<LidarrTrack>> {
 /// its auto-import. A candidate that genuinely cannot be mapped (no artist,
 /// album, release or track ids) is still skipped below.
 pub fn build_import_file(candidate: &Value) -> Option<Value> {
+    build_import_file_scoped(candidate, None)
+}
+
+/// As [`build_import_file`], but when `allowed_recording_mbids` is `Some`, only
+/// the candidate's tracks whose `foreignRecordingId` is in that set are filed —
+/// so a release downloaded for a track-scope request imports ONLY the requested
+/// track(s), not the whole album. Returns `None` if the candidate maps to none
+/// of the requested tracks. `None` for the scope → all tracks (album scope).
+pub fn build_import_file_scoped(
+    candidate: &Value,
+    allowed_recording_mbids: Option<&[String]>,
+) -> Option<Value> {
     let path = candidate.get("path").and_then(|v| v.as_str())?;
     let artist_id = candidate
         .get("artist")
@@ -191,7 +203,19 @@ pub fn build_import_file(candidate: &Value) -> Option<Value> {
         .and_then(|t| t.as_array())
         .map(|arr| {
             arr.iter()
-                .filter_map(|t| t.get("id").and_then(|v| v.as_i64()))
+                .filter_map(|t| {
+                    let id = t.get("id").and_then(|v| v.as_i64())?;
+                    if let Some(allowed) = allowed_recording_mbids {
+                        let rec = t
+                            .get("foreignRecordingId")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+                        if !allowed.iter().any(|m| m.eq_ignore_ascii_case(rec)) {
+                            return None;
+                        }
+                    }
+                    Some(id)
+                })
                 .collect()
         })
         .unwrap_or_default();
@@ -567,6 +591,39 @@ mod tests {
             "rejections": [ { "reason": "Unknown Artist" } ]
         });
         assert!(build_import_file(&candidate).is_none());
+    }
+
+    fn two_track_candidate() -> Value {
+        json!({
+            "path": "/x/01.flac",
+            "artist": { "id": 5 },
+            "album": { "id": 10 },
+            "albumReleaseId": 99,
+            "tracks": [
+                { "id": 100, "foreignRecordingId": "rec-a" },
+                { "id": 101, "foreignRecordingId": "rec-b" }
+            ],
+            "rejections": []
+        })
+    }
+
+    #[test]
+    fn scope_none_imports_all_tracks() {
+        let file = build_import_file_scoped(&two_track_candidate(), None).unwrap();
+        assert_eq!(file["trackIds"], json!([100, 101]));
+    }
+
+    #[test]
+    fn scope_imports_only_requested_tracks() {
+        let allowed = vec!["REC-A".to_string()]; // case-insensitive match
+        let file = build_import_file_scoped(&two_track_candidate(), Some(&allowed)).unwrap();
+        assert_eq!(file["trackIds"], json!([100]));
+    }
+
+    #[test]
+    fn scope_with_no_requested_track_present_is_skipped() {
+        let allowed = vec!["rec-z".to_string()];
+        assert!(build_import_file_scoped(&two_track_candidate(), Some(&allowed)).is_none());
     }
 
     #[test]

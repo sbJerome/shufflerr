@@ -1,20 +1,25 @@
 import Button from '@app/components/Common/Button';
+import ConfirmButton from '@app/components/Common/ConfirmButton';
 import FilterChips from '@app/components/Common/FilterChips';
 import CoverArt from '@app/components/CoverArt';
 import Pager from '@app/components/Library/Pager';
 import usePlayback from '@app/components/Playback';
 import RequestButton from '@app/components/RequestButton';
+import { revalidateMusic } from '@app/components/RequestModal';
 import {
   hasActiveRequest,
   toModalAlbum,
 } from '@app/components/RequestModal/subject';
 import StatusBadge from '@app/components/StatusBadge';
+import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { canCancelRequest } from '@app/utils/requests';
 import { isDownloading } from '@app/utils/status';
 import type { MediaRequestStatus } from '@server/constants/media';
 import { MediaStatus } from '@server/constants/media';
 import type { AlbumResult } from '@server/models/music';
+import axios from 'axios';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -38,6 +43,15 @@ const messages = defineMessages('components.ArtistDetails.Discography', {
   fillgapsnamed: 'Fill the gaps in {title}',
   play: 'Play',
   playnamed: 'Play {title}',
+  cancelrequest: 'Cancel request',
+  removerequest: 'Remove request',
+  cancelnamed: 'Cancel the request for {title}',
+  removenamed: 'Remove the request for {title}',
+  confirmcancel: 'Cancel it?',
+  confirmremove: 'Remove it?',
+  cancelled: 'Cancelled the request for {title}.',
+  removed: 'Removed the request for {title}.',
+  cancelfailed: 'That didn’t go through. Refresh the page and try again.',
   empty: 'MusicBrainz lists no releases for this artist yet.',
   emptyfilter: 'No releases of this type. Try another filter.',
 });
@@ -62,16 +76,46 @@ interface DiscographyProps {
 
 const Discography = ({ releases }: DiscographyProps) => {
   const intl = useIntl();
-  const { hasPermission } = useUser();
+  const { addToast } = useToasts();
+  const { user, hasPermission } = useUser();
   const { playAlbum } = usePlayback();
   const [filter, setFilter] = useState<TypeFilter>('all');
   const [page, setPage] = useState(1);
+  const [cancelId, setCancelId] = useState<number | null>(null);
   const top = useRef<HTMLElement>(null);
 
   const canRequestAlbums = hasPermission(
     [Permission.REQUEST, Permission.REQUEST_ALBUM],
     { type: 'or' }
   );
+  const canManage = hasPermission(Permission.MANAGE_REQUESTS);
+
+  const cancelRequest = async (
+    requestId: number,
+    title: string,
+    isOwn: boolean
+  ) => {
+    setCancelId(requestId);
+    try {
+      await axios.delete(`/api/v1/request/${requestId}`);
+      addToast(
+        intl.formatMessage(isOwn ? messages.cancelled : messages.removed, {
+          title,
+        }),
+        { appearance: 'success' }
+      );
+      revalidateMusic();
+    } catch (e) {
+      const message = axios.isAxiosError(e)
+        ? e.response?.data?.message
+        : undefined;
+      addToast(message ?? intl.formatMessage(messages.cancelfailed), {
+        appearance: 'error',
+      });
+    } finally {
+      setCancelId(null);
+    }
+  };
 
   const counts = useMemo(() => {
     const result: Record<TypeFilter, number> = {
@@ -205,6 +249,33 @@ const Discography = ({ releases }: DiscographyProps) => {
                   release.status === MediaStatus.DELETED)
               ) {
                 action = <RequestButton album={toModalAlbum(release)} />;
+              } else if (
+                active &&
+                release.request &&
+                canCancelRequest(release.request, user?.id, canManage)
+              ) {
+                const isOwn = release.request.requestedBy?.id === user?.id;
+                const requestId = release.request.id;
+                action = (
+                  <ConfirmButton
+                    buttonSize="sm"
+                    disabled={cancelId === requestId}
+                    confirmText={intl.formatMessage(
+                      isOwn ? messages.confirmcancel : messages.confirmremove
+                    )}
+                    aria-label={intl.formatMessage(
+                      isOwn ? messages.cancelnamed : messages.removenamed,
+                      { title: release.title }
+                    )}
+                    onClick={() =>
+                      cancelRequest(requestId, release.title, isOwn)
+                    }
+                  >
+                    {intl.formatMessage(
+                      isOwn ? messages.cancelrequest : messages.removerequest
+                    )}
+                  </ConfirmButton>
+                );
               }
               return (
                 <div

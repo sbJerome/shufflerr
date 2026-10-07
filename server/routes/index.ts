@@ -3,10 +3,10 @@
 // Every router of every stream is mounted here already. Streams implement
 // their own router files and should not need to edit this file.
 import PushoverAPI from '@server/api/pushover';
-import { MediaStatus } from '@server/constants/media';
+import { MediaStatus, RequestScope } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
-import Media from '@server/entity/Media';
+import { MediaRequest } from '@server/entity/MediaRequest';
 import type { StatusResponse } from '@server/interfaces/api/settingsInterfaces';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
@@ -74,22 +74,56 @@ router.get<unknown, StatusResponse>('/status', async (_req, res) => {
 router.get('/verifier/config', async (_req, res) => {
   const settings = getSettings();
   let albumIds: number[] = [];
+  // Per album (Lidarr id): the requested recording MBIDs, ONLY when the album is
+  // wanted purely by track scope. An album with an active album/discography
+  // request imports in full (absent from trackScopes).
+  const trackScopes: Record<number, string[]> = {};
   if (settings.main.musicDirectGrab) {
     try {
-      const rows = await getRepository(Media)
-        .createQueryBuilder('media')
-        .innerJoin('media.requests', 'request')
+      const requests = await getRepository(MediaRequest)
+        .createQueryBuilder('request')
+        .innerJoinAndSelect('request.media', 'media')
+        .leftJoinAndSelect('request.tracks', 'trackRequest')
+        .leftJoinAndSelect('trackRequest.track', 'track')
         .where('media.status IN (:...statuses)', {
           statuses: [MediaStatus.PENDING, MediaStatus.PROCESSING],
         })
         .andWhere('media.lidarrAlbumId IS NOT NULL')
         .andWhere('media.lidarrAlbumId != 0')
-        .select('media.lidarrAlbumId', 'albumId')
-        .distinct(true)
-        .getRawMany<{ albumId: number }>();
-      albumIds = rows
-        .map((r) => r.albumId)
-        .filter((id): id is number => typeof id === 'number' && id > 0);
+        .getMany();
+
+      const byAlbum = new Map<number, { fullAlbum: boolean; mbids: Set<string> }>();
+      for (const request of requests) {
+        const albumId = request.media?.lidarrAlbumId;
+        if (typeof albumId !== 'number' || albumId <= 0) {
+          continue;
+        }
+        let entry = byAlbum.get(albumId);
+        if (!entry) {
+          entry = { fullAlbum: false, mbids: new Set<string>() };
+          byAlbum.set(albumId, entry);
+        }
+        if (
+          request.scope === RequestScope.ALBUM ||
+          request.scope === RequestScope.DISCOGRAPHY
+        ) {
+          entry.fullAlbum = true;
+        } else if (request.scope === RequestScope.TRACKS) {
+          for (const trackRequest of request.tracks ?? []) {
+            const mbid = trackRequest.track?.recordingMbid;
+            if (mbid) {
+              entry.mbids.add(mbid);
+            }
+          }
+        }
+      }
+
+      albumIds = [...byAlbum.keys()];
+      for (const [albumId, entry] of byAlbum) {
+        if (!entry.fullAlbum && entry.mbids.size > 0) {
+          trackScopes[albumId] = [...entry.mbids];
+        }
+      }
     } catch (e) {
       logger.error('Failed to compute direct-grab request album ids', {
         label: 'Verifier',
@@ -99,7 +133,7 @@ router.get('/verifier/config', async (_req, res) => {
   }
   return res
     .status(200)
-    .json({ enabled: settings.main.musicDirectGrab, albumIds });
+    .json({ enabled: settings.main.musicDirectGrab, albumIds, trackScopes });
 });
 
 router.get('/status/appdata', isAuthenticated(), (_req, res) => {

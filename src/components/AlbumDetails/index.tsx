@@ -2,6 +2,7 @@ import TrackBars from '@app/components/AlbumDetails/TrackBars';
 import { linkLabel } from '@app/components/AlbumDetails/links';
 import AddToPlaylist from '@app/components/AddToPlaylist';
 import Button from '@app/components/Common/Button';
+import ConfirmButton from '@app/components/Common/ConfirmButton';
 import EmptyState from '@app/components/Common/EmptyState';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
@@ -11,11 +12,14 @@ import IssueModal from '@app/components/IssueModal';
 import ManageSlideOver from '@app/components/ManageSlideOver';
 import usePlayback, { playableTracks } from '@app/components/Playback';
 import RequestButton from '@app/components/RequestButton';
+import { revalidateMusic } from '@app/components/RequestModal';
 import { toModalAlbum } from '@app/components/RequestModal/subject';
 import StatusBadge from '@app/components/StatusBadge';
+import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import { formatDuration } from '@app/utils/format';
+import { canCancelRequest } from '@app/utils/requests';
 import { isDownloading } from '@app/utils/status';
 import {
   AdjustmentsHorizontalIcon,
@@ -28,6 +32,7 @@ import {
   RequestScope,
 } from '@server/constants/media';
 import type { AlbumDetails as AlbumDetailsType } from '@server/models/music';
+import axios from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
@@ -55,6 +60,13 @@ const messages = defineMessages('components.AlbumDetails', {
   pendingother:
     '{name}’s request for {what} is waiting for an admin to approve it.',
   review: 'Review it',
+  cancelrequest: 'Cancel request',
+  removerequest: 'Remove request',
+  confirmcancel: 'Cancel it?',
+  confirmremove: 'Remove it?',
+  cancelled: 'Cancelled the request for {title}.',
+  removed: 'Removed the request for {title}.',
+  cancelfailed: 'That didn’t go through. Refresh the page and try again.',
   approvedauto:
     '{what} approved automatically. Lidarr is downloading ({percent}%).',
   approved: '{what} approved. Lidarr is downloading ({percent}%).',
@@ -84,12 +96,18 @@ const AlbumDetails = () => {
   const intl = useIntl();
   const router = useRouter();
   const { user, hasPermission } = useUser();
+  const { addToast } = useToasts();
   const { playTracks } = usePlayback();
   const [showIssue, setShowIssue] = useState(false);
   const [showManage, setShowManage] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const mbid = router.query.mbid as string | undefined;
-  const { data: album, error } = useSWR<AlbumDetailsType>(
+  const {
+    data: album,
+    error,
+    mutate,
+  } = useSWR<AlbumDetailsType>(
     mbid ? `/api/v1/album/${mbid}` : null,
     {
       // Live updates come over SSE; this is a slow fallback while downloading.
@@ -167,6 +185,57 @@ const AlbumDetails = () => {
       : intl.formatMessage(messages.metareleased, { type, date: released })
     : intl.formatMessage(messages.metatype, { type });
 
+  // The requester may cancel while the request waits for approval; a manager
+  // may remove it at any time (including an auto-approved discography that is
+  // still downloading). Removing it stops the Lidarr download server-side.
+  const activeIsOwn = active?.requestedBy.id === user?.id;
+  const canCancelActive =
+    !!active &&
+    canCancelRequest(active, user?.id, hasPermission(Permission.MANAGE_REQUESTS));
+
+  const cancelActiveRequest = async () => {
+    if (!active) {
+      return;
+    }
+    setCancelling(true);
+    try {
+      await axios.delete(`/api/v1/request/${active.id}`);
+      addToast(
+        intl.formatMessage(
+          activeIsOwn ? messages.cancelled : messages.removed,
+          { title: album.title }
+        ),
+        { appearance: 'success' }
+      );
+      revalidateMusic();
+      mutate();
+    } catch (e) {
+      const message = axios.isAxiosError(e)
+        ? e.response?.data?.message
+        : undefined;
+      addToast(message ?? intl.formatMessage(messages.cancelfailed), {
+        appearance: 'error',
+      });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const cancelControl = canCancelActive ? (
+    <ConfirmButton
+      buttonSize="sm"
+      disabled={cancelling}
+      confirmText={intl.formatMessage(
+        activeIsOwn ? messages.confirmcancel : messages.confirmremove
+      )}
+      onClick={cancelActiveRequest}
+    >
+      {intl.formatMessage(
+        activeIsOwn ? messages.cancelrequest : messages.removerequest
+      )}
+    </ConfirmButton>
+  ) : null;
+
   let banner: React.ReactNode = null;
   if (active) {
     const missingCount = active.trackIds?.length ?? Math.max(0, total - have);
@@ -193,6 +262,7 @@ const AlbumDetails = () => {
               </Link>
             </>
           )}
+          {cancelControl && <div className="mt-2">{cancelControl}</div>}
         </div>
       );
     } else {
@@ -214,6 +284,7 @@ const AlbumDetails = () => {
                 : messages.approvedwaiting,
             { what, percent: Math.round(active.downloadProgress ?? 0) }
           )}
+          {cancelControl && <div className="mt-2">{cancelControl}</div>}
         </div>
       );
     }
