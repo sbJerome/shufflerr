@@ -6,7 +6,16 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.1.27] - 2026-10-06
+## [0.1.28] - 2026-10-06
+
+### Changed
+
+- **Direct-grab now targets only requested albums.** Previously the direct-submit bypass worked
+  from the downloader's entire monitored-missing catalog (which can be the full discographies of
+  every monitored artist). It is now scoped to the albums the user has an open request for: the
+  server's verifier-config endpoint returns the requested album ids, and the sidecar only grabs
+  those. An empty list means grab nothing. This keeps direct-grab to what was actually asked for
+  instead of auto-filling the whole library.
 
 ### Fixed
 

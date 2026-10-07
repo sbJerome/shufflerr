@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.28 — 2026-10-06
+
+- **Direct-grab only fetches what you requested.** The direct-download bypass now grabs just the
+  albums you have an open request for, instead of trying to fill your entire monitored library.
+
 ## v0.1.27 — 2026-10-06
 
 - **Fixed the reload loop.** The "a new version is available, reload" prompt no longer keeps

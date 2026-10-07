@@ -3,8 +3,10 @@
 // Every router of every stream is mounted here already. Streams implement
 // their own router files and should not need to edit this file.
 import PushoverAPI from '@server/api/pushover';
+import { MediaStatus } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
+import Media from '@server/entity/Media';
 import type { StatusResponse } from '@server/interfaces/api/settingsInterfaces';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
@@ -65,8 +67,39 @@ router.get<unknown, StatusResponse>('/status', async (_req, res) => {
 // Read by the audio-verification sidecar to learn whether direct-grab is on.
 // Returns only a boolean (no secrets), so it is intentionally unauthenticated —
 // the sidecar has no Shufflerr session or API key.
-router.get('/verifier/config', (_req, res) => {
-  return res.status(200).json({ enabled: getSettings().main.musicDirectGrab });
+// The audio-verifier sidecar polls this (unauthenticated: it returns only a
+// boolean and a list of integer album ids — no secrets, no names). When direct
+// grab is on, `albumIds` scopes it to the albums the user actually requested
+// (a pending/processing request), NOT Lidarr's whole monitored-missing catalog.
+router.get('/verifier/config', async (_req, res) => {
+  const settings = getSettings();
+  let albumIds: number[] = [];
+  if (settings.main.musicDirectGrab) {
+    try {
+      const rows = await getRepository(Media)
+        .createQueryBuilder('media')
+        .innerJoin('media.requests', 'request')
+        .where('media.status IN (:...statuses)', {
+          statuses: [MediaStatus.PENDING, MediaStatus.PROCESSING],
+        })
+        .andWhere('media.lidarrAlbumId IS NOT NULL')
+        .andWhere('media.lidarrAlbumId != 0')
+        .select('media.lidarrAlbumId', 'albumId')
+        .distinct(true)
+        .getRawMany<{ albumId: number }>();
+      albumIds = rows
+        .map((r) => r.albumId)
+        .filter((id): id is number => typeof id === 'number' && id > 0);
+    } catch (e) {
+      logger.error('Failed to compute direct-grab request album ids', {
+        label: 'Verifier',
+        errorMessage: e instanceof Error ? e.message : 'unknown',
+      });
+    }
+  }
+  return res
+    .status(200)
+    .json({ enabled: settings.main.musicDirectGrab, albumIds });
 });
 
 router.get('/status/appdata', isAuthenticated(), (_req, res) => {

@@ -50,7 +50,7 @@ own *Completed Download Handling* off so the two do not race.
 | `FFPROBE_BIN` | `ffprobe` | ffprobe binary path |
 | `FPCALC_BIN` | `fpcalc` | Chromaprint fpcalc binary path |
 | `ACOUSTID_ENDPOINT` | `https://api.acoustid.org/v2/lookup` | AcoustID lookup endpoint |
-| `DIRECT_GRAB_CONFIG_URL` | — | Shufflerr endpoint polled for the on/off toggle, e.g. `http://shufflerr-service.the-arrs/api/v1/verifier/config` (returns `{"enabled":bool}`) |
+| `DIRECT_GRAB_CONFIG_URL` | — | Shufflerr endpoint polled for the on/off toggle, e.g. `http://shufflerr-service.the-arrs/api/v1/verifier/config` (returns `{"enabled":bool,"albumIds":[...]}`) |
 | `DIRECT_GRAB` | `false` | Fallback toggle when the config URL is unset/unreachable |
 | `GRAB_COOLDOWN_SECS` | `3600` | Minimum gap before re-submitting a grab for the same album |
 
@@ -78,8 +78,11 @@ so when the completed download shows up (which Lidarr can't parse) the sidecar
 verifies it against the right album and drives a scoped manual-import — Lidarr is
 used only to tag/rename/organize. The on/off switch lives in **Shufflerr
 settings** ("Direct grab"); the sidecar polls `DIRECT_GRAB_CONFIG_URL` for it.
-Per-cycle grab count and `GRAB_COOLDOWN_SECS` bound the activity. Your indexers
-and download clients must be configured in Lidarr — that is where they come from.
+That endpoint also returns `albumIds` — the albums the user has an open request
+for — and direct-grab is **scoped to those albums only** (never Lidarr's whole
+monitored-missing catalog); an empty list means grab nothing. Per-cycle grab
+count and `GRAB_COOLDOWN_SECS` bound the activity. Your indexers and download
+clients must be configured in Lidarr — that is where they come from.
 
 ## Mounts
 
