@@ -6,6 +6,16 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.31] - 2026-10-07
+
+### Fixed
+
+- **Request dialog lost your track selection.** In the track picker, selecting a track and then
+  clicking elsewhere in the dialog could clear the selection — the modal's background data was
+  revalidating (on window focus and on live-update events) and rebuilding the derived track list
+  underneath the picker. The dialog now freezes its data while open and treats your picks as
+  authoritative. Requesting a single track from its row now pre-selects exactly that track.
+
 ## [0.1.30] - 2026-10-07
 
 ### Added
