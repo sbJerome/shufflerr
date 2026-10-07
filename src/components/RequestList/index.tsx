@@ -124,11 +124,12 @@ const RequestList = () => {
       (page - 1) * PAGE_SIZE
     }&filter=${filter}&sort=${sort}`,
     {
-      // Live updates come over SSE; this is a slow fallback while downloading.
+      // Live updates come over SSE; poll as a reliable fallback (faster while
+      // anything is still downloading) so the list never goes stale.
       refreshInterval: (latest) =>
         latest?.results.some((r) => r.status === MediaRequestStatus.APPROVED)
-          ? 60000
-          : 0,
+          ? 20000
+          : 60000,
     }
   );
 
