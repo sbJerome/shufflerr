@@ -21,6 +21,8 @@ type: Opaque
 stringData:
   LIDARR_API_KEY: REPLACE_ME
   ACOUSTID_API_KEY: REPLACE_ME
+  # Real download-client API key(s): the downloader API masks them, so supply here.
+  SAB_API_KEY: REPLACE_ME
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -46,7 +48,7 @@ spec:
       # The runtime image runs as uid 10001; make the state hostPath writable.
       initContainers:
         - name: init-state-perms
-          image: localhost/shufflerr-verifier:0.1.3
+          image: localhost/shufflerr-verifier:0.1.4
           imagePullPolicy: Never
           command: ["/bin/sh", "-c", "mkdir -p /state && chown -R 10001:10001 /state"]
           securityContext:
@@ -56,7 +58,7 @@ spec:
               name: verifier-state
       containers:
         - name: verifier
-          image: localhost/shufflerr-verifier:0.1.3
+          image: localhost/shufflerr-verifier:0.1.4
           imagePullPolicy: Never
           env:
             - name: TZ

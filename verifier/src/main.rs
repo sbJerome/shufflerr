@@ -173,6 +173,10 @@ async fn direct_grab_enabled(cfg: &Config, http: &Client) -> bool {
 /// Cap on how many albums the driver will submit per cycle, so turning the
 /// toggle on trickles downloads instead of flooding the client.
 const MAX_GRABS_PER_CYCLE: usize = 2;
+/// Hard bound on how many albums we even *attempt* per cycle, so a run of
+/// failures (e.g. a mis-set download-client key) cannot churn through every
+/// missing album and flood the indexers/logs hunting for successes.
+const MAX_ATTEMPTS_PER_CYCLE: usize = 6;
 
 /// For each monitored-missing album not already downloading or recently grabbed,
 /// interactively search the configured indexers, pick the best release, and
@@ -196,13 +200,19 @@ async fn direct_grab_cycle(
         queue.iter().map(|q| q.album_id).filter(|&a| a > 0).collect();
 
     let mut grabbed = 0usize;
+    let mut attempts = 0usize;
     for album_id in missing {
-        if grabbed >= MAX_GRABS_PER_CYCLE {
+        if grabbed >= MAX_GRABS_PER_CYCLE || attempts >= MAX_ATTEMPTS_PER_CYCLE {
             break;
         }
         if active_albums.contains(&album_id) || st.recently_grabbed(album_id, cfg.grab_cooldown_secs) {
             continue;
         }
+        attempts += 1;
+        // Stamp the cooldown up front: whatever the outcome below, this album is
+        // not retried until the cooldown expires. This bounds churn and log
+        // volume when an album has no acceptable release or a submit fails.
+        st.record_grab("", album_id);
         let releases = match lidarr.releases(album_id).await {
             Ok(r) => r,
             Err(e) => {
@@ -222,12 +232,10 @@ async fn direct_grab_cycle(
                 for id in &ids {
                     st.record_grab(id, album_id);
                 }
-                // Stamp the cooldown even if the client returned no id, so we do
-                // not resubmit next cycle.
-                st.record_grab("", album_id);
                 info!(album_id, quality = %best.quality_name, "direct-grab: submitted release to download client");
                 grabbed += 1;
             }
+            // Error is already scrubbed (status/category only, never the URL).
             Err(e) => warn!(album_id, error = %format!("{e:#}"), "direct-grab submit failed"),
         }
     }
