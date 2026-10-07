@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.37 — 2026-10-07
+
+- **Softer hero backdrops.** On the Discover and album pages, the blurred cover art now spills
+  past the header and fades out instead of stopping at a hard edge, for a smoother full-bleed look.
+
 ## v0.1.36 — 2026-10-07
 
 - **Verifier stops churning on oversized packs.** When a download's size isn't reported, the
