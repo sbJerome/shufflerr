@@ -1,6 +1,6 @@
 [package]
 name = "shufflerr-verifier"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "Shufflerr audio-verification sidecar: verifies Lidarr downloads (ffprobe + Chromaprint/AcoustID + spectral transcode detection) and drives Lidarr's manual import on a pass."
 license = "AGPL-3.0-only"

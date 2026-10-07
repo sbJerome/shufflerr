@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.29 — 2026-10-07
+
+- **Grab a single track, not the whole album.** When you request individual tracks, Shufflerr now
+  keeps just those tracks from whatever release it fetches, instead of requiring/importing the
+  full album. Album and discography requests work as before.
+
 ## v0.1.28 — 2026-10-06
 
 - **Direct-grab only fetches what you requested.** The direct-download bypass now grabs just the

@@ -6,6 +6,17 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.29] - 2026-10-07
+
+### Added
+
+- **Single-track requests import only the requested track(s).** A `tracks`-scope request already
+  records the specific tracks; the verifier config endpoint now also exposes, per album wanted
+  purely by track scope, those tracks' recording identifiers. When such a release is downloaded,
+  the sidecar (0.1.6) files **only** the requested track file(s) via manual-import — not the whole
+  album — matching them by recording id. Album and discography requests are unchanged (import in
+  full). A downloaded release that contains none of the requested tracks is left unimported.
+
 ## [0.1.28] - 2026-10-06
 
 ### Changed
