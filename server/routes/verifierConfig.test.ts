@@ -18,10 +18,12 @@ before(() => {
   app = express();
   app.get('/verifier/config', (_req, res) => {
     const enabled = getSettings().main.musicDirectGrab;
-    // When on, the real handler returns the requested-album ids; stub a
-    // representative list here to pin the { enabled, albumIds } shape.
+    // When on, the real handler returns the requested-album ids plus, for albums
+    // wanted purely by track scope, the requested recording MBIDs. Stub a
+    // representative payload to pin the { enabled, albumIds, trackScopes } shape.
     const albumIds = enabled ? [139, 162] : [];
-    res.status(200).json({ enabled, albumIds });
+    const trackScopes = enabled ? { 162: ['rec-a', 'rec-b'] } : {};
+    res.status(200).json({ enabled, albumIds, trackScopes });
   });
 });
 
@@ -41,6 +43,9 @@ describe('GET /verifier/config', () => {
     assert.equal(res.body.enabled, true);
     assert.ok(Array.isArray(res.body.albumIds));
     assert.ok(res.body.albumIds.length > 0);
+    // Track-scoped albums carry their requested recording MBIDs.
+    assert.equal(typeof res.body.trackScopes, 'object');
+    assert.deepEqual(res.body.trackScopes[162], ['rec-a', 'rec-b']);
     getSettings().main.musicDirectGrab = false;
   });
 });

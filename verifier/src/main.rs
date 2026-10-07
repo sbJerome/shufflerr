@@ -123,12 +123,16 @@ async fn run_cycle(
 
     debug!(queue = queue.len(), pending = pending.len(), "polled Lidarr queue");
 
+    // Resolve direct-grab config once per cycle. `track_scopes` also drives
+    // track-scoped IMPORTS below (import only the requested tracks of a release).
+    let dg = direct_grab_config(cfg, http).await;
+
     for item in pending {
         if st.is_processed(&item.download_id) {
             debug!(queue_id = item.id, "already handled this cycle; skipping");
             continue;
         }
-        match handle_item(cfg, lidarr, http, item, st).await {
+        match handle_item(cfg, lidarr, http, item, st, &dg.track_scopes).await {
             Ok(outcome) => st.mark(&item.download_id, &outcome),
             Err(e) => {
                 // A transient error (network, ffprobe hiccup) must not get
@@ -140,9 +144,8 @@ async fn run_cycle(
 
     // Direct-submit bypass (toggleable): Shufflerr owns release selection, and
     // scopes it to the albums the user actually requested.
-    let (dg_enabled, dg_album_ids) = direct_grab_config(cfg, http).await;
-    if dg_enabled {
-        if let Err(e) = direct_grab_cycle(cfg, lidarr, http, st, &queue, &dg_album_ids).await {
+    if dg.enabled {
+        if let Err(e) = direct_grab_cycle(cfg, lidarr, http, st, &queue, &dg.album_ids).await {
             warn!(error = %format!("{e:#}"), "direct-grab cycle error");
         }
     }
@@ -159,6 +162,19 @@ struct ToggleResponse {
     /// will fetch. Absent/empty means grab nothing.
     #[serde(default, rename = "albumIds")]
     album_ids: Vec<i64>,
+    /// Per-album requested recording MBIDs, present ONLY for albums wanted
+    /// purely by track scope. When an album appears here, only those tracks are
+    /// imported (not the whole release). Absent → import the whole album.
+    #[serde(default, rename = "trackScopes")]
+    track_scopes: std::collections::HashMap<i64, Vec<String>>,
+}
+
+/// Resolved direct-grab config for one cycle.
+#[derive(Default)]
+struct DirectGrabConfig {
+    enabled: bool,
+    album_ids: Vec<i64>,
+    track_scopes: std::collections::HashMap<i64, Vec<String>>,
 }
 
 /// Resolve the direct-grab toggle: prefer the Shufflerr-owned config endpoint
@@ -166,17 +182,27 @@ struct ToggleResponse {
 /// Returns (enabled, requested album ids). The album ids are the request-scoped
 /// candidate set from Shufflerr; an unreachable/unparseable endpoint falls back
 /// to the env default with no albums (so nothing is grabbed).
-async fn direct_grab_config(cfg: &Config, http: &Client) -> (bool, Vec<i64>) {
+async fn direct_grab_config(cfg: &Config, http: &Client) -> DirectGrabConfig {
     if let Some(url) = &cfg.direct_grab_config_url {
         match http.get(url).timeout(Duration::from_secs(5)).send().await {
             Ok(resp) => match resp.json::<ToggleResponse>().await {
-                Ok(t) => return (t.enabled, t.album_ids),
+                Ok(t) => {
+                    return DirectGrabConfig {
+                        enabled: t.enabled,
+                        album_ids: t.album_ids,
+                        track_scopes: t.track_scopes,
+                    }
+                }
                 Err(_) => debug!("direct-grab toggle endpoint returned unparseable body; using env default"),
             },
             Err(_) => debug!("direct-grab toggle endpoint unreachable; using env default"),
         }
     }
-    (cfg.direct_grab, Vec::new())
+    DirectGrabConfig {
+        enabled: cfg.direct_grab,
+        album_ids: Vec::new(),
+        track_scopes: std::collections::HashMap::new(),
+    }
 }
 
 /// Cap on how many albums the driver will submit per cycle, so turning the
@@ -278,12 +304,15 @@ async fn handle_item(
     http: &Client,
     item: &QueueItem,
     st: &mut state::State,
+    track_scopes: &std::collections::HashMap<i64, Vec<String>>,
 ) -> Result<String> {
     // For a direct-submitted download Lidarr cannot parse, its queue album id is
     // 0/unknown; fall back to the album we grabbed it for (recorded in state).
     let mapped_album = st.mapped_album(&item.download_id);
     let album_id = mapped_album.filter(|&a| a > 0).unwrap_or(item.album_id);
     let mapped = mapped_album.is_some();
+    // If this album is wanted purely by track scope, import only those tracks.
+    let track_scope: Option<&[String]> = track_scopes.get(&album_id).map(|v| v.as_slice());
 
     let local_dir = cfg.rebase_path(&item.output_path);
     let files = enumerate_audio_files(Path::new(&local_dir));
@@ -297,7 +326,7 @@ async fn handle_item(
 
     if files.is_empty() {
         warn!(queue_id = item.id, "no audio files found at output path");
-        return act_on_verdict(cfg, lidarr, st, item, album_id, mapped, false, &["no audio files found".to_string()]).await;
+        return act_on_verdict(cfg, lidarr, st, item, album_id, mapped, track_scope, false, &["no audio files found".to_string()]).await;
     }
 
     let tracks = lidarr
@@ -346,7 +375,7 @@ async fn handle_item(
         "release verdict"
     );
 
-    act_on_verdict(cfg, lidarr, st, item, album_id, mapped, release_pass, &all_reasons).await
+    act_on_verdict(cfg, lidarr, st, item, album_id, mapped, track_scope, release_pass, &all_reasons).await
 }
 
 /// Measure one file and run it through the gate.
@@ -438,12 +467,13 @@ async fn act_on_verdict(
     item: &QueueItem,
     album_id: i64,
     mapped: bool,
+    track_scope: Option<&[String]>,
     pass: bool,
     reasons: &[String],
 ) -> Result<String> {
     if cfg.dry_run {
         if pass {
-            info!(queue_id = item.id, "DRY_RUN: would import");
+            info!(queue_id = item.id, track_scoped = track_scope.is_some(), "DRY_RUN: would import");
             return Ok("dry-pass".to_string());
         }
         info!(queue_id = item.id, ?reasons, "DRY_RUN: would remove and blocklist");
@@ -454,7 +484,7 @@ async fn act_on_verdict(
         // A direct-submitted download is scoped to the album we grabbed it for,
         // so Lidarr maps its (otherwise unparseable) files to that album.
         let scoped = if mapped { Some(album_id) } else { None };
-        import_download(lidarr, item, scoped).await?;
+        import_download(lidarr, item, scoped, track_scope).await?;
         Ok("imported".to_string())
     } else {
         // Cap re-search per album so a release-set that is entirely bad does not
@@ -477,7 +507,12 @@ async fn act_on_verdict(
     }
 }
 
-async fn import_download(lidarr: &Lidarr, item: &QueueItem, scoped_album: Option<i64>) -> Result<()> {
+async fn import_download(
+    lidarr: &Lidarr,
+    item: &QueueItem,
+    scoped_album: Option<i64>,
+    track_scope: Option<&[String]>,
+) -> Result<()> {
     // For a direct-submitted download, scope the manual-import to the known
     // artist+album so Lidarr maps the files it could not parse on its own.
     let candidates = match scoped_album {
@@ -499,10 +534,12 @@ async fn import_download(lidarr: &Lidarr, item: &QueueItem, scoped_album: Option
 
     let files: Vec<serde_json::Value> = candidates
         .iter()
-        .filter_map(lidarr::build_import_file)
+        .filter_map(|c| lidarr::build_import_file_scoped(c, track_scope))
         .collect();
 
     if files.is_empty() {
+        // For a track-scoped request this means the download did not contain any
+        // requested track; leave it rather than importing the whole release.
         anyhow::bail!("no importable files returned by Lidarr for this download");
     }
 
@@ -575,6 +612,16 @@ mod tests {
         let t: ToggleResponse = serde_json::from_str(r#"{"enabled":true}"#).unwrap();
         assert!(t.enabled);
         assert!(t.album_ids.is_empty());
+        assert!(t.track_scopes.is_empty());
+    }
+
+    #[test]
+    fn toggle_response_parses_track_scopes() {
+        let t: ToggleResponse = serde_json::from_str(
+            r#"{"enabled":true,"albumIds":[139],"trackScopes":{"139":["rec-a","rec-b"]}}"#,
+        )
+        .unwrap();
+        assert_eq!(t.track_scopes.get(&139).map(|v| v.len()), Some(2));
     }
 
     #[test]
