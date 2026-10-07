@@ -138,9 +138,11 @@ async fn run_cycle(
         }
     }
 
-    // Direct-submit bypass (toggleable): Shufflerr owns release selection.
-    if direct_grab_enabled(cfg, http).await {
-        if let Err(e) = direct_grab_cycle(cfg, lidarr, http, st, &queue).await {
+    // Direct-submit bypass (toggleable): Shufflerr owns release selection, and
+    // scopes it to the albums the user actually requested.
+    let (dg_enabled, dg_album_ids) = direct_grab_config(cfg, http).await;
+    if dg_enabled {
+        if let Err(e) = direct_grab_cycle(cfg, lidarr, http, st, &queue, &dg_album_ids).await {
             warn!(error = %format!("{e:#}"), "direct-grab cycle error");
         }
     }
@@ -153,21 +155,28 @@ async fn run_cycle(
 struct ToggleResponse {
     #[serde(default)]
     enabled: bool,
+    /// Albums the user has an open request for — the ONLY albums direct-grab
+    /// will fetch. Absent/empty means grab nothing.
+    #[serde(default, rename = "albumIds")]
+    album_ids: Vec<i64>,
 }
 
 /// Resolve the direct-grab toggle: prefer the Shufflerr-owned config endpoint
 /// (so it can be flipped at runtime), falling back to the static env default.
-async fn direct_grab_enabled(cfg: &Config, http: &Client) -> bool {
+/// Returns (enabled, requested album ids). The album ids are the request-scoped
+/// candidate set from Shufflerr; an unreachable/unparseable endpoint falls back
+/// to the env default with no albums (so nothing is grabbed).
+async fn direct_grab_config(cfg: &Config, http: &Client) -> (bool, Vec<i64>) {
     if let Some(url) = &cfg.direct_grab_config_url {
         match http.get(url).timeout(Duration::from_secs(5)).send().await {
             Ok(resp) => match resp.json::<ToggleResponse>().await {
-                Ok(t) => return t.enabled,
+                Ok(t) => return (t.enabled, t.album_ids),
                 Err(_) => debug!("direct-grab toggle endpoint returned unparseable body; using env default"),
             },
             Err(_) => debug!("direct-grab toggle endpoint unreachable; using env default"),
         }
     }
-    cfg.direct_grab
+    (cfg.direct_grab, Vec::new())
 }
 
 /// Cap on how many albums the driver will submit per cycle, so turning the
@@ -187,7 +196,14 @@ async fn direct_grab_cycle(
     http: &Client,
     st: &mut state::State,
     queue: &[QueueItem],
+    album_ids: &[i64],
 ) -> Result<()> {
+    // Candidate set is the user's requested albums (from Shufflerr), NOT Lidarr's
+    // whole monitored-missing catalog. Empty → nothing to do.
+    if album_ids.is_empty() {
+        return Ok(());
+    }
+
     let clients = lidarr.download_clients().await.context("reading Lidarr download clients")?;
     let enabled_clients: Vec<_> = clients.into_iter().filter(|c| c.enable).collect();
     if enabled_clients.is_empty() {
@@ -195,13 +211,12 @@ async fn direct_grab_cycle(
         return Ok(());
     }
 
-    let missing = lidarr.missing_album_ids().await.context("reading missing albums")?;
     let active_albums: std::collections::HashSet<i64> =
         queue.iter().map(|q| q.album_id).filter(|&a| a > 0).collect();
 
     let mut grabbed = 0usize;
     let mut attempts = 0usize;
-    for album_id in missing {
+    for &album_id in album_ids {
         if grabbed >= MAX_GRABS_PER_CYCLE || attempts >= MAX_ATTEMPTS_PER_CYCLE {
             break;
         }
@@ -545,6 +560,22 @@ fn is_audio_file(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn toggle_response_parses_enabled_and_album_ids() {
+        let t: ToggleResponse =
+            serde_json::from_str(r#"{"enabled":true,"albumIds":[139,162,5]}"#).unwrap();
+        assert!(t.enabled);
+        assert_eq!(t.album_ids, vec![139, 162, 5]);
+    }
+
+    #[test]
+    fn toggle_response_defaults_album_ids_empty() {
+        // Older/absent field -> empty list (grab nothing), not an error.
+        let t: ToggleResponse = serde_json::from_str(r#"{"enabled":true}"#).unwrap();
+        assert!(t.enabled);
+        assert!(t.album_ids.is_empty());
+    }
 
     #[test]
     fn recognises_audio_extensions() {
