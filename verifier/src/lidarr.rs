@@ -20,6 +20,10 @@ pub struct Release {
     pub quality_name: String,
     pub quality_weight: i64,
     pub age_days: f64,
+    /// Release size in bytes (0 = unknown). Used to reject a release that is
+    /// implausibly large for the album (a discography/VA pack grabbed for a
+    /// single album), which would otherwise download hundreds of wrong tracks.
+    pub size: i64,
 }
 
 fn release_is_lossless(name: &str) -> bool {
@@ -52,6 +56,7 @@ fn parse_releases(json: &str) -> Result<Vec<Release>> {
                     .to_string(),
                 quality_weight: r.get("qualityWeight").and_then(|v| v.as_i64()).unwrap_or(0),
                 age_days: r.get("age").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                size: r.get("size").and_then(|v| v.as_i64()).unwrap_or(0),
             })
         })
         .collect())
@@ -59,8 +64,15 @@ fn parse_releases(json: &str) -> Result<Vec<Release>> {
 
 /// Pick the best release: prefer lossless, then highest quality weight, then
 /// the newest (smallest age) as a tie-break. Ignores Lidarr's own rejections.
-pub fn pick_best_release(releases: &[Release]) -> Option<&Release> {
-    releases.iter().max_by(|a, b| {
+pub fn pick_best_release(releases: &[Release], max_size: Option<i64>) -> Option<&Release> {
+    releases
+        .iter()
+        .filter(|r| match max_size {
+            // Keep releases within the size budget; size 0 = unknown, keep it.
+            Some(max) if max > 0 => r.size <= max || r.size == 0,
+            _ => true,
+        })
+        .max_by(|a, b| {
         release_is_lossless(&a.quality_name)
             .cmp(&release_is_lossless(&b.quality_name))
             .then(a.quality_weight.cmp(&b.quality_weight))
@@ -654,26 +666,56 @@ mod tests {
         assert_eq!(rs[0].indexer_id, 2);
     }
 
+    fn rel(guid: &str, quality: &str, weight: i64, age: f64, size: i64) -> Release {
+        Release {
+            guid: guid.into(),
+            download_url: "u".into(),
+            protocol: "usenet".into(),
+            indexer_id: 1,
+            quality_name: quality.into(),
+            quality_weight: weight,
+            age_days: age,
+            size,
+        }
+    }
+
     #[test]
     fn picks_lossless_over_higher_weight_lossy() {
         let rs = vec![
-            Release { guid: "a".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "MP3-320".into(), quality_weight: 900, age_days: 1.0 },
-            Release { guid: "b".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "FLAC".into(), quality_weight: 500, age_days: 50.0 },
+            rel("a", "MP3-320", 900, 1.0, 0),
+            rel("b", "FLAC", 500, 50.0, 0),
         ];
-        assert_eq!(pick_best_release(&rs).unwrap().quality_name, "FLAC");
+        assert_eq!(pick_best_release(&rs, None).unwrap().quality_name, "FLAC");
     }
 
     #[test]
     fn picks_higher_weight_then_newer_among_lossless() {
         let rs = vec![
-            Release { guid: "a".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "FLAC".into(), quality_weight: 1005, age_days: 40.0 },
-            Release { guid: "b".into(), download_url: "u".into(), protocol: "usenet".into(), indexer_id: 1, quality_name: "FLAC 24bit".into(), quality_weight: 1010, age_days: 5.0 },
+            rel("a", "FLAC", 1005, 40.0, 0),
+            rel("b", "FLAC 24bit", 1010, 5.0, 0),
         ];
-        assert_eq!(pick_best_release(&rs).unwrap().guid, "b"); // higher weight wins
+        assert_eq!(pick_best_release(&rs, None).unwrap().guid, "b"); // higher weight wins
     }
 
     #[test]
     fn pick_best_on_empty_is_none() {
-        assert!(pick_best_release(&[]).is_none());
+        assert!(pick_best_release(&[], None).is_none());
+    }
+
+    #[test]
+    fn size_guard_skips_oversized_pack() {
+        // A small album release and a huge discography pack; budget allows only
+        // album-sized releases. The oversized pack (higher weight) is skipped.
+        let album = rel("album", "FLAC", 900, 10.0, 500_000_000); // ~500 MB
+        let pack = rel("pack", "FLAC", 1010, 2.0, 25_000_000_000); // ~25 GB
+        let rs = vec![pack, album];
+        let budget = Some(12 * 200_000_000i64); // ~2.4 GB for a 12-track album
+        assert_eq!(pick_best_release(&rs, budget).unwrap().guid, "album");
+        // Unknown size (0) is always allowed.
+        let unknown = vec![rel("x", "FLAC", 1, 1.0, 0)];
+        assert_eq!(pick_best_release(&unknown, budget).unwrap().guid, "x");
+        // No budget → size ignored, highest weight wins.
+        let rs2 = vec![rel("p", "FLAC", 1010, 1.0, 25_000_000_000), rel("a", "FLAC", 900, 1.0, 500_000_000)];
+        assert_eq!(pick_best_release(&rs2, None).unwrap().guid, "p");
     }
 }

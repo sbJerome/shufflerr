@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.33 — 2026-10-07
+
+- **Smarter grabbing.** The verifier no longer accidentally grabs a giant discography pack when
+  you request one album — it picks an album-sized release (or skips), which also stops those
+  bad grabs from blocking your other downloads.
+
 ## v0.1.32 — 2026-10-07
 
 - **Tidied the album page:** the cancel-request button now sits next to "Add to playlist".

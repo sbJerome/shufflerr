@@ -6,6 +6,18 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.33] - 2026-10-07
+
+### Fixed
+
+- **Direct-grab no longer grabs oversized packs (sidecar 0.1.7).** The grab picker could choose a
+  discography/compilation release containing hundreds of tracks for what should be a single
+  album — downloading the wrong content, failing verification, and starving small imports behind
+  it. It now rejects any release whose size is implausibly large for the album's track count
+  (~200 MB/track budget; unknown sizes still allowed), so it grabs an album-sized release or
+  skips. Single-song requests still download the album they're on (releases are whole-album), but
+  never a giant pack.
+
 ## [0.1.32] - 2026-10-07
 
 ### Changed

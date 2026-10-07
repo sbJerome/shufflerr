@@ -212,6 +212,10 @@ const MAX_GRABS_PER_CYCLE: usize = 2;
 /// failures (e.g. a mis-set download-client key) cannot churn through every
 /// missing album and flood the indexers/logs hunting for successes.
 const MAX_ATTEMPTS_PER_CYCLE: usize = 6;
+/// Generous per-track size budget (bytes). A release larger than the album's
+/// track count times this is treated as a wrong/oversized pack and skipped.
+/// ~200 MB/track comfortably covers 24-bit FLAC without admitting discography packs.
+const MAX_BYTES_PER_TRACK: i64 = 200_000_000;
 
 /// For each monitored-missing album not already downloading or recently grabbed,
 /// interactively search the configured indexers, pick the best release, and
@@ -261,7 +265,21 @@ async fn direct_grab_cycle(
                 continue;
             }
         };
-        let Some(best) = lidarr::pick_best_release(&releases) else {
+        // Budget the release size by the album's own track count so a
+        // discography/compilation pack is never grabbed for a single album
+        // (hundreds of wrong tracks that fail verification and starve the queue).
+        let expected_tracks = lidarr
+            .album_tracks(album_id)
+            .await
+            .map(|t| t.len())
+            .unwrap_or(0);
+        let max_size = if expected_tracks > 0 {
+            Some(expected_tracks as i64 * MAX_BYTES_PER_TRACK)
+        } else {
+            None
+        };
+        let Some(best) = lidarr::pick_best_release(&releases, max_size) else {
+            info!(album_id, expected_tracks, "no acceptably-sized release found; skipping");
             continue;
         };
         let Some(client) = select_client(&enabled_clients, &best.protocol) else {
