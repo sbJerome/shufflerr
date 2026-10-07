@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.38 — 2026-10-07
+
+- **Glowing hero backdrop.** The blurred cover on the Discover and album pages now glows like an
+  aura sitting above the background and spreads wide across the page, with the text on top — rather
+  than a flat blurred panel behind everything.
+
 ## v0.1.37 — 2026-10-07
 
 - **Softer hero backdrops.** On the Discover and album pages, the blurred cover art now spills

@@ -819,6 +819,10 @@
     display: flex;
     flex-direction: column;
     padding-bottom: 96px;
+    /* The hero auras bleed past .sh-view; contain that horizontal spill at the
+       main column edge so it can glow wide without a horizontal page scrollbar.
+       `clip` (not `hidden`) keeps the vertical bleed into the page visible. */
+    overflow-x: clip;
   }
   .sh-top {
     display: flex;
@@ -897,10 +901,6 @@
     display: flex;
     flex-direction: column;
     gap: 48px;
-    /* Contain the heroes' horizontal art bleed at the content column edge so
-       the overflowing blur never adds a horizontal page scrollbar. `clip`
-       (unlike `hidden`) still lets the blur bleed vertically into the page. */
-    overflow-x: clip;
   }
   h1,
   h2,
@@ -3416,50 +3416,60 @@
     flex-direction: column;
     justify-content: space-between;
     gap: 40px;
-    /* Let the blurred art + blur spill past the hero edges instead of being
-       hard-clipped; horizontal bleed is contained at .sh-view. */
+    /* The blurred cover is a glowing aura (see .art): keep the hero's own dark
+       base so the glow reads, let it spill past the edges, and isolate the
+       screen-blend so it only lightens this hero's backdrop. */
     overflow: visible;
     isolation: isolate;
+    background: rgb(var(--c-bg));
     width: calc(100% + 64px);
     max-width: none;
   }
-  .sh-dx-hero .art {
-    position: absolute;
-    inset: -80px;
-    width: calc(100% + 160px);
-    height: calc(100% + 160px);
-    object-fit: cover;
-    object-position: center 25%;
-    filter: blur(18px) saturate(1.15);
-    opacity: 0.75;
-    z-index: -2;
-    /* Fade the art toward its edges so the overflow melts away softly. */
-    -webkit-mask-image: radial-gradient(
-      ellipse 82% 82% at 50% 38%,
-      #000 52%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse 82% 82% at 50% 38%,
-      #000 52%,
-      transparent 100%
-    );
-  }
+  /* Layer order inside the hero: dark base < veil (background) < art (glowing
+     aura) < content/text. The aura sits ON TOP of the background elements and
+     only the text sits above it. */
   .sh-dx-hero .veil {
     position: absolute;
     inset: 0;
-    z-index: -1;
-    background:
-      linear-gradient(
-        180deg,
-        rgb(var(--c-bg) / 0.2) 0%,
-        rgb(var(--c-bg) / 0.55) 55%,
-        rgb(var(--c-bg)) 100%
-      ),
-      linear-gradient(90deg, rgb(var(--c-bg) / 0.7) 0%, transparent 65%);
+    z-index: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 60%,
+      rgb(var(--c-bg) / 0.6) 85%,
+      rgb(var(--c-bg)) 100%
+    );
+  }
+  .sh-dx-hero .art {
+    position: absolute;
+    inset: -160px;
+    width: calc(100% + 320px);
+    height: calc(100% + 320px);
+    object-fit: cover;
+    object-position: center 25%;
+    filter: blur(60px) saturate(1.5);
+    opacity: 0.85;
+    z-index: 1;
+    /* Glow additively over the dark base so it radiates rather than sitting
+       as a flat panel. */
+    mix-blend-mode: screen;
+    pointer-events: none;
+    /* Radial mask → a soft aura: bright core fading to nothing at the edges. */
+    -webkit-mask-image: radial-gradient(
+      ellipse 62% 66% at 48% 42%,
+      #000 30%,
+      transparent 78%
+    );
+    mask-image: radial-gradient(
+      ellipse 62% 66% at 48% 42%,
+      #000 30%,
+      transparent 78%
+    );
   }
   .sh-dx-hero .copy {
+    position: relative;
+    z-index: 2;
     max-width: 720px;
+    text-shadow: 0 1px 24px rgb(var(--c-bg) / 0.65);
   }
   .sh-dx-hero .kicker {
     font: 500 12px var(--mono);
@@ -3857,44 +3867,51 @@
     margin: -32px -32px 0;
     width: calc(100% + 64px);
     padding: 40px 32px 56px;
-    /* Let the blurred art + blur spill past the hero edges instead of being
-       hard-clipped; horizontal bleed is contained at .sh-view. */
+    /* The blurred cover is a glowing aura (see .art): dark base so the glow
+       reads, spilling past the hero edges (and past .sh-view). */
     overflow: visible;
     isolation: isolate;
+    background: rgb(var(--c-bg));
   }
-  .sh-ax-hero .art {
-    position: absolute;
-    inset: -90px;
-    width: calc(100% + 180px);
-    height: calc(100% + 180px);
-    object-fit: cover;
-    filter: blur(44px) saturate(1.2);
-    opacity: 0.7;
-    z-index: -2;
-    /* Fade the art toward its edges so the overflow melts away softly. */
-    -webkit-mask-image: radial-gradient(
-      ellipse 80% 80% at 50% 40%,
-      #000 50%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse 80% 80% at 50% 40%,
-      #000 50%,
-      transparent 100%
-    );
-  }
+  /* Layer order: dark base < veil (background) < art (glowing aura) < content.
+     The aura sits ON TOP of the background and only the content/text above it. */
   .sh-ax-hero .veil {
     position: absolute;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     background: linear-gradient(
       180deg,
-      rgb(var(--c-bg) / 0.35) 0%,
-      rgb(var(--c-bg) / 0.6) 55%,
+      transparent 55%,
+      rgb(var(--c-bg) / 0.65) 85%,
       rgb(var(--c-bg)) 100%
     );
   }
+  .sh-ax-hero .art {
+    position: absolute;
+    inset: -160px;
+    width: calc(100% + 320px);
+    height: calc(100% + 320px);
+    object-fit: cover;
+    filter: blur(70px) saturate(1.5);
+    opacity: 0.8;
+    z-index: 1;
+    /* Glow additively over the dark base so it radiates; expands past .sh-view. */
+    mix-blend-mode: screen;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(
+      ellipse 58% 62% at 50% 40%,
+      #000 28%,
+      transparent 76%
+    );
+    mask-image: radial-gradient(
+      ellipse 58% 62% at 50% 40%,
+      #000 28%,
+      transparent 76%
+    );
+  }
   .sh-ax-col {
+    position: relative;
+    z-index: 2;
     width: 100%;
     max-width: 1050px;
     margin: 0 auto;
