@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.27 — 2026-10-06
+
+- **Fixed the reload loop.** The "a new version is available, reload" prompt no longer keeps
+  reappearing after you reload — the client and server now agree on the running version.
+
 ## v0.1.26 — 2026-10-06
 
 - **Direct grab (optional).** A new switch in Settings lets Shufflerr pick releases and hand them

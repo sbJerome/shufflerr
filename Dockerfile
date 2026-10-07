@@ -73,7 +73,7 @@ COPY --chown=node:node --from=build /app/dist ./dist
 RUN test -f /app/NOTICE.md && test -f /app/LICENSE && test -f /app/LICENSES/seerr-MIT.txt
 
 RUN mkdir -p config && touch config/DOCKER && \
-  echo "{\"commitTag\": \"${COMMIT_TAG}\"}" > committag.json
+  echo "{\"commitTag\": \"${COMMIT_TAG:-local}\"}" > committag.json
 
 EXPOSE 5055
 

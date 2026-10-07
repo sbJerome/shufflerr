@@ -128,8 +128,12 @@ impl DownloadClient {
     }
 
     async fn submit_sabnzbd(&self, http: &Client, download_url: &str) -> Result<Vec<String>> {
-        let apikey = self
-            .field_str("apiKey")
+        // Lidarr's API masks download-client secrets, so prefer SAB_API_KEY from
+        // the sidecar's own secret; fall back to Lidarr's (possibly masked) value.
+        let apikey = std::env::var("SAB_API_KEY")
+            .ok()
+            .filter(|s| !s.trim().is_empty())
+            .or_else(|| self.field_str("apiKey"))
             .ok_or_else(|| anyhow!("SABnzbd client has no apiKey"))?;
         let url = format!("{}/api", self.base_url()?);
         let cat = self.category();
@@ -142,16 +146,29 @@ impl DownloadClient {
         if !cat.is_empty() {
             query.push(("cat", cat));
         }
-        let body = http
+        // SECURITY: errors here are built from the HTTP status ONLY — never from
+        // the reqwest error or the request URL, which carry the indexer API key
+        // and the release name in the `name=` parameter.
+        let resp = http
             .get(&url)
             .query(&query)
             .send()
             .await
-            .context("SABnzbd addurl request failed")?
-            .error_for_status()
-            .context("SABnzbd addurl returned an error status")?
+            .map_err(|e| {
+                anyhow!(
+                    "SABnzbd addurl request failed (timeout={}, connect={})",
+                    e.is_timeout(),
+                    e.is_connect()
+                )
+            })?;
+        let status = resp.status();
+        if !status.is_success() {
+            return Err(anyhow!("SABnzbd addurl HTTP {}", status.as_u16()));
+        }
+        let body = resp
             .text()
-            .await?;
+            .await
+            .map_err(|_| anyhow!("reading SABnzbd addurl response body"))?;
         parse_sab_addurl(&body)
     }
 
@@ -186,12 +203,21 @@ impl DownloadClient {
         if !cat.is_empty() {
             form.push(("category".to_string(), cat.clone()));
         }
-        add.form(&form)
+        let add_status = add
+            .form(&form)
             .send()
             .await
-            .context("qBittorrent add failed")?
-            .error_for_status()
-            .context("qBittorrent add returned an error status")?;
+            .map_err(|e| {
+                anyhow!(
+                    "qBittorrent add failed (timeout={}, connect={})",
+                    e.is_timeout(),
+                    e.is_connect()
+                )
+            })?
+            .status();
+        if !add_status.is_success() {
+            return Err(anyhow!("qBittorrent add HTTP {}", add_status.as_u16()));
+        }
 
         // 2) read newest torrent in the category to get its hash.
         let mut info = http.get(format!("{base}/api/v2/torrents/info"));

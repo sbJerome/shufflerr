@@ -6,6 +6,24 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-10-06
+
+### Fixed
+
+- **Endless "a new version is available — reload" loop.** The web client bakes its build-time
+  commit tag defaulting to `local`, but the server wrote its runtime `committag.json` with an
+  empty string when no commit tag was supplied at build — so the two never matched and the
+  reload prompt reappeared immediately after every reload. The server now defaults its commit
+  tag to `local` as well, matching the client, and builds supply a real commit tag so the two
+  always agree.
+- **Direct-grab hardening (sidecar 0.1.4).** Three fixes to the direct-submit bypass surfaced by
+  live testing: (1) submit failures now log the HTTP status only — never the request URL, which
+  embedded the indexer API key and the release name; (2) the real download-client secret is read
+  from the sidecar's own secret (the downloader API only exposes a masked key), so usenet submits
+  authenticate correctly; (3) the grab cycle now caps *attempts* per cycle and cools down every
+  attempted item, so a run of failures can no longer churn through every wanted item or flood the
+  indexers and logs.
+
 ## [0.1.26] - 2026-10-06
 
 ### Added
