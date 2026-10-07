@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.34 — 2026-10-07
+
+- **Lists stay up to date.** The Requests list and Discover rows now refresh on their own, so
+  finished requests drop to "available" and newly-added music shows up without a manual reload.
+- **Discover header:** lighter blur on the backdrop.
+
 ## v0.1.33 — 2026-10-07
 
 - **Smarter grabbing.** The verifier no longer accidentally grabs a giant discography pack when

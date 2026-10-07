@@ -3424,7 +3424,7 @@
     height: calc(100% + 120px);
     object-fit: cover;
     object-position: center 25%;
-    filter: blur(36px) saturate(1.15);
+    filter: blur(18px) saturate(1.15);
     opacity: 0.75;
     z-index: -2;
   }

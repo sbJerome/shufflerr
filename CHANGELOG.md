@@ -6,6 +6,20 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.34] - 2026-10-07
+
+### Fixed
+
+- **Lists now refresh on their own.** The Requests list and the Discover rows ("New in your
+  library", recent requests, "For you") relied on live SSE events + window focus with no polling
+  fallback, so they could show stale state — finished requests lingering, new library items not
+  appearing. They now poll periodically (Requests every 20s while downloading / 60s otherwise;
+  Discover rows every 60–120s) so they stay current even if a live event is missed.
+
+### Changed
+
+- **Discover header:** reduced the blur on the hero's background artwork (36px → 18px).
+
 ## [0.1.33] - 2026-10-07
 
 ### Fixed

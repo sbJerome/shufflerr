@@ -87,7 +87,8 @@ const Discover = () => {
   );
 
   const { data: recent } = useSWR<DiscoverAlbumsResponse>(
-    '/api/v1/discover/recently-added?take=20'
+    '/api/v1/discover/recently-added?take=20',
+    { refreshInterval: 60000 }
   );
   const { data: trending } = useSWR<DiscoverAlbumsResponse>(
     '/api/v1/discover/trending?take=20'
@@ -99,10 +100,12 @@ const Discover = () => {
     currentSettings.concertsEnabled ? '/api/v1/discover/concerts?take=6' : null
   );
   const { data: requests } = useSWR<DiscoverRecentRequestsResponse>(
-    '/api/v1/discover/recent-requests?take=5'
+    '/api/v1/discover/recent-requests?take=5',
+    { refreshInterval: 60000 }
   );
   const { data: forYou } = useSWR<DiscoverForYouResponse>(
-    '/api/v1/discover/for-you?take=20'
+    '/api/v1/discover/for-you?take=20',
+    { refreshInterval: 120000 }
   );
 
   const ownOnly = requests
