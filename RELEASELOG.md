@@ -3,6 +3,10 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.32 — 2026-10-07
+
+- **Tidied the album page:** the cancel-request button now sits next to "Add to playlist".
+
 ## v0.1.31 — 2026-10-07
 
 - **Fixed losing your track pick.** Choosing a single track and then clicking elsewhere in the

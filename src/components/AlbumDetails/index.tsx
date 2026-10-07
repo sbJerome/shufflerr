@@ -262,7 +262,6 @@ const AlbumDetails = () => {
               </Link>
             </>
           )}
-          {cancelControl && <div className="mt-2">{cancelControl}</div>}
         </div>
       );
     } else {
@@ -284,7 +283,6 @@ const AlbumDetails = () => {
                 : messages.approvedwaiting,
             { what, percent: Math.round(active.downloadProgress ?? 0) }
           )}
-          {cancelControl && <div className="mt-2">{cancelControl}</div>}
         </div>
       );
     }
@@ -394,6 +392,7 @@ const AlbumDetails = () => {
                     artistName={album.artistName}
                   />
                 )}
+                {cancelControl}
               </div>
               {!!album.genres?.length && (
                 <ul

@@ -6,6 +6,13 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.32] - 2026-10-07
+
+### Changed
+
+- **Album page:** the cancel/remove-request button now sits in the action row next to
+  "Add to playlist" instead of under the request-status banner.
+
 ## [0.1.31] - 2026-10-07
 
 ### Fixed
