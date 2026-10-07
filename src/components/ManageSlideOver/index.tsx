@@ -13,6 +13,7 @@ import StatusBadge from '@app/components/StatusBadge';
 import { useToasts } from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
+import { canCancelRequest } from '@app/utils/requests';
 import { isDownloading } from '@app/utils/status';
 import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
 import type { IssueResultsResponse } from '@server/interfaces/api/issueInterfaces';
@@ -43,10 +44,17 @@ const messages = defineMessages('components.ManageSlideOver', {
   requestedBy: '{scope}, requested by {name} on {date}',
   approve: 'Approve',
   decline: 'Decline',
+  cancel: 'Cancel request',
+  remove: 'Remove request',
+  confirm: 'Are you sure?',
   approveLabel: 'Approve the request from {name}',
   declineLabel: 'Decline the request from {name}',
+  cancelLabel: 'Cancel the request from {name}',
+  removeLabel: 'Remove the request from {name}',
   approved: 'Approved {title}. Sent to Lidarr.',
   declined: 'Declined {title}.',
+  cancelled: 'Cancelled the request for {title}.',
+  removed: 'Removed the request for {title}.',
   allRequests: 'All requests',
   issues: 'Open issues',
   noIssues: 'No open issues.',
@@ -102,7 +110,7 @@ const ManageSlideOver = ({
 }: ManageSlideOverProps) => {
   const intl = useIntl();
   const { addToast } = useToasts();
-  const { hasPermission } = useUser();
+  const { user, hasPermission } = useUser();
   const isArtist = mediaType === 'artist';
   const itemKey = `/api/v1/${isArtist ? 'artist' : 'album'}/${mbid}`;
   const canManageRequests = hasPermission(Permission.MANAGE_REQUESTS);
@@ -259,56 +267,96 @@ const ManageSlideOver = ({
                             })}
                           </div>
                         </div>
-                        {canManageRequests &&
-                          request.status === MediaRequestStatus.PENDING && (
-                            <span className="flex gap-2">
-                              <Button
-                                buttonType="success"
-                                buttonSize="sm"
-                                disabled={busy !== null}
-                                aria-label={intl.formatMessage(
-                                  messages.approveLabel,
-                                  { name: request.requestedBy.displayName }
-                                )}
-                                onClick={() =>
-                                  run(
-                                    `approve-${request.id}`,
-                                    () =>
-                                      axios.post(
-                                        `/api/v1/request/${request.id}/approve`
-                                      ),
-                                    intl.formatMessage(messages.approved, {
-                                      title,
-                                    })
+                        <span className="flex flex-wrap gap-2">
+                          {canManageRequests &&
+                            request.status === MediaRequestStatus.PENDING && (
+                              <>
+                                <Button
+                                  buttonType="success"
+                                  buttonSize="sm"
+                                  disabled={busy !== null}
+                                  aria-label={intl.formatMessage(
+                                    messages.approveLabel,
+                                    { name: request.requestedBy.displayName }
+                                  )}
+                                  onClick={() =>
+                                    run(
+                                      `approve-${request.id}`,
+                                      () =>
+                                        axios.post(
+                                          `/api/v1/request/${request.id}/approve`
+                                        ),
+                                      intl.formatMessage(messages.approved, {
+                                        title,
+                                      })
+                                    )
+                                  }
+                                >
+                                  {intl.formatMessage(messages.approve)}
+                                </Button>
+                                <Button
+                                  buttonSize="sm"
+                                  disabled={busy !== null}
+                                  aria-label={intl.formatMessage(
+                                    messages.declineLabel,
+                                    { name: request.requestedBy.displayName }
+                                  )}
+                                  onClick={() =>
+                                    run(
+                                      `decline-${request.id}`,
+                                      () =>
+                                        axios.post(
+                                          `/api/v1/request/${request.id}/decline`
+                                        ),
+                                      intl.formatMessage(messages.declined, {
+                                        title,
+                                      })
+                                    )
+                                  }
+                                >
+                                  {intl.formatMessage(messages.decline)}
+                                </Button>
+                              </>
+                            )}
+                          {canCancelRequest(
+                            request,
+                            user?.id,
+                            canManageRequests
+                          ) && (
+                            <ConfirmButton
+                              buttonSize="sm"
+                              disabled={busy !== null}
+                              confirmText={intl.formatMessage(messages.confirm)}
+                              aria-label={intl.formatMessage(
+                                request.requestedBy.id === user?.id
+                                  ? messages.cancelLabel
+                                  : messages.removeLabel,
+                                { name: request.requestedBy.displayName }
+                              )}
+                              onClick={() =>
+                                run(
+                                  `remove-${request.id}`,
+                                  () =>
+                                    axios.delete(
+                                      `/api/v1/request/${request.id}`
+                                    ),
+                                  intl.formatMessage(
+                                    request.requestedBy.id === user?.id
+                                      ? messages.cancelled
+                                      : messages.removed,
+                                    { title }
                                   )
-                                }
-                              >
-                                {intl.formatMessage(messages.approve)}
-                              </Button>
-                              <Button
-                                buttonSize="sm"
-                                disabled={busy !== null}
-                                aria-label={intl.formatMessage(
-                                  messages.declineLabel,
-                                  { name: request.requestedBy.displayName }
-                                )}
-                                onClick={() =>
-                                  run(
-                                    `decline-${request.id}`,
-                                    () =>
-                                      axios.post(
-                                        `/api/v1/request/${request.id}/decline`
-                                      ),
-                                    intl.formatMessage(messages.declined, {
-                                      title,
-                                    })
-                                  )
-                                }
-                              >
-                                {intl.formatMessage(messages.decline)}
-                              </Button>
-                            </span>
+                                )
+                              }
+                            >
+                              {intl.formatMessage(
+                                request.requestedBy.id === user?.id
+                                  ? messages.cancel
+                                  : messages.remove
+                              )}
+                            </ConfirmButton>
                           )}
+                        </span>
                       </li>
                     ))}
                   </ul>

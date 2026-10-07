@@ -516,6 +516,30 @@ class LidarrAPI extends ServarrBase<LidarrQueueAppend> {
     }
   };
 
+  /**
+   * Remove a single item from Lidarr's download queue, stopping an active
+   * download. `removeFromClient` tells the download client to drop it too;
+   * `skipRedownload` keeps Lidarr from grabbing it again right away.
+   */
+  public removeFromQueue = async (
+    id: number,
+    options: { removeFromClient?: boolean; blocklist?: boolean } = {}
+  ): Promise<void> => {
+    try {
+      await this.axios.delete(`/queue/${id}`, {
+        params: {
+          removeFromClient: options.removeFromClient ?? true,
+          blocklist: options.blocklist ?? false,
+          skipRedownload: true,
+        },
+      });
+    } catch (e) {
+      throw new Error(`[Lidarr] Failed to remove queue item: ${e.message}`, {
+        cause: e,
+      });
+    }
+  };
+
   public getHistory = async (options: {
     albumId?: number;
     artistId?: number;

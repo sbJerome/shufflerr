@@ -619,6 +619,145 @@ describe('DELETE and PUT /request/:id', () => {
     );
   });
 
+  it('cancelling an approved album clears its active download from the queue', async () => {
+    const sam = await makeUser('sam', Permission.REQUEST);
+    const manager = await makeUser('manager', Permission.MANAGE_REQUESTS);
+
+    const created = await as(sam).post('/request', albumBody());
+    await as(manager).post(`/request/${created.body.id}/approve`);
+    await flushRequestSideEffects();
+
+    const albumId = ctx.lidarr.albums.find(
+      (a) => a.foreignAlbumId === MISSING_ALBUM_MBID
+    )?.id as number;
+
+    // One queue item for this album, one for something unrelated.
+    ctx.lidarr.queue = [
+      {
+        id: 1,
+        artistId: 5,
+        albumId,
+        title: 'Test Artist - Missing Album',
+        status: 'downloading',
+      },
+      {
+        id: 2,
+        artistId: 99,
+        albumId: 999,
+        title: 'Someone else - Other Album',
+        status: 'downloading',
+      },
+    ];
+    ctx.lidarr.calls = [];
+
+    assert.equal(
+      (await as(manager).delete(`/request/${created.body.id}`)).status,
+      204
+    );
+
+    // Unmonitors only this album…
+    assert.deepEqual(
+      ctx.lidarr.callsTo('PUT', '/album/monitor').map((c) => c.body),
+      [{ albumIds: [albumId], monitored: false }]
+    );
+    // …and removes only this album's queue item, leaving the unrelated one.
+    assert.deepEqual(
+      ctx.lidarr.callsTo('DELETE', '/queue').map((c) => c.path),
+      ['/queue/1']
+    );
+    assert.equal(
+      ctx.lidarr.callsTo('DELETE', '/queue')[0].query.removeFromClient,
+      'true'
+    );
+  });
+
+  it('cancelling an approved discography stops every download for that artist only', async () => {
+    // Shufflerr must have added the artist for the cancel to touch Lidarr.
+    ctx.lidarr.artists = [];
+    ctx.lidarr.albums = [];
+    ctx.lidarr.lookupArtists = [
+      {
+        artistName: 'Test Artist',
+        foreignArtistId: ARTIST_MBID,
+        qualityProfileId: 2,
+        metadataProfileId: 1,
+        monitored: false,
+        monitorNewItems: 'none',
+        tags: [],
+      },
+    ];
+    ctx.lidarr.albumsOnArtistAdd = [
+      {
+        title: 'Disco Album',
+        artistId: 0,
+        foreignAlbumId: '99999999-9999-4999-8999-999999999999',
+        monitored: false,
+      },
+    ];
+
+    const admin = await makeUser('boss', Permission.ADMIN);
+    const created = await as(admin).post('/request', {
+      mbid: ARTIST_MBID,
+      mediaType: MediaType.ARTIST,
+      scope: RequestScope.DISCOGRAPHY,
+      monitorFuture: true,
+    });
+    await flushRequestSideEffects();
+
+    const media = await getRepository(Media).findOneByOrFail({
+      mbid: ARTIST_MBID,
+    });
+    const artistId = media.lidarrArtistId as number;
+    assert.equal(media.lidarrAddedByShufflerr, true);
+
+    // Two of the artist's albums are downloading; a third item is unrelated.
+    ctx.lidarr.queue = [
+      {
+        id: 10,
+        artistId,
+        albumId: 5000,
+        title: 'Test Artist - Disco Album',
+        status: 'downloading',
+      },
+      {
+        id: 11,
+        artistId,
+        albumId: 5001,
+        title: 'Test Artist - Other Album',
+        status: 'downloading',
+      },
+      {
+        id: 12,
+        artistId: 999,
+        albumId: 6000,
+        title: 'Unrelated artist',
+        status: 'downloading',
+      },
+    ];
+    ctx.lidarr.calls = [];
+
+    assert.equal(
+      (await as(admin).delete(`/request/${created.body.id}`)).status,
+      204
+    );
+
+    // The artist is unmonitored…
+    assert.deepEqual(
+      ctx.lidarr
+        .callsTo('PUT', `/artist/${artistId}`)
+        .map((c) => c.body.monitored),
+      [false]
+    );
+    // …and both of its downloads are removed, but not the other artist's.
+    assert.deepEqual(
+      ctx.lidarr
+        .callsTo('DELETE', '/queue')
+        .map((c) => c.path)
+        .sort(),
+      ['/queue/10', '/queue/11']
+    );
+  });
+
   it('requesters may change their pending track selection; managers the routing', async () => {
     const sam = await makeUser('sam', Permission.REQUEST);
     const manager = await makeUser('manager', Permission.MANAGE_REQUESTS);

@@ -6,7 +6,6 @@ import PushoverAPI from '@server/api/pushover';
 import { MediaStatus, RequestScope } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
-import Media from '@server/entity/Media';
 import { MediaRequest } from '@server/entity/MediaRequest';
 import type { StatusResponse } from '@server/interfaces/api/settingsInterfaces';
 import { Permission } from '@server/lib/permissions';

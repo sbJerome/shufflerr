@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.30 — 2026-10-07
+
+- **Cancel requests.** You can now cancel or remove a request from within the app — from the
+  request list, an album or artist page, or the manage panel — and cancelling actually stops the
+  download (including a whole discography), not just hides the request.
+
 ## v0.1.29 — 2026-10-07
 
 - **Grab a single track, not the whole album.** When you request individual tracks, Shufflerr now
