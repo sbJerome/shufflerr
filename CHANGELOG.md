@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.47] - 2026-10-08
+
+### Changed
+
+- **Artist hero is now a full-bleed, Ken Burns photo.** The artist page header spans the full
+  viewport width (like the Discover hero) with the photo centred and a slow Ken Burns zoom/pan. The
+  sides are completely black and the veil is all black (black vignette + edges), fading into the
+  page at the bottom. Respects `prefers-reduced-motion` (no animation).
+
 ## [0.1.46] - 2026-10-08
 
 ### Changed

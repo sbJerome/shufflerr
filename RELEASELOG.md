@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.47 — 2026-10-08
+
+- **Cinematic artist header.** The artist photo now spans the full page width, stays centred, has a
+  slow Ken Burns zoom, and fades to pure black on the sides.
+
 ## v0.1.46 — 2026-10-08
 
 - **YouTube minimize keeps playing.** Shrinking the YouTube player no longer stops the music.
