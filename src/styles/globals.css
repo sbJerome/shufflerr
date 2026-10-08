@@ -3294,6 +3294,42 @@
     color: #9ca8b0;
     background: #090c14;
   }
+  .sh-yt .yt-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 4px 2px 12px;
+    background: #090c14;
+    color: #e9eef4;
+    font: 600 12px var(--mono);
+    letter-spacing: 0.04em;
+  }
+  .sh-yt .yt-actions {
+    display: flex;
+    gap: 2px;
+  }
+  .sh-yt .yt-bar .sh-icon-btn {
+    width: 32px;
+    height: 32px;
+    color: #9ca8b0;
+  }
+  .sh-yt .yt-bar .sh-icon-btn:hover {
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+  }
+  .sh-yt .yt-bar .sh-icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* Minimized: collapse to just the header bar (video is paused). */
+  .sh-yt.min {
+    width: auto;
+  }
+  .sh-yt.min .frame,
+  .sh-yt.min .cap {
+    display: none;
+  }
   .sh-empty {
     display: flex;
     flex-direction: column;

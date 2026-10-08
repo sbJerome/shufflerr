@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.44 — 2026-10-08
+
+- **Close or minimize the YouTube player.** The pop-up YouTube player now has a close button (stops
+  it) and a minimize button (tucks it into a small bar; it pauses while minimized, since YouTube
+  requires its player to be visible to play).
+
 ## v0.1.43 — 2026-10-07
 
 - **Playlists open in place.** The Playlists button on the player now slides open a list of your

@@ -5,7 +5,12 @@ import { usePlayer } from '@app/context/PlayerContext';
 import defineMessages from '@app/utils/defineMessages';
 import { formatSeconds } from '@app/utils/format';
 import { coverUrl } from '@app/utils/images';
-import { QueueListIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  QueueListIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import type { TrackPeaksResponse } from '@server/interfaces/api/playbackInterfaces';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -21,6 +26,10 @@ const messages = defineMessages('components.Player', {
   seekvalue: '{position} of {duration}',
   playlists: 'Playlists',
   nothing: 'Nothing playing. Pick a track from your library to start.',
+  ytlabel: 'YouTube',
+  ytminimize: 'Minimize video (pauses it)',
+  ytexpand: 'Show video',
+  ytclose: 'Close video',
   streamingfrom: 'Streaming from {source}',
   playingon: 'Playing on YouTube',
   scrobblingto: ', scrobbling to {targets}',
@@ -44,12 +53,16 @@ interface PlayerProps {
 const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
   const intl = useIntl();
   const [playlistsOpen, setPlaylistsOpen] = useState(false);
+  const [ytMinimized, setYtMinimized] = useState(false);
   const {
     current,
     playing,
     position,
     duration,
     toggle,
+    play,
+    pause,
+    stop,
     next,
     prev,
     seekTo,
@@ -95,8 +108,54 @@ const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
 
   return (
     <>
-      {/* YouTube's own player, always visible while it plays (API terms). */}
-      <div className="sh-yt" hidden={!isYouTube}>
+      {/* YouTube's own player: must stay visible while it plays (API terms), so
+          "minimize" pauses it and "close" stops playback entirely. */}
+      <div
+        className={`sh-yt ${ytMinimized ? 'min' : ''}`}
+        hidden={!isYouTube}
+      >
+        <div className="yt-bar">
+          <span className="yt-title">{intl.formatMessage(messages.ytlabel)}</span>
+          <div className="yt-actions">
+            <button
+              type="button"
+              className="sh-icon-btn"
+              aria-label={intl.formatMessage(
+                ytMinimized ? messages.ytexpand : messages.ytminimize
+              )}
+              title={intl.formatMessage(
+                ytMinimized ? messages.ytexpand : messages.ytminimize
+              )}
+              onClick={() => {
+                if (ytMinimized) {
+                  setYtMinimized(false);
+                  play();
+                } else {
+                  pause();
+                  setYtMinimized(true);
+                }
+              }}
+            >
+              {ytMinimized ? (
+                <ChevronUpIcon aria-hidden="true" />
+              ) : (
+                <ChevronDownIcon aria-hidden="true" />
+              )}
+            </button>
+            <button
+              type="button"
+              className="sh-icon-btn"
+              aria-label={intl.formatMessage(messages.ytclose)}
+              title={intl.formatMessage(messages.ytclose)}
+              onClick={() => {
+                setYtMinimized(false);
+                stop();
+              }}
+            >
+              <XMarkIcon aria-hidden="true" />
+            </button>
+          </div>
+        </div>
         <div className="frame" ref={youtubeHostRef} />
         <div className="cap">{intl.formatMessage(messages.youtubecaption)}</div>
       </div>
