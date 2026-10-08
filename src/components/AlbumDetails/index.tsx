@@ -1,5 +1,4 @@
 import TrackBars from '@app/components/AlbumDetails/TrackBars';
-import { linkLabel } from '@app/components/AlbumDetails/links';
 import AddToPlaylist from '@app/components/AddToPlaylist';
 import Button from '@app/components/Common/Button';
 import ConfirmButton from '@app/components/Common/ConfirmButton';
@@ -86,7 +85,6 @@ const messages = defineMessages('components.AlbumDetails', {
   notfoundhint:
     'The link may be wrong, or MusicBrainz is unreachable right now. Search for the album to try again.',
   searchmusic: 'Search music',
-  links: 'Links',
   genres: 'Genres',
   moregenre: 'More {genre} music',
   openin: 'Open in {name}',
@@ -471,26 +469,6 @@ const AlbumDetails = () => {
           </div>
         )}
 
-        {externalLinks.length > 0 && (
-          <div className="sh-ax-links">
-            <h2 id="album-links">{intl.formatMessage(messages.links)}</h2>
-            <div className="sh-chips">
-              {externalLinks.map((link) => (
-                <a
-                  key={`${link.type}-${link.url}`}
-                  className="sh-chip inline-flex items-center text-ink"
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {linkLabel(link, (name) =>
-                    intl.formatMessage(messages.openin, { name })
-                  )}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       <IssueModal
