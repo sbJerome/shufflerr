@@ -6,6 +6,16 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.51] - 2026-10-08
+
+### Changed
+
+- **Relaxed the audio-verifier quality bar to stop churn on hard-to-source albums.**
+  `SPECTRAL_MIN_CUTOFF_RATIO` 0.80 → 0.60 (only clearly band-limited/low-bitrate
+  files are flagged as transcoded) and `MIN_TRACK_COVERAGE` 1.0 → 0.80 (a release
+  passes when ≥80% of its files are clean, so a few marginal tracks no longer fail
+  a whole set). AcoustID identity remains required. Env-tunable; reversible.
+
 ## [0.1.50] - 2026-10-08
 
 ### Fixed

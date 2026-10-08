@@ -75,6 +75,15 @@ spec:
               value: "60"
             - name: ACOUSTID_REQUIRED
               value: "true"
+            # Transcode/fake-lossless sensitivity: a lossless file whose spectral
+            # content cuts off below this fraction of Nyquist is flagged. Lower =
+            # more tolerant of band-limited/low-bitrate sources. (code default 0.80)
+            - name: SPECTRAL_MIN_CUTOFF_RATIO
+              value: "0.60"
+            # A release passes when at least this fraction of its files are clean,
+            # so a few marginal tracks don't fail a whole set. (code default 1.0)
+            - name: MIN_TRACK_COVERAGE
+              value: "0.80"
             # Observe-only by default; flip to "false" to let it import/blocklist.
             - name: DRY_RUN
               value: "true"
