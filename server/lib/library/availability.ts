@@ -274,9 +274,23 @@ export const recomputeReleaseGroup = async (
   const total = await trackRepository.count({
     where: { media: { id: mediaId } },
   });
-  const available = await trackRepository.count({
-    where: { media: { id: mediaId }, status: MediaStatus.AVAILABLE },
-  });
+  // Cross-release availability: a track counts as available when its own copy is
+  // available OR the same recording (by MBID) is available on another release.
+  const available = await trackRepository
+    .createQueryBuilder('t')
+    .where('t.media = :mediaId', { mediaId })
+    .andWhere(
+      (qb) =>
+        `(t.status = :avail OR (t.recordingMbid IS NOT NULL AND t.recordingMbid IN ${qb
+          .subQuery()
+          .select('t2.recordingMbid')
+          .from(Track, 't2')
+          .where('t2.status = :avail')
+          .andWhere('t2.recordingMbid IS NOT NULL')
+          .getQuery()}))`
+    )
+    .setParameter('avail', MediaStatus.AVAILABLE)
+    .getCount();
   const fullyAvailable = total > 0 && available >= total;
 
   await completeReleaseGroupRequests(mediaId, fullyAvailable);

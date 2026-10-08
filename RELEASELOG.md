@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.48 — 2026-10-08
+
+- **Songs show available everywhere they appear.** If a track is in your library, it now shows as
+  available (and plays) on every single/EP/album that has the same recording — not just the one the
+  downloader matched it to.
+
 ## v0.1.47 — 2026-10-08
 
 - **Cinematic artist header.** The artist photo now spans the full page width, stays centred, has a

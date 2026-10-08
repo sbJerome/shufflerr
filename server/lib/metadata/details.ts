@@ -149,6 +149,33 @@ export const getAlbumDetails = async (
     ]);
 
   const peakIds = new Set(withPeaks.map((t) => t.id));
+
+  // Cross-release availability: a track whose recording is already in the
+  // library on another release (album/EP/single/…) is available here too — it
+  // is the same recording. Find a playable copy by recording MBID for any of
+  // this release's tracks that have no file of their own.
+  const needMbids = [
+    ...new Set(
+      rows
+        .filter((t) => !isTrackPlayable(t) && t.recordingMbid)
+        .map((t) => t.recordingMbid as string)
+    ),
+  ];
+  const elsewhere = new Map<string, Track>();
+  if (needMbids.length) {
+    const found = await trackRepository.find({
+      where: { recordingMbid: In(needMbids), status: MediaStatus.AVAILABLE },
+    });
+    for (const row of found) {
+      if (
+        row.recordingMbid &&
+        isTrackPlayable(row) &&
+        !elsewhere.has(row.recordingMbid)
+      ) {
+        elsewhere.set(row.recordingMbid, row);
+      }
+    }
+  }
   const active = requests.filter((r) => ACTIVE_STATUSES.includes(r.status));
   const coveredByAlbumRequest = active.find(
     (r) => r.scope === RequestScope.ALBUM
@@ -174,14 +201,26 @@ export const getAlbumDetails = async (
         a.position.localeCompare(b.position)
     )
     .map((t) => {
+      const ownPlayable = isTrackPlayable(t);
+      // Fall back to a playable copy of the same recording on another release.
+      const sibling =
+        !ownPlayable && t.recordingMbid
+          ? elsewhere.get(t.recordingMbid)
+          : undefined;
+      // `effective` is the row that actually carries the file (own or sibling);
+      // its id is what plays/streams.
+      const effective = ownPlayable ? t : (sibling ?? t);
+      const playable = ownPlayable || !!sibling;
+      const status =
+        ownPlayable || sibling ? MediaStatus.AVAILABLE : t.status;
       const requestStatus =
         trackRequestStatus.get(t.id) ??
-        (t.status !== MediaStatus.AVAILABLE
+        (status !== MediaStatus.AVAILABLE
           ? (coveredByAlbumRequest?.status ??
             (discographyRequest ? discographyRequest.status : undefined))
           : undefined);
       return {
-        id: t.id,
+        id: effective.id,
         recordingMbid: t.recordingMbid ?? null,
         position: t.position,
         discNumber: t.discNumber,
@@ -189,12 +228,12 @@ export const getAlbumDetails = async (
         title: t.title,
         artistCredit: t.artistCredit,
         lengthMs: t.lengthMs ?? null,
-        status: t.status,
-        fileFormat: t.fileFormat ?? null,
-        playable: isTrackPlayable(t),
-        hasPeaks: peakIds.has(t.id),
+        status,
+        fileFormat: effective.fileFormat ?? null,
+        playable,
+        hasPeaks: peakIds.has(effective.id),
         ...(requestStatus !== undefined ? { requestStatus } : {}),
-        sources: trackSources(t),
+        sources: trackSources(effective),
       };
     });
 
@@ -219,12 +258,28 @@ export const getAlbumDetails = async (
     ?.name;
   const totalLengthMs = tracks.reduce((n, t) => n + (t.lengthMs ?? 0), 0);
 
+  // Reflect cross-release availability in the album's own status/count right
+  // away (the persisted value catches up on the next library recompute).
+  const trackTotal = media.trackCount ?? tracks.length;
+  const availableNow = tracks.filter((t) => t.playable).length;
+  let albumStatus = media.status;
+  let tracksAvailable = media.tracksAvailable ?? 0;
+  if (availableNow > tracksAvailable) {
+    tracksAvailable = availableNow;
+    albumStatus =
+      trackTotal > 0 && availableNow >= trackTotal
+        ? MediaStatus.AVAILABLE
+        : availableNow > 0
+          ? MediaStatus.PARTIALLY_AVAILABLE
+          : media.status;
+  }
+
   return {
     ...base,
-    status: media.status,
+    status: albumStatus,
     trackCount: media.trackCount ?? tracks.length,
-    tracksAvailable: media.tracksAvailable ?? 0,
-    mediaInfo: toMediaInfo(media),
+    tracksAvailable,
+    mediaInfo: { ...toMediaInfo(media), status: albumStatus, tracksAvailable },
     ...(activeVisible ? { request: toRequestSummary(activeVisible) } : {}),
     releaseMbid: media.releaseMbid ?? null,
     ...(label ? { label } : {}),
