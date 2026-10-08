@@ -6,6 +6,24 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.39] - 2026-10-07
+
+### Changed
+
+- **Hero aura reworked into a wide, dimmer glow + text scrim.** The Discover and album-page
+  hero artwork now renders as a soft, dimmed glow (lower opacity, heavier blur, `screen` blend)
+  that spreads edge to edge and bleeds **past the viewport's horizontal limit** on both sides and
+  down into the page, instead of the earlier bright, boxed panel. The horizontal clip moved to
+  `html` so the glow can reach the true interface edge with no horizontal scrollbar. A scrim layer
+  sits between the aura and the content so the text stays readable over the glow. (Fixes a hard
+  vertical cut caused by sizing the art with four insets + `auto`.)
+
+### Removed
+
+- **Dropped the duplicate external-links section at the bottom of the album page.** The album
+  already exposes its source link in the hero action row, so the redundant bottom links block was
+  removed.
+
 ## [0.1.38] - 2026-10-07
 
 ### Changed

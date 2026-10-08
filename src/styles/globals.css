@@ -107,6 +107,10 @@
     scroll-padding-top: env(safe-area-inset-top, 0px);
     scrollbar-gutter: stable;
     font-size: 15px;
+    /* The hero auras bleed to/past the viewport edges; clip the horizontal
+       spill here (at the true interface limit) so it never adds a horizontal
+       scrollbar. `clip` keeps vertical scroll and sticky positioning intact. */
+    overflow-x: clip;
   }
 
   * {
@@ -819,10 +823,6 @@
     display: flex;
     flex-direction: column;
     padding-bottom: 96px;
-    /* The hero auras bleed past .sh-view; contain that horizontal spill at the
-       main column edge so it can glow wide without a horizontal page scrollbar.
-       `clip` (not `hidden`) keeps the vertical bleed into the page visible. */
-    overflow-x: clip;
   }
   .sh-top {
     display: flex;
@@ -3441,33 +3441,54 @@
   }
   .sh-dx-hero .art {
     position: absolute;
-    inset: -160px;
-    width: calc(100% + 320px);
-    height: calc(100% + 320px);
+    top: -140px;
+    left: -20vw;
+    /* Explicit width/height (not 4-side inset + auto, which hard-clips the
+       cover) so the glow fills a box far wider than the hero and bleeds off
+       both horizontal edges. */
+    width: calc(100% + 40vw);
+    height: calc(100% + 520px);
     object-fit: cover;
-    object-position: center 25%;
-    filter: blur(60px) saturate(1.5);
-    opacity: 0.85;
+    object-position: center 40%;
+    filter: blur(100px) saturate(1.4);
+    opacity: 0.62;
     z-index: 1;
     /* Glow additively over the dark base so it radiates rather than sitting
        as a flat panel. */
     mix-blend-mode: screen;
     pointer-events: none;
-    /* Radial mask → a soft aura: bright core fading to nothing at the edges. */
+    /* Radial mask → a soft aura that fades to nothing before the box edges. */
     -webkit-mask-image: radial-gradient(
-      ellipse 62% 66% at 48% 42%,
-      #000 30%,
-      transparent 78%
+      ellipse 72% 72% at 50% 42%,
+      #000 40%,
+      transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 62% 66% at 48% 42%,
-      #000 30%,
-      transparent 78%
+      ellipse 72% 72% at 50% 42%,
+      #000 40%,
+      transparent 100%
     );
+  }
+  /* Scrim between the aura and the text so the copy stays readable over the
+     glow (darkens the left/bottom where the copy sits; right stays bright). */
+  .sh-dx-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        90deg,
+        rgb(var(--c-bg) / 0.72) 0%,
+        rgb(var(--c-bg) / 0.25) 42%,
+        transparent 70%
+      ),
+      linear-gradient(0deg, rgb(var(--c-bg) / 0.6) 0%, transparent 40%);
   }
   .sh-dx-hero .copy {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     max-width: 720px;
     text-shadow: 0 1px 24px rgb(var(--c-bg) / 0.65);
   }
@@ -3888,36 +3909,55 @@
   }
   .sh-ax-hero .art {
     position: absolute;
-    inset: -160px;
-    width: calc(100% + 320px);
-    height: calc(100% + 320px);
+    top: -160px;
+    left: -20vw;
+    /* Explicit width/height (not 4-side inset + auto) so the glow fills a box
+       far wider than the hero and bleeds off both horizontal edges. */
+    width: calc(100% + 40vw);
+    height: calc(100% + 560px);
     object-fit: cover;
-    filter: blur(70px) saturate(1.5);
-    opacity: 0.8;
+    object-position: center 38%;
+    filter: blur(110px) saturate(1.4);
+    opacity: 0.6;
     z-index: 1;
     /* Glow additively over the dark base so it radiates; expands past .sh-view. */
     mix-blend-mode: screen;
     pointer-events: none;
     -webkit-mask-image: radial-gradient(
-      ellipse 58% 62% at 50% 40%,
-      #000 28%,
-      transparent 76%
+      ellipse 72% 74% at 50% 42%,
+      #000 40%,
+      transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 58% 62% at 50% 40%,
-      #000 28%,
-      transparent 76%
+      ellipse 72% 74% at 50% 42%,
+      #000 40%,
+      transparent 100%
+    );
+  }
+  /* Scrim between the aura and the content so the centred text stays readable. */
+  .sh-ax-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgb(var(--c-bg) / 0.3) 0%,
+      rgb(var(--c-bg) / 0.12) 38%,
+      rgb(var(--c-bg) / 0.55) 100%
     );
   }
   .sh-ax-col {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     width: 100%;
     max-width: 1050px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    text-shadow: 0 1px 20px rgb(var(--c-bg) / 0.6);
   }
   .sh-ax-hero .top {
     display: grid;
