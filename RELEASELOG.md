@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.43 — 2026-10-07
+
+- **Playlists open in place.** The Playlists button on the player now slides open a list of your
+  playlists instead of taking you to a separate page.
+- **Player button tidy-up.** The Playlists button no longer floats oddly on mobile.
+- Slightly tighter spacing at the top of the Discover page on phones.
+
 ## v0.1.42 — 2026-10-07
 
 - **Tidier header.** Admin icons (Issues, Blocklist, Users) moved into Settings, and the Playlists

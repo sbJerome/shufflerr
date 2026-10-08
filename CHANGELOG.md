@@ -6,6 +6,22 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.43] - 2026-10-07
+
+### Changed
+
+- **Playlists open as an overlay from the player.** The Playlists button in the player bar now
+  opens a slide-over list of your playlists (fetched on open) instead of navigating to a new page;
+  each entry opens that playlist, and a "Manage playlists" link goes to the full page.
+
+### Fixed
+
+- **Player Playlists button no longer wraps oddly on mobile.** The "now playing"/empty area now
+  flexes to fill, so the button stays cleanly anchored to the right of the bar.
+- **Tighter mobile Discover header spacing** (reduced the hero's top padding on phones). Note: the
+  gap above the logo on an installed PWA is the device safe-area inset (Dynamic Island), which is
+  expected.
+
 ## [0.1.42] - 2026-10-07
 
 ### Changed
