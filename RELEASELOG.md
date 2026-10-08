@@ -3,6 +3,11 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.49 — 2026-10-08
+
+- **Direct-grab supports Deluge.** The verifier can now submit torrents straight to Deluge (not just
+  qBittorrent), so direct grabs work if Deluge is your torrent client.
+
 ## v0.1.48 — 2026-10-08
 
 - **Songs show available everywhere they appear.** If a track is in your library, it now shows as
