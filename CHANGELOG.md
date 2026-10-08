@@ -6,6 +6,16 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.45] - 2026-10-08
+
+### Changed
+
+- **Featured release now rotates.** The Discover "Featured release" picked the same album every
+  time; it now chooses a random album from the recently-added pool, so it changes between visits.
+- **Featured hero shows the cover art sharp.** The Discover hero art is now shown unblurred
+  (`blur(0) saturate(1.3) contrast(1.1)`, no screen blend) as the featured cover, with the veil
+  raised above it to fade only the bottom — and it's visible in light mode too.
+
 ## [0.1.44] - 2026-10-08
 
 ### Added
