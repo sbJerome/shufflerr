@@ -37,7 +37,10 @@ const messages = defineMessages('components.RequestModal', {
   summaryalbumnocount: '{artist}, {year}.',
   summaryartist: 'Every release by this artist.',
   whatdoyouwant: 'What do you want?',
-  scopetracks: 'Only the missing tracks',
+  scopesong: 'Just this song',
+  scopesongsub: '{title}',
+  scopesongsubfallback: 'Only this one track, nothing else from the album',
+  scopetracks: 'Pick the tracks',
   scopetrackssub:
     '{count, plural, one {# track} other {# tracks}}: {titles}',
   scopealbum: 'The whole album',
@@ -82,6 +85,13 @@ const messages = defineMessages('components.RequestModal', {
     'The request couldn’t be sent. Check your connection and try again.',
   everythingby: 'everything by {artist}',
 });
+
+// A UI-only scope meaning "just this one song". It maps to the TRACKS backend
+// scope with a single recording, but is kept distinct from TRACKS ("pick the
+// tracks") so that requesting from one track's button is unambiguous and the
+// single pick is locked — it can't be dropped by interacting elsewhere.
+const SONG = 'song' as const;
+type UiScope = RequestScope | typeof SONG;
 
 export interface RequestModalAlbum {
   /** Release-group MBID */
@@ -209,10 +219,16 @@ const RequestModal = ({
       type: 'or',
     });
 
-  const [scope, setScope] = useState<RequestScope>(
-    defaultScope ?? (album ? RequestScope.ALBUM : RequestScope.DISCOGRAPHY)
+  const [scope, setScope] = useState<UiScope>(
+    defaultTrackMbid
+      ? SONG
+      : defaultScope ?? (album ? RequestScope.ALBUM : RequestScope.DISCOGRAPHY)
   );
-  const [scopeTouched, setScopeTouched] = useState(!!defaultScope);
+  // Opening from a track (song) or with an explicit scope is an intentional
+  // choice, so don't let the "partly available → tracks" default override it.
+  const [scopeTouched, setScopeTouched] = useState(
+    !!defaultScope || !!defaultTrackMbid
+  );
   // `null` means "every missing track"; a concrete array is the user's pick.
   // When opened from one track's Request button, start with just that track.
   const [pickedTracks, setPickedTracks] = useState<string[] | null>(() =>
@@ -241,20 +257,47 @@ const RequestModal = ({
 
   // Fall back when the chosen scope turns out not to be offered.
   useEffect(() => {
-    if (scope === RequestScope.TRACKS && details && !canTracks) {
+    if ((scope === RequestScope.TRACKS || scope === SONG) && details && !canTracks) {
       setScope(RequestScope.ALBUM);
     }
   }, [canTracks, details, scope]);
+
+  // The backend only knows TRACKS/ALBUM/DISCOGRAPHY; SONG is a TRACKS request.
+  const backendScope: RequestScope =
+    scope === SONG ? RequestScope.TRACKS : scope;
 
   const selectableTracks = useMemo(
     () => missing.filter((t) => !!t.recordingMbid),
     [missing]
   );
-  const selectedTrackMbids = useMemo(
+  // The track this modal was opened for, for the "Just this song" label.
+  const defaultTrack = useMemo(
     () =>
-      pickedTracks ?? selectableTracks.map((t) => t.recordingMbid as string),
-    [pickedTracks, selectableTracks]
+      defaultTrackMbid
+        ? (details?.tracks ?? []).find(
+            (t) => t.recordingMbid === defaultTrackMbid
+          )
+        : undefined,
+    [details, defaultTrackMbid]
   );
+  const songAvailable =
+    !!defaultTrackMbid &&
+    selectableTracks.some((t) => t.recordingMbid === defaultTrackMbid);
+  const selectedTrackMbids = useMemo(() => {
+    // "Just this song" is locked to the one recording and never the checkbox list.
+    if (scope === SONG) {
+      return defaultTrackMbid ? [defaultTrackMbid] : [];
+    }
+    return pickedTracks ?? selectableTracks.map((t) => t.recordingMbid as string);
+  }, [scope, defaultTrackMbid, pickedTracks, selectableTracks]);
+
+  // If we opened "Just this song" but the track isn't actually missing/
+  // selectable, fall back to picking tracks rather than show an empty song.
+  useEffect(() => {
+    if (scope === SONG && details && canTracks && !songAvailable) {
+      setScope(RequestScope.TRACKS);
+    }
+  }, [scope, details, canTracks, songAvailable]);
 
   // Default the advanced selects to the default server and its active profiles.
   useEffect(() => {
@@ -280,14 +323,14 @@ const RequestModal = ({
   }, [serverDetails]);
 
   const body = useMemo<MediaRequestBody | null>(() => {
-    if (scope === RequestScope.DISCOGRAPHY) {
+    if (backendScope === RequestScope.DISCOGRAPHY) {
       if (!artist) {
         return null;
       }
       return {
         mbid: artist.mbid,
         mediaType: MediaType.ARTIST,
-        scope,
+        scope: backendScope,
         monitorFuture,
       };
     }
@@ -297,13 +340,13 @@ const RequestModal = ({
     const base: MediaRequestBody = {
       mbid: album.mbid,
       mediaType: MediaType.RELEASE_GROUP,
-      scope,
+      scope: backendScope,
     };
-    if (scope === RequestScope.TRACKS) {
+    if (backendScope === RequestScope.TRACKS) {
       base.trackMbids = selectedTrackMbids;
     }
     return base;
-  }, [album, artist, monitorFuture, scope, selectedTrackMbids]);
+  }, [album, artist, monitorFuture, backendScope, selectedTrackMbids]);
 
   const fullBody = useMemo<MediaRequestBody | null>(() => {
     if (!body) {
@@ -338,7 +381,7 @@ const RequestModal = ({
   ]);
 
   const noTracksPicked =
-    scope === RequestScope.TRACKS && selectedTrackMbids.length === 0;
+    backendScope === RequestScope.TRACKS && selectedTrackMbids.length === 0;
 
   // Live outcome: ask the engine what would happen, debounced on every change.
   const dryRunSeq = useRef(0);
@@ -350,7 +393,7 @@ const RequestModal = ({
       return;
     }
     // Wait for the tracklist before evaluating a tracks request.
-    if (scope === RequestScope.TRACKS && !details) {
+    if (backendScope === RequestScope.TRACKS && !details) {
       setOutcomeState('checking');
       return;
     }
@@ -389,7 +432,7 @@ const RequestModal = ({
 
   const subjectTitle = album?.title ?? artist?.name ?? '';
   const toastTitle =
-    scope === RequestScope.DISCOGRAPHY && artist
+    backendScope === RequestScope.DISCOGRAPHY && artist
       ? intl.formatMessage(messages.everythingby, { artist: artist.name })
       : subjectTitle;
 
@@ -431,10 +474,19 @@ const RequestModal = ({
   const limitDays = quota?.album.days ?? quota?.track.days ?? 7;
 
   const scopeOptions: {
-    value: RequestScope;
+    value: UiScope;
     label: string;
     sub: string;
   }[] = [];
+  if (album && canTracks && songAvailable) {
+    scopeOptions.push({
+      value: SONG,
+      label: intl.formatMessage(messages.scopesong),
+      sub: defaultTrack?.title
+        ? intl.formatMessage(messages.scopesongsub, { title: defaultTrack.title })
+        : intl.formatMessage(messages.scopesongsubfallback),
+    });
+  }
   if (album && canTracks) {
     scopeOptions.push({
       value: RequestScope.TRACKS,

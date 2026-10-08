@@ -397,7 +397,17 @@ export const sendToLidarr = async (requestId: number): Promise<void> => {
       if (!album.monitored) {
         await api.monitorAlbums([album.id], true);
       }
-      if (!server.preventSearch) {
+      // A tracks request wants only the picked recordings, but Lidarr monitors
+      // and grabs whole albums — searching here makes it fetch a full release
+      // and Completed Download Handling imports every track. When direct grab is
+      // on, the verifier owns release selection for this album and imports only
+      // the requested tracks (track-scoped manual import), so we must NOT kick
+      // off Lidarr's own whole-album search. With direct grab off there is no
+      // scoped-import path, so we fall back to the album search as before.
+      const trackScoped = request.scope === RequestScope.TRACKS;
+      const directGrabOwnsThis =
+        trackScoped && getSettings().main.musicDirectGrab;
+      if (!server.preventSearch && !directGrabOwnsThis) {
         await api.searchAlbums([album.id]);
       }
 
