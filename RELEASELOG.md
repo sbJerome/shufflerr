@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.41 — 2026-10-07
+
+- **Full-width hero glow.** The glow on the Discover and album pages now spreads all the way across
+  the screen and fades out in every direction, sitting behind the content instead of being cut off
+  at the edge of the column.
+- **Centered mobile album page.** On phones, everything on an album page is now centered.
+
 ## v0.1.40 — 2026-10-07
 
 - **Library-first search.** Search now shows the artists, albums and tracks you already own at the

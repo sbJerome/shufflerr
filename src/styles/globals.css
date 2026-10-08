@@ -3416,18 +3416,11 @@
     flex-direction: column;
     justify-content: space-between;
     gap: 40px;
-    /* The blurred cover is a glowing aura (see .art): keep the hero's own dark
-       base so the glow reads, let it spill past the edges, and isolate the
-       screen-blend so it only lightens this hero's backdrop. */
     overflow: visible;
-    isolation: isolate;
-    background: rgb(var(--c-bg));
     width: calc(100% + 64px);
     max-width: none;
   }
-  /* Layer order inside the hero: dark base < veil (background) < art (glowing
-     aura) < content/text. The aura sits ON TOP of the background elements and
-     only the text sits above it. */
+  /* Layer order: art (full-width glow, behind everything) < veil < content. */
   .sh-dx-hero .veil {
     position: absolute;
     inset: 0;
@@ -3442,53 +3435,35 @@
   .sh-dx-hero .art {
     position: absolute;
     top: -140px;
-    left: -20vw;
-    /* Explicit width/height (not 4-side inset + auto, which hard-clips the
-       cover) so the glow fills a box far wider than the hero and bleeds off
-       both horizontal edges. */
-    width: calc(100% + 40vw);
+    /* Span the full viewport width and centre it so the glow reaches end to
+       end and fades out in every direction; sits behind the content and
+       lightens the page background via `screen` (no isolation → not clipped
+       to the hero box). */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150vw;
     height: calc(100% + 520px);
     object-fit: cover;
     object-position: center 40%;
     filter: blur(100px) saturate(1.4);
-    opacity: 0.62;
-    z-index: 1;
-    /* Glow additively over the dark base so it radiates rather than sitting
-       as a flat panel. */
+    opacity: 0.58;
+    z-index: -1;
     mix-blend-mode: screen;
     pointer-events: none;
-    /* Radial mask → a soft aura that fades to nothing before the box edges. */
     -webkit-mask-image: radial-gradient(
-      ellipse 72% 72% at 50% 42%,
-      #000 40%,
+      ellipse 58% 66% at 50% 42%,
+      #000 32%,
       transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 72% 72% at 50% 42%,
-      #000 40%,
+      ellipse 58% 66% at 50% 42%,
+      #000 32%,
       transparent 100%
     );
   }
-  /* Scrim between the aura and the text so the copy stays readable over the
-     glow (darkens the left/bottom where the copy sits; right stays bright). */
-  .sh-dx-hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    background:
-      linear-gradient(
-        90deg,
-        rgb(var(--c-bg) / 0.72) 0%,
-        rgb(var(--c-bg) / 0.25) 42%,
-        transparent 70%
-      ),
-      linear-gradient(0deg, rgb(var(--c-bg) / 0.6) 0%, transparent 40%);
-  }
   .sh-dx-hero .copy {
     position: relative;
-    z-index: 3;
+    z-index: 1;
     max-width: 720px;
     text-shadow: 0 1px 24px rgb(var(--c-bg) / 0.65);
   }
@@ -3888,14 +3863,10 @@
     margin: -32px -32px 0;
     width: calc(100% + 64px);
     padding: 40px 32px 56px;
-    /* The blurred cover is a glowing aura (see .art): dark base so the glow
-       reads, spilling past the hero edges (and past .sh-view). */
     overflow: visible;
-    isolation: isolate;
-    background: rgb(var(--c-bg));
   }
-  /* Layer order: dark base < veil (background) < art (glowing aura) < content.
-     The aura sits ON TOP of the background and only the content/text above it. */
+  /* Layer order: art (full-width glow, behind everything) < veil < content.
+     The glow sits behind the page content so it never washes the tracklist. */
   .sh-ax-hero .veil {
     position: absolute;
     inset: 0;
@@ -3910,47 +3881,36 @@
   .sh-ax-hero .art {
     position: absolute;
     top: -160px;
-    left: -20vw;
-    /* Explicit width/height (not 4-side inset + auto) so the glow fills a box
-       far wider than the hero and bleeds off both horizontal edges. */
-    width: calc(100% + 40vw);
+    /* Span the full viewport width (not the narrow, left-aligned content
+       column) and centre it, so the glow reaches end to end and fades out in
+       every direction. Sits behind the content (z-index -1) and lightens the
+       page background via `screen` — no isolation, so it isn't clipped to the
+       hero box. */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150vw;
     height: calc(100% + 560px);
     object-fit: cover;
     object-position: center 38%;
     filter: blur(110px) saturate(1.4);
-    opacity: 0.6;
-    z-index: 1;
-    /* Glow additively over the dark base so it radiates; expands past .sh-view. */
+    opacity: 0.55;
+    z-index: -1;
     mix-blend-mode: screen;
     pointer-events: none;
     -webkit-mask-image: radial-gradient(
-      ellipse 72% 74% at 50% 42%,
-      #000 40%,
+      ellipse 58% 66% at 50% 42%,
+      #000 32%,
       transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 72% 74% at 50% 42%,
-      #000 40%,
+      ellipse 58% 66% at 50% 42%,
+      #000 32%,
       transparent 100%
-    );
-  }
-  /* Scrim between the aura and the content so the centred text stays readable. */
-  .sh-ax-hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      rgb(var(--c-bg) / 0.3) 0%,
-      rgb(var(--c-bg) / 0.12) 38%,
-      rgb(var(--c-bg) / 0.55) 100%
     );
   }
   .sh-ax-col {
     position: relative;
-    z-index: 3;
+    z-index: 1;
     width: 100%;
     max-width: 1050px;
     margin: 0 auto;
@@ -4184,13 +4144,32 @@
       width: calc(100% + 32px);
       padding: 20px 16px 40px;
     }
+    /* Mobile album page: stack and centre everything. */
     .sh-ax-hero .top {
       grid-template-columns: minmax(0, 1fr);
       gap: 20px;
       margin-top: 12px;
+      justify-items: center;
+      text-align: center;
+    }
+    .sh-ax-hero .sh-crumb {
+      text-align: center;
     }
     .sh-ax-hero .cover {
       max-width: 220px;
+      margin: 0 auto;
+    }
+    .sh-ax-hero .info {
+      align-items: center;
+    }
+    .sh-ax-hero .by {
+      align-self: center;
+    }
+    .sh-ax-hero .sh-meta,
+    .sh-ax-hero .cta,
+    .sh-ax-hero .sh-ax-genres,
+    .sh-ax-hero .tools {
+      justify-content: center;
     }
     .sh-ax-hero .tools {
       order: 3;

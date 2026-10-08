@@ -6,6 +6,18 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.41] - 2026-10-07
+
+### Fixed
+
+- **Hero glow now spans the full viewport and fades in every direction.** On the Discover and
+  album pages the glow was clipped to the (left-aligned, max-width) content box and cut off hard on
+  the right. The glow is now a full-width backdrop: sized in viewport units and centred, sitting
+  *behind* the content (`z-index: -1`, no `isolation`/opaque base) so it reaches edge to edge,
+  fades out radially, and no longer washes over the tracklist.
+- **Mobile album page is now centered.** On phones the album hero stacks and centers everything —
+  breadcrumb, cover, title, artist, metadata, progress, action buttons and the tool icons.
+
 ## [0.1.40] - 2026-10-07
 
 ### Added
