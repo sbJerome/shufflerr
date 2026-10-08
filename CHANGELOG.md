@@ -6,6 +6,17 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.48] - 2026-10-08
+
+### Fixed
+
+- **A song in the library now shows available on every release it appears on.** Availability is
+  matched by recording (MBID): if a recording is in the library on any release group, it is now
+  marked available — and playable via that copy — on every album/EP/single/other that contains the
+  same recording, not only the one the downloader happened to match it to. The album page reflects
+  this immediately (track availability, play button, and the album's own available count/status),
+  and the persisted release-group status catches up on the next library recompute.
+
 ## [0.1.47] - 2026-10-08
 
 ### Changed
