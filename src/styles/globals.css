@@ -1887,6 +1887,7 @@
   /* Playlists shortcut, anchored to the right of the player bar. */
   .sh-player-playlists {
     margin-left: auto;
+    flex: none;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1894,9 +1895,11 @@
     padding: 0 14px;
     border-radius: 10px;
     border: 1px solid var(--line-2);
+    background: transparent;
     color: var(--muted);
     font-size: 14px;
     white-space: nowrap;
+    cursor: pointer;
   }
   .sh-player-playlists:hover {
     background: var(--hover);
@@ -1906,6 +1909,58 @@
   .sh-player-playlists svg {
     width: 18px;
     height: 18px;
+  }
+  /* Playlists slide-over (opened from the player) */
+  .sh-pl-overlay {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .sh-pl-overlay-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sh-pl-overlay-list a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: var(--text);
+    background: var(--raised);
+    border: 1px solid var(--line);
+  }
+  .sh-pl-overlay-list a:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+  .sh-pl-overlay-list .name {
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sh-pl-overlay-list .count {
+    color: var(--muted);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .sh-pl-overlay-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sh-pl-overlay-msg {
+    color: var(--muted);
+  }
+  .sh-pl-overlay-manage {
+    align-self: flex-start;
   }
   @media (max-width: 760px) {
     .sh-app {
@@ -3198,6 +3253,8 @@
     outline: none;
   }
   .sh-player .empty {
+    flex: 1 1 0;
+    min-width: 0;
     color: var(--faint);
     font-size: 13px;
   }
@@ -3873,7 +3930,7 @@
     .sh-dx-hero {
       margin: -20px -16px 0;
       width: calc(100% + 32px);
-      padding: 44px 16px 0;
+      padding: 24px 16px 0;
       min-height: 420px;
     }
     .sh-dx-hero .stats {

@@ -1,4 +1,5 @@
 import CoverArt from '@app/components/CoverArt';
+import PlaylistsOverlay from '@app/components/Player/PlaylistsOverlay';
 import Waveform from '@app/components/Player/Waveform';
 import { usePlayer } from '@app/context/PlayerContext';
 import defineMessages from '@app/utils/defineMessages';
@@ -6,7 +7,7 @@ import { formatSeconds } from '@app/utils/format';
 import { coverUrl } from '@app/utils/images';
 import { QueueListIcon } from '@heroicons/react/24/outline';
 import type { TrackPeaksResponse } from '@server/interfaces/api/playbackInterfaces';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
@@ -42,6 +43,7 @@ interface PlayerProps {
 /** Docked player bar (fixed bottom, 76px). Rendered once by the app shell. */
 const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
   const intl = useIntl();
+  const [playlistsOpen, setPlaylistsOpen] = useState(false);
   const {
     current,
     playing,
@@ -206,17 +208,24 @@ const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
         ) : (
           <span className="empty">{intl.formatMessage(messages.nothing)}</span>
         )}
-        <Link
+        <button
+          type="button"
           className="sh-player-playlists"
-          href="/playlists"
+          onClick={() => setPlaylistsOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={playlistsOpen}
           aria-label={intl.formatMessage(messages.playlists)}
         >
           <QueueListIcon aria-hidden="true" />
           <span className="label">
             {intl.formatMessage(messages.playlists)}
           </span>
-        </Link>
+        </button>
       </div>
+      <PlaylistsOverlay
+        show={playlistsOpen}
+        onClose={() => setPlaylistsOpen(false)}
+      />
     </>
   );
 };
