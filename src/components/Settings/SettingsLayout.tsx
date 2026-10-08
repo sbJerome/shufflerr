@@ -23,9 +23,12 @@ const messages = defineMessages('components.Settings.SettingsLayout', {
   groupDiscover: 'Discover and import',
   groupScrobble: 'Scrobble to',
   groupNotifications: 'Notifications',
+  groupManagement: 'Management',
   groupSystem: 'System',
   general: 'General',
   users: 'Users',
+  issues: 'Issues',
+  blocklist: 'Blocklist',
   network: 'Network',
   plex: 'Plex',
   jellyfin: 'Jellyfin',
@@ -48,11 +51,15 @@ const messages = defineMessages('components.Settings.SettingsLayout', {
 });
 
 interface NavItem {
-  /** Path segment after /settings/. */
+  /** Path segment after /settings/, or the key used by the mobile selector. */
   route: string;
   label: MessageDescriptor;
   /** Integration whose on/off state the status dot shows. */
   integration?: keyof EnabledIntegrations;
+  /** Absolute link that overrides /settings/<route> (for top-level admin pages). */
+  href?: string;
+  /** Only show when the viewer holds at least one of these permissions. */
+  permissions?: Permission[];
 }
 
 interface NavGroup {
@@ -118,6 +125,30 @@ const NAV: NavGroup[] = [
     items: [{ route: 'notifications', label: messages.notifications }],
   },
   {
+    label: messages.groupManagement,
+    items: [
+      {
+        route: 'issues',
+        href: '/issues',
+        label: messages.issues,
+        permissions: [
+          Permission.MANAGE_ISSUES,
+          Permission.VIEW_ISSUES,
+          Permission.CREATE_ISSUES,
+        ],
+      },
+      {
+        route: 'blocklist',
+        href: '/blocklist',
+        label: messages.blocklist,
+        permissions: [
+          Permission.MANAGE_BLOCKLIST,
+          Permission.VIEW_BLOCKLIST,
+        ],
+      },
+    ],
+  },
+  {
     label: messages.groupSystem,
     items: [
       { route: 'logs', label: messages.logs },
@@ -147,13 +178,22 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
     return null;
   }
 
+  // Drop items the viewer can't access, then any group left empty.
+  const groups = NAV.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) =>
+        !item.permissions || hasPermission(item.permissions, { type: 'or' })
+    ),
+  })).filter((group) => group.items.length > 0);
+
   return (
     <div className="sh-admin">
       <nav
         className="sh-snav"
         aria-label={intl.formatMessage(messages.navLabel)}
       >
-        {NAV.map((group) => (
+        {groups.map((group) => (
           <div key={group.label.id} className="contents">
             <h3>{intl.formatMessage(group.label)}</h3>
             {group.items.map((item) => {
@@ -163,7 +203,7 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
               return (
                 <Link
                   key={item.route}
-                  href={`/settings/${item.route}`}
+                  href={item.href ?? `/settings/${item.route}`}
                   aria-current={active === item.route ? 'page' : undefined}
                 >
                   <span>{intl.formatMessage(item.label)}</span>
@@ -193,15 +233,18 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
           <select
             id={selectId}
             value={active}
-            onChange={(e) => router.push(`/settings/${e.target.value}`)}
+            onChange={(e) => {
+              const v = e.target.value;
+              router.push(v.startsWith('/') ? v : `/settings/${v}`);
+            }}
           >
-            {NAV.map((group) => (
+            {groups.map((group) => (
               <optgroup
                 key={group.label.id}
                 label={intl.formatMessage(group.label)}
               >
                 {group.items.map((item) => (
-                  <option key={item.route} value={item.route}>
+                  <option key={item.route} value={item.href ?? item.route}>
                     {intl.formatMessage(item.label)}
                   </option>
                 ))}
