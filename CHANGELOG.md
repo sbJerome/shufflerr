@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.44] - 2026-10-08
+
+### Added
+
+- **Dismiss / minimize the YouTube player.** The floating YouTube player now has a header bar with
+  two controls: **close** (stops playback and removes the player) and **minimize** (collapses it to
+  a small bar). Because YouTube's player must stay visible while it plays, minimizing pauses the
+  video; expanding it resumes.
+
 ## [0.1.43] - 2026-10-07
 
 ### Changed
