@@ -3,6 +3,16 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.42 — 2026-10-07
+
+- **Tidier header.** Admin icons (Issues, Blocklist, Users) moved into Settings, and the Playlists
+  button moved to the right of the bottom player — so the top bar no longer crowds the search box.
+- **Hero glow, full width again.** The backdrop glow now spans the whole screen and the page content
+  is centred (fixes the glow vanishing and the right-side cut-off).
+- **Mobile album page:** the cover shows again and everything is centred.
+- Light theme: the hero glow is hidden for now so it doesn't wash out white (a proper light-mode
+  look is coming).
+
 ## v0.1.41 — 2026-10-07
 
 - **Full-width hero glow.** The glow on the Discover and album pages now spreads all the way across

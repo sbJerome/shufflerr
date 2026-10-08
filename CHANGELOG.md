@@ -6,6 +6,25 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.42] - 2026-10-07
+
+### Changed
+
+- **Decluttered the header.** The admin icons that were crowding the search bar moved off the top
+  nav: Issues and Blocklist now live in Settings (under a new "Management" group; Users was already
+  there), and the Playlists shortcut moved to the right side of the player bar at the bottom.
+- **Hero glow renders full-width again.** The heroes are now full-bleed to the viewport with the
+  content in a centred column, so the cover-art glow spans edge to edge and fades in every
+  direction (fixes the glow disappearing entirely, and the earlier right-side cutoff). The page
+  content column is now centred.
+
+### Fixed
+
+- **Mobile album cover restored.** Centering the mobile album hero collapsed the cover's grid cell;
+  it now has an explicit width and shows again.
+- **Light-theme heroes no longer blow out to white.** The `screen`-blend glow is hidden in light
+  mode (a dedicated light-theme treatment is still to come).
+
 ## [0.1.41] - 2026-10-07
 
 ### Fixed

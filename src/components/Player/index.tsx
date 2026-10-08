@@ -4,7 +4,9 @@ import { usePlayer } from '@app/context/PlayerContext';
 import defineMessages from '@app/utils/defineMessages';
 import { formatSeconds } from '@app/utils/format';
 import { coverUrl } from '@app/utils/images';
+import { QueueListIcon } from '@heroicons/react/24/outline';
 import type { TrackPeaksResponse } from '@server/interfaces/api/playbackInterfaces';
+import Link from 'next/link';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
@@ -16,6 +18,7 @@ const messages = defineMessages('components.Player', {
   pause: 'Pause',
   seek: 'Seek',
   seekvalue: '{position} of {duration}',
+  playlists: 'Playlists',
   nothing: 'Nothing playing. Pick a track from your library to start.',
   streamingfrom: 'Streaming from {source}',
   playingon: 'Playing on YouTube',
@@ -203,6 +206,16 @@ const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
         ) : (
           <span className="empty">{intl.formatMessage(messages.nothing)}</span>
         )}
+        <Link
+          className="sh-player-playlists"
+          href="/playlists"
+          aria-label={intl.formatMessage(messages.playlists)}
+        >
+          <QueueListIcon aria-hidden="true" />
+          <span className="label">
+            {intl.formatMessage(messages.playlists)}
+          </span>
+        </Link>
       </div>
     </>
   );

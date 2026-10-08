@@ -64,6 +64,14 @@
   color-scheme: dark;
 }
 
+/* The hero cover-art glow uses a `screen` blend that blows out to white on a
+   light background; hide it in light mode until a light-theme treatment is
+   designed, so the heroes render cleanly. */
+:root[data-theme='light'] .sh-dx-hero .art,
+:root[data-theme='light'] .sh-ax-hero .art {
+  display: none;
+}
+
 :root,
 .sh-force-dark {
   --bg: rgb(var(--c-bg));
@@ -898,6 +906,7 @@
     padding: 32px;
     max-width: 1400px;
     width: 100%;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 48px;
@@ -1875,9 +1884,39 @@
     font-size: 12px;
     color: var(--faint);
   }
+  /* Playlists shortcut, anchored to the right of the player bar. */
+  .sh-player-playlists {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .sh-player-playlists:hover {
+    background: var(--hover);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .sh-player-playlists svg {
+    width: 18px;
+    height: 18px;
+  }
   @media (max-width: 760px) {
     .sh-app {
       flex-direction: column;
+    }
+    /* Icon-only on small screens to save space. */
+    .sh-player-playlists .label {
+      display: none;
+    }
+    .sh-player-playlists {
+      padding: 0 10px;
     }
     .sh-rail {
       position: sticky;
@@ -3409,18 +3448,23 @@
 @layer components {
   .sh-dx-hero {
     position: relative;
-    margin: -32px -32px 0;
+    /* Full-bleed to the viewport; the copy is kept in the centred content
+       column via the inline padding. Opaque base + isolation so the
+       screen-blend glow renders and stays behind sibling content. */
+    margin: -32px calc(50% - 50vw) 0;
+    width: 100vw;
     min-height: 500px;
-    padding: 72px 48px 0;
+    padding: 72px max(48px, calc((100vw - 1400px) / 2 + 48px)) 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     gap: 40px;
-    overflow: visible;
-    width: calc(100% + 64px);
+    overflow: hidden;
+    isolation: isolate;
+    background: rgb(var(--c-bg));
     max-width: none;
   }
-  /* Layer order: art (full-width glow, behind everything) < veil < content. */
+  /* Layer order: base < veil < art (full-width glow) < content. */
   .sh-dx-hero .veil {
     position: absolute;
     inset: 0;
@@ -3435,10 +3479,8 @@
   .sh-dx-hero .art {
     position: absolute;
     top: -140px;
-    /* Span the full viewport width and centre it so the glow reaches end to
-       end and fades out in every direction; sits behind the content and
-       lightens the page background via `screen` (no isolation → not clipped
-       to the hero box). */
+    /* Centred on the full-bleed hero and wider than the viewport, so the glow
+       reaches end to end and fades out in every direction. */
     left: 50%;
     transform: translateX(-50%);
     width: 150vw;
@@ -3446,24 +3488,24 @@
     object-fit: cover;
     object-position: center 40%;
     filter: blur(100px) saturate(1.4);
-    opacity: 0.58;
-    z-index: -1;
+    opacity: 0.6;
+    z-index: 1;
     mix-blend-mode: screen;
     pointer-events: none;
     -webkit-mask-image: radial-gradient(
-      ellipse 58% 66% at 50% 42%,
-      #000 32%,
+      ellipse 58% 70% at 50% 44%,
+      #000 30%,
       transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 58% 66% at 50% 42%,
-      #000 32%,
+      ellipse 58% 70% at 50% 44%,
+      #000 30%,
       transparent 100%
     );
   }
   .sh-dx-hero .copy {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     max-width: 720px;
     text-shadow: 0 1px 24px rgb(var(--c-bg) / 0.65);
   }
@@ -3860,13 +3902,17 @@
 @layer components {
   .sh-ax-hero {
     position: relative;
-    margin: -32px -32px 0;
-    width: calc(100% + 64px);
+    /* Full-bleed to the viewport (the content column is centred via .sh-view),
+       with an opaque base + isolation so the screen-blend glow renders
+       reliably and stays behind the sibling tracklist. */
+    margin: -32px calc(50% - 50vw) 0;
+    width: 100vw;
     padding: 40px 32px 56px;
-    overflow: visible;
+    overflow: hidden;
+    isolation: isolate;
+    background: rgb(var(--c-bg));
   }
-  /* Layer order: art (full-width glow, behind everything) < veil < content.
-     The glow sits behind the page content so it never washes the tracklist. */
+  /* Layer order: base < veil < art (full-width glow) < content. */
   .sh-ax-hero .veil {
     position: absolute;
     inset: 0;
@@ -3881,11 +3927,8 @@
   .sh-ax-hero .art {
     position: absolute;
     top: -160px;
-    /* Span the full viewport width (not the narrow, left-aligned content
-       column) and centre it, so the glow reaches end to end and fades out in
-       every direction. Sits behind the content (z-index -1) and lightens the
-       page background via `screen` — no isolation, so it isn't clipped to the
-       hero box. */
+    /* Centred on the full-bleed hero and wider than the viewport, so the glow
+       reaches end to end and fades out in every direction. */
     left: 50%;
     transform: translateX(-50%);
     width: 150vw;
@@ -3893,24 +3936,24 @@
     object-fit: cover;
     object-position: center 38%;
     filter: blur(110px) saturate(1.4);
-    opacity: 0.55;
-    z-index: -1;
+    opacity: 0.6;
+    z-index: 1;
     mix-blend-mode: screen;
     pointer-events: none;
     -webkit-mask-image: radial-gradient(
-      ellipse 58% 66% at 50% 42%,
-      #000 32%,
+      ellipse 58% 70% at 50% 44%,
+      #000 30%,
       transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 58% 66% at 50% 42%,
-      #000 32%,
+      ellipse 58% 70% at 50% 44%,
+      #000 30%,
       transparent 100%
     );
   }
   .sh-ax-col {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     width: 100%;
     max-width: 1050px;
     margin: 0 auto;
@@ -4140,8 +4183,8 @@
   }
   @media (max-width: 760px) {
     .sh-ax-hero {
-      margin: -20px -16px 0;
-      width: calc(100% + 32px);
+      margin: -20px calc(50% - 50vw) 0;
+      width: 100vw;
       padding: 20px 16px 40px;
     }
     /* Mobile album page: stack and centre everything. */
@@ -4155,8 +4198,11 @@
     .sh-ax-hero .sh-crumb {
       text-align: center;
     }
+    /* Explicit width so the cover doesn't collapse in the centred single
+       column (the grid cell no longer provides a fixed track width). */
     .sh-ax-hero .cover {
-      max-width: 220px;
+      width: min(220px, 72vw);
+      max-width: 100%;
       margin: 0 auto;
     }
     .sh-ax-hero .info {

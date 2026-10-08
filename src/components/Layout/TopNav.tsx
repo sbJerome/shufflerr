@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import useSWR from 'swr';
 
 const messages = defineMessages('components.Layout.TopNav', {
   menu: 'Menu',
@@ -159,16 +158,6 @@ const TopNav = ({ pendingCount }: TopNavProps) => {
     };
   }, [open]);
 
-  const canSeeIssues = hasPermission(
-    [Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES],
-    { type: 'or' }
-  );
-  const { data: issueCount } = useSWR<{ open: number }>(
-    canSeeIssues ? '/api/v1/issue/count' : null,
-    { refreshInterval: 60 * 1000 }
-  );
-  const openIssues = issueCount?.open ?? 0;
-
   const items: {
     key: Exclude<keyof typeof ICONS, 'menu' | 'close'>;
     href: string;
@@ -198,12 +187,6 @@ const TopNav = ({ pendingCount }: TopNavProps) => {
       active: /^\/albums?(\/|$)/,
     },
     {
-      key: 'playlists',
-      href: '/playlists',
-      label: intl.formatMessage(messages.playlists),
-      active: /^\/playlists?(\/|$)/,
-    },
-    {
       key: 'requests',
       href: '/requests',
       label: pendingCount
@@ -218,43 +201,6 @@ const TopNav = ({ pendingCount }: TopNavProps) => {
       label: intl.formatMessage(messages.import),
       active: /^\/import/,
       show: importEnabled(currentSettings),
-    },
-    {
-      key: 'users',
-      compact: true,
-      href: '/users',
-      label: intl.formatMessage(messages.users),
-      active: /^\/users/,
-      show: hasPermission(Permission.MANAGE_USERS),
-    },
-    {
-      key: 'issues',
-      compact: true,
-      href: '/issues',
-      label: openIssues
-        ? intl.formatMessage(messages.issuesopen, { count: openIssues })
-        : intl.formatMessage(messages.issues),
-      active: /^\/issues/,
-      show: hasPermission(
-        [
-          Permission.MANAGE_ISSUES,
-          Permission.VIEW_ISSUES,
-          Permission.CREATE_ISSUES,
-        ],
-        { type: 'or' }
-      ),
-      count: openIssues,
-    },
-    {
-      key: 'blocklist',
-      compact: true,
-      href: '/blocklist',
-      label: intl.formatMessage(messages.blocklist),
-      active: /^\/blocklist/,
-      show: hasPermission(
-        [Permission.MANAGE_BLOCKLIST, Permission.VIEW_BLOCKLIST],
-        { type: 'or' }
-      ),
     },
     {
       key: 'settings',
