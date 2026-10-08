@@ -7,7 +7,9 @@ import {
   mergeAlbumLibrary,
   mergeArtistLibrary,
   mergeTrackLibrary,
+  searchLibrary,
 } from '@server/lib/metadata/library';
+import { MediaStatus } from '@server/constants/media';
 import {
   mapArtist,
   mapRecording,
@@ -52,6 +54,50 @@ const typeRank = (album: AlbumResult): number => {
 };
 
 const empty = <T>(): SearchBucket<T> => ({ total: 0, results: [] });
+
+const inLibrary = (status: MediaStatus): boolean =>
+  status === MediaStatus.AVAILABLE ||
+  status === MediaStatus.PARTIALLY_AVAILABLE;
+
+/** Stable-float the in-library results of a bucket to the front. */
+const floatLibraryFirst = <T extends { status: MediaStatus }>(
+  bucket: SearchBucket<T>
+): SearchBucket<T> => {
+  const lib: T[] = [];
+  const rest: T[] = [];
+  for (const r of bucket.results) {
+    (inLibrary(r.status) ? lib : rest).push(r);
+  }
+  return { total: bucket.total, results: [...lib, ...rest] };
+};
+
+/**
+ * Put owned items first: the library matches, then the MusicBrainz results with
+ * their own in-library items floated up and anything already shown from the
+ * library removed. Trimmed to one page.
+ */
+const libraryFirst = <T extends { status: MediaStatus }>(
+  bucket: SearchBucket<T>,
+  libResults: T[],
+  key: (t: T) => string,
+  pageSize: number
+): SearchBucket<T> => {
+  const libKeys = new Set(libResults.map(key).filter(Boolean));
+  const mbDeduped = floatLibraryFirst(bucket).results.filter((r) => {
+    const k = key(r);
+    return !k || !libKeys.has(k);
+  });
+  const mbKeys = new Set(bucket.results.map(key).filter(Boolean));
+  // library matches MusicBrainz didn't return still count toward the total
+  const extra = libResults.filter((r) => {
+    const k = key(r);
+    return !k || !mbKeys.has(k);
+  }).length;
+  return {
+    total: bucket.total + extra,
+    results: [...libResults, ...mbDeduped].slice(0, pageSize),
+  };
+};
 
 export const searchMusic = async (
   options: SearchOptions
@@ -177,10 +223,53 @@ export const searchMusic = async (
       : empty<TrackResult>(),
   ]);
 
+  // Library-first: owned items come before any MusicBrainz match. On page 1 we
+  // prepend the local-library matches (deduped); on later pages we just float
+  // the in-library items to the top of the page (the library set was already
+  // surfaced up front). Non-library items keep MusicBrainz's relevance order.
+  let resultArtists = artists;
+  let resultAlbums = albums;
+  let resultTracks = tracks;
+  if (page === 1) {
+    let lib: Awaited<ReturnType<typeof searchLibrary>> = {
+      artists: [],
+      albums: [],
+      tracks: [],
+    };
+    try {
+      lib = await searchLibrary(query, type, pageSize);
+    } catch (e) {
+      // A library hiccup must never blank the MusicBrainz results.
+      logger.warn('Library search failed', {
+        label: 'Search',
+        query,
+        errorMessage: e.message,
+      });
+    }
+    if (wants('artist')) {
+      resultArtists = libraryFirst(artists, lib.artists, (a) => a.mbid, pageSize);
+    }
+    if (wants('album')) {
+      resultAlbums = libraryFirst(albums, lib.albums, (a) => a.mbid, pageSize);
+    }
+    if (wants('track')) {
+      resultTracks = libraryFirst(
+        tracks,
+        lib.tracks,
+        (t) => t.recordingMbid,
+        pageSize
+      );
+    }
+  } else {
+    resultArtists = floatLibraryFirst(artists);
+    resultAlbums = floatLibraryFirst(albums);
+    resultTracks = floatLibraryFirst(tracks);
+  }
+
   // Viewers without request visibility still see that something is requested,
   // but not by whom.
   if (!canSeeAllRequests(options.user)) {
-    for (const album of albums.results) {
+    for (const album of resultAlbums.results) {
       if (album.request && album.request.requestedBy.id !== options.user?.id) {
         album.request = {
           ...album.request,
@@ -190,8 +279,8 @@ export const searchMusic = async (
     }
   }
 
-  results.artists = artists;
-  results.albums = albums;
-  results.tracks = tracks;
+  results.artists = resultArtists;
+  results.albums = resultAlbums;
+  results.tracks = resultTracks;
   return results;
 };

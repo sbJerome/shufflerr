@@ -315,3 +315,117 @@ export const albumsFromMedia = async (
   });
   return albums;
 };
+
+export interface LibrarySearchResults {
+  artists: ArtistResult[];
+  albums: AlbumResult[];
+  tracks: TrackResult[];
+}
+
+/**
+ * Search the local library (Media/Track) for IN-LIBRARY matches, so the search
+ * endpoint can surface owned items ahead of MusicBrainz results. Each bucket is
+ * limited and ordered exact → prefix → other. Matches owned albums/tracks by
+ * title (albums also by artist name) and artists by the names of artists whose
+ * albums are in the library.
+ */
+export const searchLibrary = async (
+  query: string,
+  type: 'all' | 'artist' | 'album' | 'track',
+  limit = 20
+): Promise<LibrarySearchResults> => {
+  const q = query.trim().toLowerCase();
+  const out: LibrarySearchResults = { artists: [], albums: [], tracks: [] };
+  if (!q) {
+    return out;
+  }
+  const like = `%${q}%`;
+  const prefix = `${q}%`;
+  const wants = (t: string) => type === 'all' || type === t;
+  // exact → prefix → contains, so the closest title surfaces first.
+  const caseOrder = (col: string) =>
+    `CASE WHEN LOWER(${col}) = :exact THEN 0 WHEN LOWER(${col}) LIKE :prefix THEN 1 ELSE 2 END`;
+
+  if (wants('album')) {
+    const rows = await getRepository(Media)
+      .createQueryBuilder('m')
+      .where('m.mediaType = :t', { t: MediaType.RELEASE_GROUP })
+      .andWhere('m.status IN (:...s)', { s: IN_LIBRARY_STATUSES })
+      .andWhere(
+        '(LOWER(m.title) LIKE :like OR LOWER(m.artistName) LIKE :like)',
+        { like }
+      )
+      .orderBy(caseOrder('m.title'), 'ASC')
+      .addOrderBy('m.title', 'ASC')
+      .setParameters({ exact: q, prefix })
+      .limit(limit)
+      .getMany();
+    out.albums = await albumsFromMedia(rows);
+  }
+
+  if (wants('artist')) {
+    const rows = await getRepository(Media)
+      .createQueryBuilder('m')
+      .select('m.artistMbid', 'artistMbid')
+      .addSelect('MAX(m.artistName)', 'artistName')
+      .where('m.mediaType = :t', { t: MediaType.RELEASE_GROUP })
+      .andWhere('m.status IN (:...s)', { s: IN_LIBRARY_STATUSES })
+      .andWhere('m.artistMbid IS NOT NULL')
+      .andWhere('LOWER(m.artistName) LIKE :like', { like })
+      .groupBy('m.artistMbid')
+      .limit(limit)
+      .getRawMany<{ artistMbid: string; artistName: string }>();
+    const base: ArtistResult[] = rows
+      .filter((r) => r.artistMbid)
+      .map((r) => ({
+        mbid: r.artistMbid,
+        name: r.artistName ?? '',
+        imageUrl: null,
+        status: MediaStatus.AVAILABLE,
+      }));
+    const merged = await mergeArtistLibrary(base);
+    const rank = (name: string) => {
+      const n = (name ?? '').toLowerCase();
+      return n === q ? 0 : n.startsWith(q) ? 1 : 2;
+    };
+    out.artists = merged.sort((a, b) => rank(a.name) - rank(b.name));
+  }
+
+  if (wants('track')) {
+    const rows = await getRepository(Track)
+      .createQueryBuilder('t')
+      .leftJoinAndSelect('t.media', 'media')
+      .where('t.status = :a', { a: MediaStatus.AVAILABLE })
+      .andWhere('LOWER(t.title) LIKE :like', { like })
+      .orderBy(caseOrder('t.title'), 'ASC')
+      .addOrderBy('t.title', 'ASC')
+      .setParameters({ exact: q, prefix })
+      .limit(limit)
+      .getMany();
+    out.tracks = rows
+      .filter((row) => isTrackPlayable(row))
+      .map((row) => ({
+        recordingMbid: row.recordingMbid ?? '',
+        title: row.title,
+        artistName: row.artistCredit ?? '',
+        lengthMs: row.lengthMs ?? null,
+        ...(row.media
+          ? {
+              album: {
+                mbid: row.media.mbid,
+                title: row.media.title,
+                coverUrl: CoverArtArchive.releaseGroupFront(row.media.mbid, 250),
+                ...(yearOf(row.media.firstReleaseDate)
+                  ? { year: yearOf(row.media.firstReleaseDate) }
+                  : {}),
+              },
+            }
+          : {}),
+        status: row.status,
+        trackId: row.id,
+        playable: true,
+      }));
+  }
+
+  return out;
+};

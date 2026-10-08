@@ -6,6 +6,7 @@ import ConfirmButton from '@app/components/Common/ConfirmButton';
 import EmptyState from '@app/components/Common/EmptyState';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
+import ShareButton from '@app/components/Common/ShareButton';
 import Carousel from '@app/components/Discover/Carousel';
 import ManageSlideOver from '@app/components/ManageSlideOver';
 import RequestButton from '@app/components/RequestButton';
@@ -314,6 +315,7 @@ const ArtistDetails = () => {
                 {intl.formatMessage(messages.manage)}
               </Button>
             )}
+            <ShareButton title={artist.name} className="sh-icon-btn" />
           </div>
           {!!artist.tags?.length && (
             <div className="tags">
