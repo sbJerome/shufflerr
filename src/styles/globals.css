@@ -64,10 +64,10 @@
   color-scheme: dark;
 }
 
-/* The hero cover-art glow uses a `screen` blend that blows out to white on a
-   light background; hide it in light mode until a light-theme treatment is
-   designed, so the heroes render cleanly. */
-:root[data-theme='light'] .sh-dx-hero .art,
+/* The album hero's cover-art glow uses a `screen` blend that blows out to white
+   on a light background; hide it in light mode until a light-theme treatment is
+   designed. (The Discover featured art is shown with a normal blend, so it stays
+   visible in light mode.) */
 :root[data-theme='light'] .sh-ax-hero .art {
   display: none;
 }
@@ -3561,29 +3561,29 @@
   .sh-dx-hero .veil {
     position: absolute;
     inset: 0;
-    z-index: 0;
+    z-index: 1;
     background: linear-gradient(
       180deg,
       transparent 60%,
-      rgb(var(--c-bg) / 0.6) 85%,
+      rgb(var(--c-bg) / 0.6) 96%,
       rgb(var(--c-bg)) 100%
     );
   }
   .sh-dx-hero .art {
     position: absolute;
     top: -140px;
-    /* Centred on the full-bleed hero and wider than the viewport, so the glow
-       reaches end to end and fades out in every direction. */
+    /* Centred on the full-bleed hero and wider than the viewport. Shown sharp
+       (no blur/blend) as the featured cover art, with the veil fading its
+       bottom; visible in both themes. */
     left: 50%;
     transform: translateX(-50%);
     width: 150vw;
     height: calc(100% + 520px);
     object-fit: cover;
     object-position: center 40%;
-    filter: blur(100px) saturate(1.4);
+    filter: blur(0px) saturate(1.3) contrast(1.1);
     opacity: 0.6;
     z-index: 1;
-    mix-blend-mode: screen;
     pointer-events: none;
     -webkit-mask-image: radial-gradient(
       ellipse 58% 70% at 50% 44%,

@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.45 — 2026-10-08
+
+- **Featured release changes now.** The Discover featured album rotates instead of always showing
+  the same one.
+- **Sharp featured cover.** The featured hero shows the actual cover art (crisp, punchier) instead
+  of a blur, fading into the page at the bottom — and it shows in light mode too.
+
 ## v0.1.44 — 2026-10-08
 
 - **Close or minimize the YouTube player.** The pop-up YouTube player now has a close button (stops

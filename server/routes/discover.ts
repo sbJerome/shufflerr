@@ -181,10 +181,13 @@ router.get<never, DiscoverFeaturedResponse>(
       let album: DiscoverFeaturedResponse['album'] = null;
 
       if (canSeeRecent) {
-        const recent = await recentlyAddedMedia(12);
-        const pick =
-          recent.find((m) => m.status === MediaStatus.PARTIALLY_AVAILABLE) ??
-          recent[0];
+        // Rotate the featured release: pick a random album from the recently
+        // added pool so it changes between visits instead of always showing the
+        // same one.
+        const recent = await recentlyAddedMedia(30);
+        const pick = recent.length
+          ? recent[Math.floor(Math.random() * recent.length)]
+          : undefined;
         if (pick) {
           const [withRequest] = await albumsFromMedia([pick]);
           const images = pick.artistMbid
