@@ -6,6 +6,7 @@ import EmptyState from '@app/components/Common/EmptyState';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
 import ProgressBar from '@app/components/Common/ProgressBar';
+import ShareButton from '@app/components/Common/ShareButton';
 import CoverArt from '@app/components/CoverArt';
 import IssueModal from '@app/components/IssueModal';
 import ManageSlideOver from '@app/components/ManageSlideOver';
@@ -413,6 +414,7 @@ const AlbumDetails = () => {
               )}
             </div>
             <div className="tools">
+              <ShareButton title={album.title} />
               {canReport && (
                 <button
                   type="button"

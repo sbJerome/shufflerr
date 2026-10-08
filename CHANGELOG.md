@@ -6,6 +6,19 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.40] - 2026-10-07
+
+### Added
+
+- **Search now puts your library first.** Search queries the local library before anything else
+  and lists owned artists/albums/tracks ahead of all MusicBrainz results (e.g. searching an album
+  you own shows your copy first). On page 1 the owned matches are prepended (deduped); later pages
+  float any in-library items to the top. Non-library results keep MusicBrainz's relevance order so
+  the list stays current. (New `searchLibrary` helper + library-first merge in `searchMusic`.)
+- **Share button on album and artist pages.** A share control copies the direct link to the page
+  (and uses the native share sheet where available), so album/artist pages can be shared. Includes
+  a legacy clipboard fallback so it also works on insecure (http) origins.
+
 ## [0.1.39] - 2026-10-07
 
 ### Changed

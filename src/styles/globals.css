@@ -4280,6 +4280,19 @@
     gap: 10px;
     margin-top: 10px;
   }
+  /* Share icon button on the artist hero sits on a dark photo, so match the
+     hero's light text rather than the default muted grey. */
+  .sh-rx-hero .cta .sh-icon-btn {
+    color: #e9eef4;
+  }
+  .sh-rx-hero .cta .sh-icon-btn:hover {
+    background: rgb(255 255 255 / 0.14);
+    color: #fff;
+  }
+  .sh-rx-hero .cta .sh-icon-btn svg {
+    width: 20px;
+    height: 20px;
+  }
   .sh-rx-hero .tags {
     display: flex;
     flex-wrap: wrap;

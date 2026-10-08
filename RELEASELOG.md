@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.40 — 2026-10-07
+
+- **Library-first search.** Search now shows the artists, albums and tracks you already own at the
+  top, ahead of everything else; the rest stay ordered by relevance so results stay current.
+- **Share links.** Album and artist pages have a share button that copies (or shares) a direct
+  link to the page.
+
 ## v0.1.39 — 2026-10-07
 
 - **Hero glow, refined.** The blurred cover now glows as a soft, dimmer aura that spreads all the
