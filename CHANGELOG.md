@@ -6,6 +6,25 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.50] - 2026-10-08
+
+### Fixed
+
+- **A single-track request no longer downloads the whole album.** When direct grab
+  is enabled, a `tracks`-scope request no longer kicks off Lidarr's own whole-album
+  search (which made Lidarr grab a full release and Completed Download Handling
+  import every track). The verifier now owns release selection for that album and
+  imports only the requested recordings (track-scoped manual import). With direct
+  grab off, behavior is unchanged (there is no scoped-import path without it).
+
+### Added
+
+- **"Just this song" request option.** Clicking Request on a single track opens the
+  modal pre-set to a dedicated, locked "Just this song" choice — distinct from
+  "Pick the tracks" (which still lets you choose among the missing tracks) — so a
+  one-song request is unambiguous and the pick can't be dropped by interacting
+  elsewhere in the modal.
+
 ## [0.1.49] - 2026-10-08
 
 ### Added

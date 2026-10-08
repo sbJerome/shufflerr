@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.50 — 2026-10-08
+
+- **Request a single song and get only that song.** Requesting one track now
+  downloads just that track instead of the whole album (needs direct grab on), and
+  the request modal has a clear, locked "Just this song" option when you request
+  from a track.
+
 ## v0.1.49 — 2026-10-08
 
 - **Direct-grab supports Deluge.** The verifier can now submit torrents straight to Deluge (not just
