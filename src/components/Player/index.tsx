@@ -27,8 +27,8 @@ const messages = defineMessages('components.Player', {
   playlists: 'Playlists',
   nothing: 'Nothing playing. Pick a track from your library to start.',
   ytlabel: 'YouTube',
-  ytminimize: 'Minimize video (pauses it)',
-  ytexpand: 'Show video',
+  ytminimize: 'Shrink video',
+  ytexpand: 'Expand video',
   ytclose: 'Close video',
   streamingfrom: 'Streaming from {source}',
   playingon: 'Playing on YouTube',
@@ -60,8 +60,6 @@ const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
     position,
     duration,
     toggle,
-    play,
-    pause,
     stop,
     next,
     prev,
@@ -126,15 +124,7 @@ const Player = ({ scrobbleTargets = [] }: PlayerProps) => {
               title={intl.formatMessage(
                 ytMinimized ? messages.ytexpand : messages.ytminimize
               )}
-              onClick={() => {
-                if (ytMinimized) {
-                  setYtMinimized(false);
-                  play();
-                } else {
-                  pause();
-                  setYtMinimized(true);
-                }
-              }}
+              onClick={() => setYtMinimized((v) => !v)}
             >
               {ytMinimized ? (
                 <ChevronUpIcon aria-hidden="true" />

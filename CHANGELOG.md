@@ -6,6 +6,18 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.46] - 2026-10-08
+
+### Changed
+
+- **Minimizing the YouTube player keeps it playing.** Minimize now shrinks it to a compact corner
+  player (the video stays rendered, so audio keeps going) instead of pausing/hiding it.
+- **Artist discography is now a tile grid.** On the artist page the discography shows album tiles
+  like the Albums page (filter chips + paging kept) instead of a list. For any release not fully in
+  the library, hovering (or focusing) a tile reveals a Request / Fill-gaps button over the cover.
+- **Album page hero:** `.sh-ax-hero .veil` raised to `z-index: 1`, and the hero background art is
+  now visible in light mode (shown with a normal blend instead of hidden).
+
 ## [0.1.45] - 2026-10-08
 
 ### Changed

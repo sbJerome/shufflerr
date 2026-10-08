@@ -19,6 +19,8 @@ export interface AlbumCardProps {
   action?: React.ReactNode;
   /** Replaces the default "artist, year" line. */
   meta?: React.ReactNode;
+  /** Revealed over the cover on hover/focus (e.g. a Request button). */
+  overlay?: React.ReactNode;
 }
 
 const AlbumCard = ({
@@ -31,6 +33,7 @@ const AlbumCard = ({
   href,
   action,
   meta,
+  overlay,
 }: AlbumCardProps) => {
   const link = href ?? `/album/${mbid}`;
   const sub = [artistName, year?.slice(0, 4)].filter(Boolean).join(', ');
@@ -49,6 +52,7 @@ const AlbumCard = ({
           decorative
         />
       </Link>
+      {overlay ? <div className="sh-card-ov">{overlay}</div> : null}
       <div className="min-w-0">
         <Link href={link} className="t block" title={title}>
           {title}

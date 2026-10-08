@@ -3,6 +3,13 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.46 — 2026-10-08
+
+- **YouTube minimize keeps playing.** Shrinking the YouTube player no longer stops the music.
+- **Discography as tiles.** The artist page shows the discography as album tiles like the Albums
+  page; hovering a tile that isn't in your library reveals a request button.
+- **Album page:** the background art now shows in light mode too.
+
 ## v0.1.45 — 2026-10-08
 
 - **Featured release changes now.** The Discover featured album rotates instead of always showing

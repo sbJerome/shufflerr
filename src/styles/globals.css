@@ -64,12 +64,11 @@
   color-scheme: dark;
 }
 
-/* The album hero's cover-art glow uses a `screen` blend that blows out to white
-   on a light background; hide it in light mode until a light-theme treatment is
-   designed. (The Discover featured art is shown with a normal blend, so it stays
-   visible in light mode.) */
+/* In light mode the hero art's `screen` blend would blow out to white, so show
+   it with a normal blend instead (a soft blurred tint) rather than hiding it. */
+:root[data-theme='light'] .sh-dx-hero .art,
 :root[data-theme='light'] .sh-ax-hero .art {
-  display: none;
+  mix-blend-mode: normal;
 }
 
 :root,
@@ -1199,10 +1198,39 @@
     gap: 24px 20px;
   }
   .sh-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 10px;
     min-width: 0;
+  }
+  /* Hover-reveal action over the cover (e.g. a Request button on discography
+     tiles for items not in the library). */
+  .sh-card-ov {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    border-radius: 8px;
+    background: rgb(5 7 11 / 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  @media (hover: hover) {
+    .sh-card:hover .sh-card-ov {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+  .sh-card:focus-within .sh-card-ov {
+    opacity: 1;
+    pointer-events: auto;
   }
   .sh-card .t {
     font-weight: 600;
@@ -3322,11 +3350,11 @@
     width: 18px;
     height: 18px;
   }
-  /* Minimized: collapse to just the header bar (video is paused). */
+  /* Minimized: shrink to a compact corner player. The video stays rendered
+     (just smaller) so playback keeps going — only the caption is hidden. */
   .sh-yt.min {
-    width: auto;
+    width: 200px;
   }
-  .sh-yt.min .frame,
   .sh-yt.min .cap {
     display: none;
   }
@@ -4009,7 +4037,7 @@
   .sh-ax-hero .veil {
     position: absolute;
     inset: 0;
-    z-index: 0;
+    z-index: 1;
     background: linear-gradient(
       180deg,
       transparent 55%,
