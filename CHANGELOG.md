@@ -6,6 +6,15 @@ All notable changes to Shufflerr are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.49] - 2026-10-08
+
+### Added
+
+- **Verifier direct-grab now supports Deluge (sidecar 0.1.9).** Direct submission previously only
+  implemented SABnzbd and qBittorrent; a torrent whose download client is Deluge now submits via
+  Deluge's Web JSON-RPC (`auth.login` → `core.add_torrent_url`), with a best-effort label so Lidarr
+  tracks the download. (NZBGet is still not implemented.)
+
 ## [0.1.48] - 2026-10-08
 
 ### Fixed

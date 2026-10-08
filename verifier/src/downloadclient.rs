@@ -11,7 +11,7 @@
 use anyhow::{anyhow, Context, Result};
 use reqwest::Client;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 /// One configured Lidarr download client. `fields` is kept raw so we can read
 /// implementation-specific settings by name without a rigid schema.
@@ -111,6 +111,10 @@ impl DownloadClient {
         self.implementation.to_ascii_lowercase().contains("qbit")
     }
 
+    pub fn is_deluge(&self) -> bool {
+        self.implementation.to_ascii_lowercase().contains("deluge")
+    }
+
     /// Submit a release's download URL straight to this client. Returns the
     /// client-assigned id(s) (nzo_id / torrent hash) to map back to the album.
     pub async fn submit(&self, http: &Client, download_url: &str) -> Result<Vec<String>> {
@@ -120,11 +124,80 @@ impl DownloadClient {
             self.submit_qbittorrent(http, download_url)
                 .await
                 .map(|h| vec![h])
+        } else if self.is_deluge() {
+            self.submit_deluge(http, download_url).await.map(|h| vec![h])
         } else {
             Err(anyhow!(
                 "unsupported download client implementation for direct submit"
             ))
         }
+    }
+
+    /// Submit a torrent URL to Deluge via its Web JSON-RPC (`/json`): log in with
+    /// the password, add the URL, and best-effort apply the music label so Lidarr
+    /// tracks the download. Returns the torrent hash (Lidarr's queue downloadId).
+    async fn submit_deluge(&self, http: &Client, download_url: &str) -> Result<String> {
+        let json_url = format!("{}/json", self.base_url()?);
+        let password = self.field_str("password").unwrap_or_default();
+
+        // 1) auth.login -> capture the _session_id cookie.
+        let login = http
+            .post(&json_url)
+            .json(&json!({ "method": "auth.login", "params": [password], "id": 1 }))
+            .send()
+            .await
+            .context("Deluge login failed")?;
+        let cookie = login
+            .headers()
+            .get(reqwest::header::SET_COOKIE)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|c| c.split(';').next())
+            .map(|s| s.to_string());
+
+        // 2) core.add_torrent_url -> returns the torrent id (hash).
+        let mut add = http.post(&json_url).json(&json!({
+            "method": "core.add_torrent_url",
+            "params": [download_url, {}],
+            "id": 2
+        }));
+        if let Some(c) = &cookie {
+            add = add.header(reqwest::header::COOKIE, c);
+        }
+        // SECURITY: errors are built from the HTTP status only — never the reqwest
+        // error or the body, which carry the indexer-keyed URL and release name.
+        let resp = add.send().await.map_err(|e| {
+            anyhow!(
+                "Deluge add failed (timeout={}, connect={})",
+                e.is_timeout(),
+                e.is_connect()
+            )
+        })?;
+        let status = resp.status();
+        if !status.is_success() {
+            return Err(anyhow!("Deluge add HTTP {}", status.as_u16()));
+        }
+        let body: Value = resp.json().await.context("parsing Deluge add response")?;
+        let hash = body
+            .get("result")
+            .and_then(|r| r.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| anyhow!("Deluge did not report a torrent hash"))?;
+
+        // 3) best-effort: apply the music label so Lidarr picks the download up
+        // (the Label plugin may be disabled — ignore failures).
+        let cat = self.category();
+        if !cat.is_empty() {
+            let mut lbl = http.post(&json_url).json(&json!({
+                "method": "label.set_torrent",
+                "params": [hash, cat],
+                "id": 3
+            }));
+            if let Some(c) = &cookie {
+                lbl = lbl.header(reqwest::header::COOKIE, c);
+            }
+            let _ = lbl.send().await;
+        }
+        Ok(hash)
     }
 
     async fn submit_sabnzbd(&self, http: &Client, download_url: &str) -> Result<Vec<String>> {
