@@ -4348,9 +4348,11 @@
 @layer components {
   .sh-rx-hero {
     position: relative;
-    margin: -32px -32px 0;
-    width: calc(100% + 64px);
-    padding: 24px 32px 28px;
+    /* Full-bleed to the viewport (like the Discover hero); content stays in the
+       centred column via the inline padding. */
+    margin: -32px calc(50% - 50vw) 0;
+    width: 100vw;
+    padding: 24px max(32px, calc((100vw - 1400px) / 2 + 32px)) 28px;
     min-height: 620px;
     display: flex;
     flex-direction: column;
@@ -4359,6 +4361,9 @@
     isolation: isolate;
     background: #000;
   }
+  /* Full-width photo, centred, with a slow Ken Burns zoom/pan. The black sides
+     come from the veil (which doesn't move), so they stay rock-steady while the
+     photo drifts. */
   .sh-rx-hero .art {
     position: absolute;
     inset: 0;
@@ -4366,6 +4371,8 @@
     height: 100%;
     object-fit: cover;
     object-position: center 22%;
+    transform-origin: center;
+    animation: sh-kenburns 32s ease-in-out infinite alternate;
     z-index: -2;
   }
   .sh-rx-hero .veil {
@@ -4373,18 +4380,42 @@
     inset: 0;
     z-index: -1;
     background:
+      /* completely black sides */
+      linear-gradient(
+        90deg,
+        #000 0%,
+        transparent 20%,
+        transparent 80%,
+        #000 100%
+      ),
+      /* black vignette + top/bottom darkening, bottom blends into the page */
       radial-gradient(
-        ellipse at 50% 38%,
-        rgb(0 0 0 / 0.25) 0%,
-        rgb(0 0 0 / 0.62) 70%
+        ellipse 80% 70% at 50% 40%,
+        transparent 0%,
+        rgb(0 0 0 / 0.35) 75%,
+        #000 100%
       ),
       linear-gradient(
         180deg,
-        rgb(0 0 0 / 0.35) 0%,
-        transparent 30%,
-        rgb(var(--c-bg) / 0.75) 78%,
+        rgb(0 0 0 / 0.4) 0%,
+        transparent 28%,
+        rgb(0 0 0 / 0.72) 80%,
         rgb(var(--c-bg)) 100%
       );
+  }
+  @keyframes sh-kenburns {
+    from {
+      transform: scale(1.05) translate(0, 0);
+    }
+    to {
+      transform: scale(1.18) translate(-1.5%, -2%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sh-rx-hero .art {
+      animation: none;
+      transform: scale(1.05);
+    }
   }
   /* The hero always sits on a dark photo, in both themes. */
   .sh-rx-hero,
@@ -4753,24 +4784,35 @@
   }
   .sh-rx-hero .veil {
     background:
-      radial-gradient(
-        ellipse at 50% 42%,
-        rgb(0 0 0 / 0.1) 0%,
-        rgb(0 0 0 / 0.5) 75%
+      /* completely black sides */
+      linear-gradient(
+        90deg,
+        #000 0%,
+        transparent 20%,
+        transparent 80%,
+        #000 100%
       ),
+      /* black vignette */
+      radial-gradient(
+        ellipse 78% 68% at 50% 42%,
+        transparent 0%,
+        rgb(0 0 0 / 0.35) 72%,
+        #000 100%
+      ),
+      /* top/bottom darkening; bottom blends into the page */
       linear-gradient(
         180deg,
         rgb(0 0 0 / 0.4) 0%,
-        transparent 22%,
-        transparent 55%,
-        rgb(var(--c-bg) / 0.8) 85%,
+        transparent 24%,
+        transparent 52%,
+        rgb(0 0 0 / 0.78) 82%,
         rgb(var(--c-bg)) 100%
       );
   }
   .sh-rx-hero .sh-crumb {
     position: absolute;
     top: 20px;
-    left: 32px;
+    left: max(32px, calc((100vw - 1400px) / 2 + 32px));
   }
   .sh-rx-hero .copy {
     flex: 1;
