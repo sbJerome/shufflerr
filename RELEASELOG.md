@@ -3,6 +3,12 @@
 Plain-language notes per release, newest first. Technical detail is in
 [CHANGELOG.md](CHANGELOG.md); build-phase notes are in [CHANGES.md](CHANGES.md).
 
+## v0.1.51 — 2026-10-08
+
+- **Fewer good albums rejected.** Loosened the verifier's transcode-detection and
+  per-release coverage thresholds so albums that only have slightly band-limited or
+  marginal releases import instead of endlessly re-grabbing and getting blocklisted.
+
 ## v0.1.50 — 2026-10-08
 
 - **Request a single song and get only that song.** Requesting one track now
